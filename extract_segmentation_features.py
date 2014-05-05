@@ -138,7 +138,7 @@ class HeadedParentedTree(ParentedTree):
 
                 # Otherwise, look right to left for NN, NNP, NNPS, NNS, NX, POS, or JJR.
                 if head_index is None:
-                    head_index = self._search_children(["NN", "NNP", "NNPS", "NNS"],
+                    head_index = self._search_children(["NN", "NNP", "NNPS", "NNS", "NX", "POS", "JJR"],
                                                        "R")
 
                 # Otherwise, search left to right for NP.
