@@ -58,6 +58,9 @@ def convert_ptb_tree(t):
         label = subtree.label()
         if '-' in label and label[0] != '-':
             subtree.set_label(label[:label.index('-')])
+        label = subtree.label()
+        if '=' in label and label[0] != '=':
+            subtree.set_label(label[:label.index('=')])
 
 
 def extract_converted_terminals(tree):
