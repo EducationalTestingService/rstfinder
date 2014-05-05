@@ -13,6 +13,12 @@ from nltk.tree import ParentedTree
 
 
 class HeadedParentedTree(ParentedTree):
+    '''
+    A subclass of nltk.tree.ParentedTree
+    that also returns heads using head rules from Michael Collins's
+    1999 thesis, Appendix A.  See the head() function.
+    '''
+
     start_points = {"ADJP": "L",
                     "ADVP": "R",
                     "CONJP": "R",
