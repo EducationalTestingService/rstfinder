@@ -42,8 +42,7 @@ file_mapping = {'file1.edus': 'wsj_0764.out.edus',
                 'file5.edus': 'wsj_2172.out.edus',}
 
 def convert_ptb_tree(t):
-    # remove traces, etc.
-
+    # Remove traces, etc.
     for subtree in [x for x in
                     t.subtrees(filter=lambda x: x.label() == '-NONE-')]:
         curtree = subtree
@@ -51,6 +50,14 @@ def convert_ptb_tree(t):
             parent = curtree.parent()
             parent.remove(curtree)
             curtree = parent
+
+    # Remove suffixes that don't appear in typical parser output
+    # (e.g., "-SBJ-1" in "NP-SBJ-1").
+    # Leave labels starting with "-" as is (e.g., "-LRB-").
+    for subtree in t.subtrees():
+        label = subtree.label()
+        if '-' in label and label[0] != '-':
+            subtree.set_label(label[:label.index('-')])
 
 
 def extract_converted_terminals(tree):
