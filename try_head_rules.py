@@ -1,10 +1,22 @@
 #!/usr/bin/env python
 
+'''
+A simple script for testing out head rules on a PTB file.
+'''
+
 import argparse
 import re
 
 from extract_segmentation_features import HeadedParentedTree
 from convert_rst_discourse_tb import convert_ptb_tree
+
+def depth(t):
+    res = 0
+    parent = t
+    while parent.parent() is not None:
+        parent = parent.parent()
+        res += 1
+    return res
 
 
 def main():
@@ -21,7 +33,7 @@ def main():
             convert_ptb_tree(t)
             print("\n\n{}".format(t.pprint()))
             for subtree in t.subtrees():
-                print("{}\t{}".format(subtree.label(), subtree.head_word()))
+                print("{}{}\t{}".format(' '.join(['' for x in range(depth(subtree))]), subtree.label(), subtree.head_word()))
 
 if __name__ == '__main__':
     main()
