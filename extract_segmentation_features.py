@@ -5,6 +5,9 @@ A discourse segmenter following the Base model from this paper:
 Ngo Xuan Bach, Nguyen Le Minh, Akira Shimazu. 2012.
 A Reranking Model for Discourse Segmentation using Subtree Features.
 SIGDIAL. http://aclweb.org/anthology//W/W12/W12-1623.pdf.
+
+The output can be fed into CRF++ to train a model
+with tune_segmentation_model.py.
 '''
 
 import argparse
@@ -248,13 +251,13 @@ def find_first_common_ancestor(n1, n2):
 def parse_node_features(nodes):
     for node in nodes:
         if node is None:
-            yield ''
-            yield ''
+            yield '*NULL*'
+            yield '*NULL*'
             continue
 
         node_head_preterminal = node.head_preterminal()
-        yield '{}({})'.format(node.label(), node_head_preterminal[0].lower()) if node else ''
-        yield '{}({})'.format(node.label(), node_head_preterminal.label()) if node else ''
+        yield '{}({})'.format(node.label(), node_head_preterminal[0].lower()) if node else '*NULL*'
+        yield '{}({})'.format(node.label(), node_head_preterminal.label()) if node else '*NULL*'
 
 
 def extract_segmentation_features(doc_dict):
@@ -322,7 +325,7 @@ def main():
             for feat_list, label in zip(feat_lists, labels):
                 print('\t'.join(feat_list + [label]), file=outfile)
 
-            print(''.join(['\t' for x in range(len(feat_lists[0]) + 1)]), file=outfile)
+            print('\t'.join(['' for x in range(len(feat_lists[0]) + 1)]), file=outfile)
 
 
 
