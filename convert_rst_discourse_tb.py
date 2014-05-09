@@ -29,61 +29,19 @@ import re
 import sys
 import json
 import argparse
-#import warnings
+# import warnings
 
-#from pyparsing import OneOrMore, nestedExpr
+# from pyparsing import OneOrMore, nestedExpr
 from nltk.tree import ParentedTree
+from tree_util import (convert_ptb_tree, extract_preterminals,
+                       extract_converted_terminals)
 
 # file mapping from the RSTDTB documentation
 file_mapping = {'file1.edus': 'wsj_0764.out.edus',
                 'file2.edus': 'wsj_0430.out.edus',
                 'file3.edus': 'wsj_0766.out.edus',
                 'file4.edus': 'wsj_0778.out.edus',
-                'file5.edus': 'wsj_2172.out.edus',}
-
-def convert_ptb_tree(t):
-    # Remove traces, etc.
-    for subtree in [x for x in
-                    t.subtrees(filter=lambda x: x.label() == '-NONE-')]:
-        curtree = subtree
-        while curtree.label() == '-NONE-' or len(curtree) == 0:
-            parent = curtree.parent()
-            parent.remove(curtree)
-            curtree = parent
-
-    # Remove suffixes that don't appear in typical parser output
-    # (e.g., "-SBJ-1" in "NP-SBJ-1").
-    # Leave labels starting with "-" as is (e.g., "-LRB-").
-    for subtree in t.subtrees():
-        label = subtree.label()
-        if '-' in label and label[0] != '-':
-            subtree.set_label(label[:label.index('-')])
-        label = subtree.label()
-        if '=' in label and label[0] != '=':
-            subtree.set_label(label[:label.index('=')])
-
-
-def extract_converted_terminals(tree):
-    res = []
-    prev_w = ""
-    for w in tree.leaves():
-        if prev_w and prev_w == "U.S." and w == ".":
-            continue
-        if w == '-LCB-':
-            w = '{'
-        elif w == '-RCB-':
-            w = '}'
-        elif w == '-LRB-':
-            w = '('
-        elif w == '-RRB-':
-            w = ')'
-        elif w == '``' or w == "''":
-            w = '"'
-
-        w = re.sub(r'\\', r'', w)
-        prev_w = w
-        res.append(w)
-    return res
+                'file5.edus': 'wsj_2172.out.edus'}
 
 
 def main():
@@ -92,7 +50,7 @@ def main():
     parser.add_argument('ptb_dir', help='directory for the Penn Treebank.  This should have a subdirectory parsed/mrg/wsj.')
     args = parser.parse_args()
 
-    #rst_discourse_tb_dir = '/Users/mheilman/corpora/rst_discourse_treebank'
+    # rst_discourse_tb_dir = '/Users/mheilman/corpora/rst_discourse_treebank'
     output_dir = '.'
     outputs = []
 
@@ -121,9 +79,9 @@ def main():
                 edus = [line.strip() for line in f.readlines()]
             path_dis = "{}.dis".format(path[:-5])
             with open(path_dis) as f:
-                #warnings.filterwarnings("ignore", category=DeprecationWarning)
-                #rst_tree = OneOrMore(nestedExpr()).parseString(f.read().strip()).asList()
-                #warnings.filterwarnings("always", category=DeprecationWarning)
+                # warnings.filterwarnings("ignore", category=DeprecationWarning)
+                # rst_tree = OneOrMore(nestedExpr()).parseString(f.read().strip()).asList()
+                # warnings.filterwarnings("always", category=DeprecationWarning)
                 rst_tree = f.read().strip()
 
             edu_index = -1
@@ -134,9 +92,7 @@ def main():
             tree = trees[0]
             tokens_doc = [extract_converted_terminals(tree) for tree in trees]
             tokens = tokens_doc[0]
-            preterminals = [[node for node in tree.subtrees()
-                             if isinstance(node[0], str)]
-                            for tree in trees]
+            preterminals = [extract_preterminals(tree) for tree in trees]
 
             while edu_index < len(edus) - 1:
                 # if we are out of tokens for the sentence we are working
