@@ -32,7 +32,8 @@ def main():
             for feat_list, label in zip(feat_lists, labels):
                 print('\t'.join(feat_list + [label]), file=outfile)
 
-            print('\t'.join(['' for x in range(len(feat_lists[0]) + 1)]), file=outfile)
+            print('\t'.join(['' for x in range(len(feat_lists[0]) + 1)]),
+                  file=outfile)
 
 
 if __name__ == '__main__':

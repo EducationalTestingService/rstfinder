@@ -23,9 +23,14 @@ def extract_segmentation_features(doc_dict):
     labels = []
     feat_lists = []
     edu_starts = {(x[0], x[1]) for x in doc_dict['edu_start_indices']}
-    for sent_num, (sent_tokens, tree_str, sent_tree_positions, pos_tags) in enumerate(zip(doc_dict['tokens'], doc_dict['syntax_trees'], doc_dict['token_tree_positions'], doc_dict['pos_tags'])):
+    for sent_num, (sent_tokens, tree_str, sent_tree_positions, pos_tags) \
+            in enumerate(zip(doc_dict['tokens'],
+                             doc_dict['syntax_trees'],
+                             doc_dict['token_tree_positions'],
+                             doc_dict['pos_tags'])):
         tree = HeadedParentedTree(tree_str)
-        for token_num, (token, tree_position, pos_tag) in enumerate(zip(sent_tokens, sent_tree_positions, pos_tags)):
+        for token_num, (token, tree_position, pos_tag) \
+                in enumerate(zip(sent_tokens, sent_tree_positions, pos_tags)):
             feats = []
             label = 'B-EDU' if (sent_num, token_num) in edu_starts else 'C-EDU'
 
@@ -50,12 +55,15 @@ def extract_segmentation_features(doc_dict):
                 node_p_parent = node_p.parent()
                 node_p_right_sibling = node_p.right_sibling()
 
-
             # now make the list of features
             feats.append(token.lower())
             feats.append(pos_tag)
             feats.append('B-SENT' if token_num == 0 else 'C-SENT')
-            feats.extend(parse_node_features([node_p, ancestor_w, ancestor_r, node_p_parent, node_p_right_sibling]))
+            feats.extend(parse_node_features([node_p,
+                                              ancestor_w,
+                                              ancestor_r,
+                                              node_p_parent,
+                                              node_p_right_sibling]))
 
             feat_lists.append(feats)
             labels.append(label)

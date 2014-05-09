@@ -157,7 +157,7 @@ class HeadedParentedTree(ParentedTree):
                 if head_index is None:
                     head_index = num_children - 1
 
-            else: # typical cases
+            else:  # typical cases
                 start_point = self.start_points[self.label()]
 
                 # Try looking for each symbol in the priority list.
