@@ -1,23 +1,59 @@
 #!/usr/bin/env python3
 
-import argparse
-import json
+'''
+A script for segmenting a document based on a CRF discourse segmentation model
+created by tune_segmentation_model.py.
 
-from nltk.tree import ParentedTree
+This is more an example to be adapted than something that would be practical
+since discourse segmentation is an intermediate step that should probably
+happen within the code for a discourse parser.
+'''
+
+import argparse
+from tempfile import NamedTemporaryFile
+import shlex
+import subprocess
 
 from discourse_segmentation import extract_segmentation_features
-from tree_util import HeadedParentedTree
-from tree_util import (find_first_common_ancestor, extract_preterminals,
+from tree_util import (extract_preterminals,
                        extract_converted_terminals)
 from parse_util import parse_document
 
 
 def segment_document(doc_dict, model_path):
-    # TODO extract features
-    # TODO call crf_test (via a subprocess for now) to predict EDU start tokens
-    # TODO process crf_test output into a list of tuples
+    # extract features
+    # TODO interact with crf++ via cython, etc.?
+    tmpfile = NamedTemporaryFile('w')
+    feat_lists, _ = extract_segmentation_features(doc_dict)
+    for feat_list in feat_lists:
+        print('\t'.join(feat_list + ["?"]), file=tmpfile)
+    tmpfile.flush()
 
-    edu_start_indices = [(x, 0, 0) for x in range(len(doc_dict['tokens']))]  # TODO replace this placeholder line
+    # get predictions from the CRF++ model
+    crf_output = subprocess.check_output(shlex.split('crf_test -m {} {}'.format(model_path, tmpfile.name))).decode('utf-8').strip()
+    tmpfile.close()
+
+    # an index into the list of tokens for this document indicating where the
+    # current sentence started
+    sent_start_index = 0
+
+    # an index into the list of sentences
+    sent_num = 0
+
+    edu_number = 0
+
+    # construct the set of EDU start index tuples (sentence number, token number, EDU number)
+    edu_start_indices = []
+    all_tokens = doc_dict['tokens']
+    cur_sent = all_tokens[0]
+    for i, line in enumerate(crf_output.split('\n')):
+        if i >= sent_start_index + len(cur_sent):
+            sent_start_index += len(cur_sent)
+            sent_num += 1
+            cur_sent = all_tokens[sent_num] if sent_num < len(all_tokens) else None
+        if line.split()[-1] == "B-EDU":
+            edu_start_indices.append((sent_num, i - sent_start_index, edu_number))
+            edu_number += 1
 
     # check that all sentences are covered by the output list of EDUs
     assert set(range(len(doc_dict['tokens']))) == {x[0] for x

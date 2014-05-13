@@ -72,8 +72,8 @@ def main():
                 trees = [ParentedTree('( ({}'.format(x)) for x
                          in re.split(r'\(\s*\(', doc) if x]
 
-            for tree in trees:
-                convert_ptb_tree(tree)
+            for t in trees:
+                convert_ptb_tree(t)
 
             with open(path) as f:
                 edus = [line.strip() for line in f.readlines()]
@@ -90,9 +90,9 @@ def main():
 
             edu = ""
             tree = trees[0]
-            tokens_doc = [extract_converted_terminals(tree) for tree in trees]
+            tokens_doc = [extract_converted_terminals(t) for t in trees]
             tokens = tokens_doc[0]
-            preterminals = [extract_preterminals(tree) for tree in trees]
+            preterminals = [extract_preterminals(t) for t in trees]
 
             while edu_index < len(edus) - 1:
                 # if we are out of tokens for the sentence we are working
@@ -119,8 +119,8 @@ def main():
 
                     # annoying edge cases
                     if (path_basename == 'wsj_0660.out.edus'
-                        or path_basename == 'wsj_1368.out.edus'
-                        or path_basename == "wsj_1371.out.edus"):
+                            or path_basename == 'wsj_1368.out.edus'
+                            or path_basename == "wsj_1371.out.edus"):
                         edu = edu.replace('S.p. A.', 'S.p.A.')
                     elif path_basename == 'wsj_1329.out.edus':
                         edu = edu.replace('G.m.b. H.', 'G.m.b.H.')

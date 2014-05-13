@@ -22,7 +22,12 @@ def extract_segmentation_features(doc_dict):
     '''
     labels = []
     feat_lists = []
-    edu_starts = {(x[0], x[1]) for x in doc_dict['edu_start_indices']}
+    if 'edu_start_indices' in doc_dict:
+        edu_starts = {(x[0], x[1]) for x in doc_dict['edu_start_indices']}
+    else:
+        # if none available, just say the whole document is one EDU
+        edu_starts = {(0, 0)}
+
     for sent_num, (sent_tokens, tree_str, sent_tree_positions, pos_tags) \
             in enumerate(zip(doc_dict['tokens'],
                              doc_dict['syntax_trees'],

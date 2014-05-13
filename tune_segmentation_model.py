@@ -4,7 +4,6 @@ import re
 import argparse
 import subprocess
 import shlex
-import os
 
 from sklearn.metrics import f1_score, precision_score, recall_score
 

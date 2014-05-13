@@ -12,9 +12,7 @@ with tune_segmentation_model.py.
 
 import argparse
 import json
-from nltk.tree import ParentedTree
 from discourse_segmentation import extract_segmentation_features
-from tree_util import find_first_common_ancestor
 
 
 def main():
