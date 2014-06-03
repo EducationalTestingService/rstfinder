@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env python3
 
 '''
 License
@@ -42,6 +42,7 @@ originally written by Kenji Sagae in perl.
 
 import re
 from collections import defaultdict
+from operator import itemgetter
 
 import numpy as np
 
@@ -51,13 +52,17 @@ class Parser(object):
         self.max_acts = max_acts
         self.max_states = max_states
         self.n_best = n_best
+        self.weights = None
+
+    def set_weights(self, weights):
+        self.weights = weights
 
     def mxclassify(self, feats):
         '''
         do maximum entropy classification using weight vector
         '''
         z = 0.0
-        scores = {}
+        scores = defaultdict(float)
         for category in self.weights.keys():
             for feat in feats:
                 if feat in self.weights[category]:
@@ -130,11 +135,11 @@ class Parser(object):
         for pos_tag in s1['hpos']:
             feats.append("S1p:{}".format(pos_tag))
         feats.append("S1nt:{}".format(s1['nt']))
-        feats.append("S1lnt:{}".format(s1['lchnt']))
-        feats.append("S1rnt:{}".format(s1['rchnt']))
-        feats.append("S1nch:{}".format(s1['nch']))
-        feats.append("S1nlch:{}".format(s1['nlch']))
-        feats.append("S1nrch:{}".format(s1['nrch']))
+        feats.append("S1lnt:{}".format(s1.get('lchnt', '')))
+        feats.append("S1rnt:{}".format(s1.get('rchnt', '')))
+        feats.append("S1nch:{}".format(s1.get('nch', '')))
+        feats.append("S1nlch:{}".format(s1.get('nlch', '')))
+        feats.append("S1nrch:{}".format(s1.get('nrch', '')))
 
         # features of the 2nd item on the stack
         for word in s2['head']:
@@ -160,7 +165,7 @@ class Parser(object):
 
         # distance feature
         # TODO do these thresholds need to be adjusted?
-        dist = s0['idx'] - s1['idx']
+        dist = s0.get('idx', 0) - s1.get('idx', 0)  # TODO is it OK to assume 0 if key is not in dictionary?
         if dist > 10:
             dist = 10
         if dist > 7 and dist != 10:
@@ -171,8 +176,8 @@ class Parser(object):
         nf = len(feats)
         for i in range(nf):
             feats.append("combo:{}~PREV:{}".format(feats[i], prevact))
-            feats.append("combo:{}~np1:{}".format(feats[i], np1[1]))  # TODO is this the right index for np1?
-            feats.append("combo:{}~S0p:{}".format(feats[i], s0['hpos'][1])) # TODO is this the right index for a11?
+            feats.append("combo:{}~np1:{}".format(feats[i], np1[0]))  # TODO is this the right index for np1?
+            feats.append("combo:{}~S0p:{}".format(feats[i], s0['hpos'][0])) # TODO is this the right index for a11?
 
         return feats
 
@@ -187,37 +192,40 @@ class Parser(object):
         sent = []
 
         wnum = 0  # TODO should this be a member variable?
-        edu_words = [x[0] for x in edus]
-        edu_pos_tags = [x[1] for x in edus]
-        edustr = ' '.join(edu_words)
 
-        # TODO kenji, what is this doing? are the indices correct?
-        edu_words.insert(0, '{}:::1'.format(edu_words[1]))
-        edu_words.insert(0, '{}:::0'.format(edu_words[0]))
-        edu_words.insert(0, '{}:::-1'.format(edu_words[-1]))
-        edu_pos_tags.insert(0, '{}:::1'.format(edu_pos_tags[1]))
-        edu_pos_tags.insert(0, '{}:::0'.format(edu_pos_tags[0]))
-        edu_pos_tags.insert(0, '{}:::-1'.format(edu_pos_tags[-1]))
+        for edu in edus:
+            edu_words = [x[0] for x in edu]
+            edu_pos_tags = [x[1] for x in edu]
+            edustr = ' '.join(edu_words)
 
-        wnum += 1
+            # TODO kenji, what is this doing? are the indices correct?
+            # TODO what happens if there is only one element in the list?
+            edu_words.insert(0, '{}:::1'.format(edu_words[1]))
+            edu_words.insert(0, '{}:::0'.format(edu_words[0]))
+            edu_words.insert(0, '{}:::-1'.format(edu_words[-1]))
+            edu_pos_tags.insert(0, '{}:::1'.format(edu_pos_tags[1]))
+            edu_pos_tags.insert(0, '{}:::0'.format(edu_pos_tags[0]))
+            edu_pos_tags.insert(0, '{}:::-1'.format(edu_pos_tags[-1]))
 
-        # TODO what is this doing?
-        tmp_item = {'idx' : wnum,
-                    'nt' : 'foo',  # TODO why was this $2?
-                    'head' : edu_words,
-                    'hpos' : edu_pos_tags,
-                    'tree' : "(text _!{}!_)".format(edustr),
-                    '#tree' : "(EDU {})".format(wnum),
-                    'lchnt' : "NONE",
-                    'rchnt' : "NONE",
-                    'lchpos' : "NONE",
-                    'rchpos' : "NONE",
-                    'lchw' : "NONE",
-                    'rchw' : "NONE",
-                    'nch' : 0,
-                    'nlch' : 0,
-                    'nrch' : 0}
-        sent.append(tmp_item)
+            wnum += 1
+
+            # TODO what is this doing?
+            tmp_item = {'idx' : wnum,
+                        'nt' : 'foo',  # TODO why was this $2?
+                        'head' : edu_words,
+                        'hpos' : edu_pos_tags,
+                        'tree' : "(text _!{}!_)".format(edustr),
+                        '#tree' : "(EDU {})".format(wnum),
+                        'lchnt' : "NONE",
+                        'rchnt' : "NONE",
+                        'lchpos' : "NONE",
+                        'rchpos' : "NONE",
+                        'lchw' : "NONE",
+                        'rchw' : "NONE",
+                        'nch' : 0,
+                        'nlch' : 0,
+                        'nrch' : 0}
+            sent.append(tmp_item)
 
         # if we are training, the gold actions should be
         # in the input file
@@ -317,7 +325,7 @@ class Parser(object):
             else:
                 # select the action using the maximum entropy model
                 acts = self.mxclassify(feats)
-                acts.sort(key=lambda x: x["score"], reverse=True)
+                acts = sorted(acts.items(), key=itemgetter(1), reverse=True)
 
             nacts = 0
             while acts:
@@ -326,9 +334,7 @@ class Parser(object):
                 prevact = cur_state["prevact"]
                 ucnt = cur_state["ucnt"]
 
-                cur_act = acts.pop(0)
-                act = cur_act["act"]
-                score = cur_act["score"]
+                act, score = acts.pop(0)
 
                 # Verify validity of action
                 if not train_mode:
@@ -392,7 +398,7 @@ class Parser(object):
                                 "lchnt": tmp_lc["lchnt"],
                                 "rchnt": tmp_rc["nt"],
                                 "lchpos": tmp_lc["lchpos"],
-                                "rchpos": tmp_rc["pos"],
+                                "rchpos": tmp_rc.get("pos", ""),
                                 "lchw": tmp_lc["lchw"],
                                 "rchw": tmp_rc["head"],
                                 "nch": tmp_lc["nch"] + 1,
@@ -423,7 +429,7 @@ class Parser(object):
                                 "lchnt": tmp_lc["lchnt"],
                                 "rchnt": tmp_rc["nt"],
                                 "lchpos": tmp_lc["lchpos"],
-                                "rchpos": tmp_rc["pos"],
+                                "rchpos": tmp_rc.get("pos", ""),
                                 "lchw": tmp_lc["lchw"],
                                 "rchw": tmp_rc["head"],
                                 "nch": tmp_lc["nch"] + 1,
@@ -437,7 +443,7 @@ class Parser(object):
                     nt = match.groups()[0]
 
                     tmp_c = stack.pop()
-                    tmp_item = {"idx": tmp_lc["idx"],
+                    tmp_item = {"idx": tmp_c["idx"],
                                 "nt": nt,
                                 "tree": "({} {})".format(nt, tmp_c["tree"]),
                                 "head": tmp_c["head"],
@@ -510,7 +516,7 @@ def main():
         with open(args.modelpath) as model_file:
             for line in model_file:
                 parts = line.strip().split()
-                weights[parts[0]][parts[1]] = parts[2]
+                weights[parts[0]][parts[1]] = float(parts[2])
         parser.set_weights(weights)
 
     with open(args.input_path) as f:
