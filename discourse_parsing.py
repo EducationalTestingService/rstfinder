@@ -41,11 +41,12 @@ originally written by Kenji Sagae in perl.
 '''
 
 import re
-from collections import defaultdict
-from operator import itemgetter
+from collections import defaultdict, namedtuple
 
 import numpy as np
 
+
+ScoredAction = namedtuple('ScoredAction', ['action', 'score'])
 
 class Parser(object):
     def __init__(self, max_acts, max_states, n_best):
@@ -59,22 +60,26 @@ class Parser(object):
 
     def mxclassify(self, feats):
         '''
-        do maximum entropy classification using weight vector
+        Do maximum entropy classification using weight vector.
+
+        Returns a list of ScoredAction objects.
         '''
         z = 0.0
         scores = defaultdict(float)
-        for category in self.weights.keys():
+        for action in self.weights.keys():
             for feat in feats:
-                if feat in self.weights[category]:
-                    scores[category] += self.weights[category][feat]
+                if feat in self.weights[action]:
+                    scores[action] += self.weights[action][feat]
 
-            z += np.exp(scores[category])
+            z += np.exp(scores[action])
 
         # divide all by z to make a distribution
-        for category in self.weights.keys():
-            scores[category] = np.exp(scores[category]) / z
+        res = []
+        for action in self.weights.keys():
+            res.append(ScoredAction(action=action,
+                                    score=np.exp(scores[action]) / z))
 
-        return scores
+        return res
 
     @staticmethod
     def mkfeats(prevact, sent, stack):
@@ -83,18 +88,18 @@ class Parser(object):
         by the current stack and queue
         '''
 
-        nw1 = "RightWall"
-        nw2 = "RightWall"
-        # nw3 = "RightWall"
+        nw1 = ["RightWall"]
+        nw2 = ["RightWall"]
+        # nw3 = ["RightWall"]
 
-        np1 = "RW"
-        np2 = "RW"
-        # np3 = "RW"
+        np1 = ["RW"]
+        np2 = ["RW"]
+        # np3 = ["RW"]
 
         s0 = stack[-1]
-        s1 = {'nt': "TOP", 'head': "LeftWall", 'hpos': "LW", 'tree': []}
-        s2 = {'nt': "TOP", 'head': "LeftWall", 'hpos': "LW", 'tree': []}
-        s3 = {'nt': "TOP", 'head': "LeftWall", 'hpos': "LW", 'tree': []}
+        s1 = {'nt': "TOP", 'head': ["LeftWall"], 'hpos': ["LW"], 'tree': []}
+        s2 = {'nt': "TOP", 'head': ["LeftWall"], 'hpos': ["LW"], 'tree': []}
+        s3 = {'nt': "TOP", 'head': ["LeftWall"], 'hpos': ["LW"], 'tree': []}
 
         if len(sent) > 0:
             nw1 = sent[0]['head']
@@ -122,7 +127,7 @@ class Parser(object):
         for word in s0['head']:
             feats.append("S0w:{}".format(word))
         for pos_tag in s0['hpos']:
-            feats.append("S0p:{}".format(pos_tag))
+            feats.append("S0w:{}".format(pos_tag))  #TODO the perl code has S0w here, but i think it should be S0p
         feats.append("S0nt:{}".format(s0['nt']))
         feats.append("S0lnt:{}".format(s0['lchnt']))
         feats.append("S0rnt:{}".format(s0['rchnt']))
@@ -134,7 +139,7 @@ class Parser(object):
         for word in s1['head']:
             feats.append("S1w:{}".format(word))
         for pos_tag in s1['hpos']:
-            feats.append("S1p:{}".format(pos_tag))
+            feats.append("S1w:{}".format(pos_tag))  #TODO the perl code has S1w here, but i think it should be S1p
         feats.append("S1nt:{}".format(s1['nt']))
         feats.append("S1lnt:{}".format(s1.get('lchnt', '')))
         feats.append("S1rnt:{}".format(s1.get('rchnt', '')))
@@ -146,15 +151,13 @@ class Parser(object):
         for word in s2['head']:
             feats.append("S2w:{}".format(word))
         for pos_tag in s2['hpos']:
-            feats.append("S2p:{}".format(pos_tag))
+            feats.append("S2w:{}".format(pos_tag))  #TODO the perl code has S2w here, but i think it should be S2p
         feats.append("S2nt:{}".format(s2['nt']))
 
         # features of the 3rd item on the stack
-        for pos_tag in s3['hpos']:
-            feats.append("S3p:{}".format(pos_tag))
         feats.append("S3nt:{}".format(s3['nt']))
 
-        # TODO 
+        # TODO are these variables appropriately named?  the perl code just had w and p
         for word in nw1:
             feats.append("nw1:{}".format(word))
         for pos_tag in np1:
@@ -174,35 +177,42 @@ class Parser(object):
         feats.append("dist:{}".format(dist))
 
         # combinations of features
-        nf = len(feats)
-        for i in range(nf):
+        for i in range(len(feats)):
             feats.append("combo:{}~PREV:{}".format(feats[i], prevact))
-            feats.append("combo:{}~np1:{}".format(feats[i], np1[0]))  # TODO is this the right index for np1?
-            feats.append("combo:{}~S0p:{}".format(feats[i], s0['hpos'][0])) # TODO is this the right index for a11?
+            feats.append("combo:{}~S0p:{}".format(feats[i],
+                                                  s0['hpos'][1]
+                                                  if len(s0['hpos']) > 1
+                                                  else ""))  # TODO is this the right index for s0['hpos']?
+            feats.append("combo:{}~np1:{}".format(feats[i],
+                                                  np1[1]
+                                                  if len(np1) > 1
+                                                  else ""))  # TODO is this the right index for np1?
 
         return feats
 
     @staticmethod
     def is_valid_action(act, ucnt, sent, stack):
-        # don't allow too many consecutive unary reduce actions
+        # Don't allow too many consecutive unary reduce actions.
         if act.startswith("U") and ucnt > 2:
             return False
 
-        # don't allow a reduce action if the stack is empty
-        # (contains only the leftwall)
+        # Don't allow a reduce action if the stack is empty.
+        # (i.e., contains only the leftwall)
         if act.startswith("U") and stack[-1]["head"] == "LEFTWALL":
             return False
 
-        # don't allow shift if there is nothing left to shift
+        # Don't allow shift if there is nothing left to shift.
         if act.startswith("S") and not sent:
             return False
 
-        # don't allow a reduce right or left if there are not
+        # Don't allow a reduce right or left if there are not
         # at least two items in the stack to be reduced
-        # (plus the leftwall)
+        # (plus the leftwall).
         if re.search(r'^[RL]', act) \
                 and act != "R:ROOT" and len(stack) < 3:
             return False
+
+        # Default: the action is valid.
         return True
 
     @staticmethod
@@ -256,20 +266,20 @@ class Parser(object):
                 new_tree = "{} {}".format(tmp_lc["tree"],
                                           tmp_rc["tree"])
 
-            tmp_item = {"idx": tmp_lc["idx"],
+            tmp_item = {"idx": tmp_rc["idx"],
                         "nt": label,
                         "tree": new_tree,
-                        "head": tmp_lc["head"],
-                        "hpos": tmp_lc["hpos"],
-                        "lchnt": tmp_lc["lchnt"],
-                        "rchnt": tmp_rc["nt"],
-                        "lchpos": tmp_lc["lchpos"],
-                        "rchpos": tmp_rc.get("pos", ""),
-                        "lchw": tmp_lc["lchw"],
-                        "rchw": tmp_rc["head"],
-                        "nch": tmp_lc["nch"] + 1,
-                        "nlch": tmp_lc["nlch"],
-                        "nrch": tmp_lc["nrch"] + 1}
+                        "head": tmp_rc["head"],
+                        "hpos": tmp_rc["hpos"],
+                        "lchnt": tmp_lc["nt"],
+                        "rchnt": tmp_rc["rchnt"],
+                        "lchpos": tmp_lc.get("pos", ""),
+                        "rchpos": tmp_rc["rchpos"],
+                        "lchw": tmp_lc["head"],
+                        "rchw": tmp_rc["rchw"],
+                        "nch": tmp_rc["nch"] + 1,
+                        "nlch": tmp_rc["nlch"],
+                        "nrch": tmp_rc["nrch"] + 1}
             stack.append(tmp_item)
 
         # The U action creates a unary chain (e.g., "(NP (NP ...))").
@@ -301,19 +311,14 @@ class Parser(object):
             #pos = match.groups()[0]  # TODO was this meant for something or left over from the constituency parser?
             stack.append(sent.pop(0))
 
-    def parse(self, edus, train_mode=False):
+    @staticmethod
+    def initialize_edu_data(edus):
         '''
-        edus is a list of (word, pos) tuples
+        Create a representation of the list of EDUS that make up the input.
         '''
-
-        gold_acts = []
-        sts = []
-        completetrees = []
-        sent = []
 
         wnum = 0  # TODO should this be a member variable?
-
-        # create a representation of the list of EDUS that make up the input
+        res = []
         for edu in edus:
             edu_words = [x[0] for x in edu]
             edu_pos_tags = [x[1] for x in edu]
@@ -340,11 +345,10 @@ class Parser(object):
             # make a dictionary for each EDU
             wnum += 1
             tmp_item = {'idx' : wnum,
-                        'nt' : edu_pos_tags[-1],  # TODO why was this $2 in the perl code?
+                        'nt' : "",  # TODO why was this $2 in the perl code?
                         'head' : edu_words,
                         'hpos' : edu_pos_tags,
                         'tree' : "(text _!{}!_)".format(edustr),
-                        '#tree' : "(EDU {})".format(wnum),
                         'lchnt' : "NONE",
                         'rchnt' : "NONE",
                         'lchpos' : "NONE",
@@ -354,7 +358,19 @@ class Parser(object):
                         'nch' : 0,
                         'nlch' : 0,
                         'nrch' : 0}
-            sent.append(tmp_item)
+            res.append(tmp_item)
+        return res
+
+    def parse(self, edus, train_mode=False):
+        '''
+        edus is a list of (word, pos) tuples
+        '''
+
+        gold_acts = []
+        states = []
+        completetrees = []
+
+        sent = self.initialize_edu_data(edus)
 
         # if we are training, the gold actions should be
         # in the input file
@@ -370,6 +386,8 @@ class Parser(object):
 
         # initialize the stack
         stack = []
+
+        # TODO make stack items namedtuples
         tmp_item = {'idx' : 0,
                     'nt' : "LEFTWALL",
                     'tree' : "",
@@ -387,25 +405,26 @@ class Parser(object):
         stack.append(tmp_item)
 
         prevact = "S"
-        ucnt = 0
+        ucnt = 0  # number of consecutive unary reduce actions
         initialsent = sent
 
         # insert an initial state on the state list
+        # TODO make state items namedtuples
         tmp_state = {"prevact": prevact,
                      "ucnt": 0,
                      "score": 1,
                      "nsteps": 0,
                      "stack": stack,
                      "sent": sent}
-        sts.append(tmp_state)
+        states.append(tmp_state)
 
         # loop while there are states to process
-        while sts:
-            sts.sort(key=lambda x: x['score'], reverse=True)
-            if len(sts) > self.max_states:
-                sts = sts[:self.max_states]
+        while states:
+            states.sort(key=lambda x: x['score'], reverse=True)
+            if len(states) > self.max_states:
+                states = states[:self.max_states]
 
-            cur_state = sts.pop(0)  # should maybe replace this with a deque
+            cur_state = states.pop(0)  # should maybe replace this with a deque
 
             if len(cur_state["sent"]) == 0 and len(cur_state["stack"]) == 1:
                 # check if the current state corresponds to a complete tree
@@ -422,94 +441,99 @@ class Parser(object):
             # extract features
             feats = self.mkfeats(prevact, sent, stack)
 
-            acts = []
-
             # Compute the possible actions given this state.
             # During training, print them out.
             # During parsing, score them according to the model and sort.
             if train_mode:
+                scored_acts = []
                 pass
                 # TODO
                 # # take the next action from @goldacts
                 # my $tmpstr = shift @goldacts;
-                # $acts[0] = {
+                # $scored_acts[0] = {
                 #     act   => $tmpstr,
                 #     score => 1,
                 # };
-                # if ( $acts[0]->{act} eq "" ) {
+                # if ( $scored_acts[0]->{act} eq "" ) {
                 #     $numparseerror++;
                 #     print STDERR
                 #         "Parse error (no more actions). $numparseerror\n";
                 #     last;
                 # }
 
-                # $acts[0]->{act} =~ s/^S:(.*)$/S:POS/;
-                # $acts[0]->{act} =~ s/^([^\=\-]+)[\=\-].+/$1/;
+                # $scored_acts[0]->{act} =~ s/^S:(.*)$/S:POS/;
+                # $scored_acts[0]->{act} =~ s/^([^\=\-]+)[\=\-].+/$1/;
 
-                # if (!(     ( $acts[0]->{act} eq $prevact )
-                #         && ( $acts[0]->{act} =~ /^U/ )
+                # if (!(     ( $scored_acts[0]->{act} eq $prevact )
+                #         && ( $scored_acts[0]->{act} =~ /^U/ )
                 #     )
                 #     )
                 # {
                 #     my $featstr = join " ", @{$featsref};
-                #     print "$acts[0]->{act} $featstr\n";
+                #     print "$scored_acts[0]->{act} $featstr\n";
                 # }
             else:
-                acts = self.mxclassify(feats)
-                acts = sorted(acts.items(), key=itemgetter(1), reverse=True)
+                scored_acts = self.mxclassify(feats)
+                scored_acts = sorted(scored_acts,
+                                     key=lambda x: x.score,
+                                     reverse=True)
+                #import sys; print('\n'.join(['{} {:.4g}'.format(x.action, x.score) for x in scored_acts]), file=sys.stderr)
+                #print('\n', file=sys.stderr)
 
-            nacts = 0
-            while acts:
-                stack = cur_state["stack"]
-                sent = cur_state["sent"]
+            num_acts = 0
+            while scored_acts:
+                stack = cur_state["stack"]  # TODO does this need to be a copy?
+                sent = cur_state["sent"]  # TODO does this need to be a copy?
                 prevact = cur_state["prevact"]
                 ucnt = cur_state["ucnt"]
 
-                act, score = acts.pop(0)
+                scored_action = scored_acts.pop(0)
+                action = scored_action.action
+                score = scored_action.score
 
-                # If parsing, verify the validity of the action.
                 if not train_mode:
-                    if not self.is_valid_action(act, ucnt, sent, stack):
+                    # If parsing, verify the validity of the action.
+                    if not self.is_valid_action(action, ucnt, sent, stack):
                         continue
 
-                if not train_mode:
                     # If the action is a unary reduce, increment the count.
                     # Otherwise, reset it.
-                    ucnt = ucnt + 1 if act.startswith("U") else 0
+                    ucnt = ucnt + 1 if action.startswith("U") else 0
 
                 # Don't exceed the maximum number of actions
                 # to consider for a parser state.
-                nacts += 1
-                if nacts > self.max_acts:
+                num_acts += 1
+                if num_acts > self.max_acts:
                     break
 
-                self.process_action(act, sent, stack)
+                self.process_action(action, sent, stack)
 
                 # Add the newly created state
-                tmp_state = {"prevact": act,
+                tmp_state = {"prevact": action,
                              "ucnt": ucnt,
                              "score": cur_state["score"] * score,
                              "nsteps": cur_state["nsteps"] + 1,
                              "stack": stack,
                              "sent": sent}
-                sts.append(tmp_state)
+                states.append(tmp_state)
 
         # Done parsing.  Print the result(s).
+        # TODO have this return nltk.tree objects?
         if not train_mode:
             if self.n_best > 1:
                 for tree in completetrees:
                     print(tree["score"])
-                    print("(TOP {})".format(tree["tree"]))
+                    print("(TOP{})".format(tree["tree"]))
                 print()
             else:
                 if completetrees:
-                    print("(TOP {})".format(completetrees[0]["tree"]))
+                    print("(TOP{})".format(completetrees[0]["tree"]))
                 else:
                     # Default to a flat tree if there is no complete parse.
                     tmp_str = ""
                     for e in initialsent:
                         tmp_str += " (text {})".format(" ".join(e["head"]))
-                    print("(TOP {})".format(tmp_str))
+                    print("(TOP{})".format(tmp_str))
 
 
 def main():
@@ -520,8 +544,8 @@ def main():
     parser.add_argument('input_path', help='file to parse, with one EDU \
                          per line, with POS tags \
                          (e.g., "This/DT is/VBZ a/DT test/NN ./.").')
-    parser.add_argument('--max_states', type=int, default=50)
-    parser.add_argument('--max_acts', type=int, default=5)
+    parser.add_argument('--max_states', type=int, default=1)
+    parser.add_argument('--max_acts', type=int, default=1)
     parser.add_argument('--n_best', type=int, default=1)
     args = parser.parse_args()
 
@@ -545,8 +569,7 @@ def main():
         for doc in docs:
             # Split the document into edus, one edu per line (with POS tags)
             # e.g., This/DT is/VBZ a/DT test/NN ./."
-            # TODO change this to read in the JSON format that also includes
-            # PTB trees.
+            # TODO change this to read in the JSON format that also includes PTB trees.
             edus = []
             for edu_str in doc.split("\n"):
                 edu = []
