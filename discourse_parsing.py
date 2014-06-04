@@ -76,7 +76,8 @@ class Parser(object):
 
         return scores
 
-    def mkfeats(self, prevact, sent, stack):
+    @staticmethod
+    def mkfeats(prevact, sent, stack):
         '''
         get features of the parser state represented
         by the current stack and queue
@@ -181,6 +182,125 @@ class Parser(object):
 
         return feats
 
+    @staticmethod
+    def is_valid_action(act, ucnt, sent, stack):
+        # don't allow too many consecutive unary reduce actions
+        if act.startswith("U") and ucnt > 2:
+            return False
+
+        # don't allow a reduce action if the stack is empty
+        # (contains only the leftwall)
+        if act.startswith("U") and stack[-1]["head"] == "LEFTWALL":
+            return False
+
+        # don't allow shift if there is nothing left to shift
+        if act.startswith("S") and not sent:
+            return False
+
+        # don't allow a reduce right or left if there are not
+        # at least two items in the stack to be reduced
+        # (plus the leftwall)
+        if re.search(r'^[RL]', act) \
+                and act != "R:ROOT" and len(stack) < 3:
+            return False
+        return True
+
+    @staticmethod
+    def process_action(act, sent, stack):
+        # The R action reduces the stack, creating a non-terminal node
+        # with a lexical head coming from the left child
+        # (this is a confusing name, but it refers to the direction of
+        # the dependency arrow).
+        match = re.search(r'^R:(.+)$', act)
+        if match:
+            label = match.groups()[0]
+
+            tmp_rc = stack.pop()
+            tmp_lc = stack.pop()
+            new_tree = "({} {} {})".format(label,
+                                           tmp_lc["tree"],
+                                           tmp_rc["tree"])
+            if label.endswith("*") or label == "ROOT":
+                new_tree = "{} {}".format(tmp_lc["tree"],
+                                          tmp_rc["tree"])
+
+            tmp_item = {"idx": tmp_lc["idx"],
+                        "nt": label,
+                        "tree": new_tree,
+                        "head": tmp_lc["head"],
+                        "hpos": tmp_lc["hpos"],
+                        "lchnt": tmp_lc["lchnt"],
+                        "rchnt": tmp_rc["nt"],
+                        "lchpos": tmp_lc["lchpos"],
+                        "rchpos": tmp_rc.get("pos", ""),
+                        "lchw": tmp_lc["lchw"],
+                        "rchw": tmp_rc["head"],
+                        "nch": tmp_lc["nch"] + 1,
+                        "nlch": tmp_lc["nlch"] + 1,
+                        "nrch": tmp_lc["nrch"]}
+            stack.append(tmp_item)
+
+        # The L action is like the R action but with lexical head
+        # coming from left child.
+        match = re.search(r'^L:(.+)$', act)
+        if match:
+            label = match.groups()[0]
+
+            tmp_rc = stack.pop()
+            tmp_lc = stack.pop()
+
+            new_tree = "({} {} {})".format(label,
+                                           tmp_lc["tree"],
+                                           tmp_rc["tree"])
+            if label.endswith("*") or label == "ROOT":
+                new_tree = "{} {}".format(tmp_lc["tree"],
+                                          tmp_rc["tree"])
+
+            tmp_item = {"idx": tmp_lc["idx"],
+                        "nt": label,
+                        "tree": new_tree,
+                        "head": tmp_lc["head"],
+                        "hpos": tmp_lc["hpos"],
+                        "lchnt": tmp_lc["lchnt"],
+                        "rchnt": tmp_rc["nt"],
+                        "lchpos": tmp_lc["lchpos"],
+                        "rchpos": tmp_rc.get("pos", ""),
+                        "lchw": tmp_lc["lchw"],
+                        "rchw": tmp_rc["head"],
+                        "nch": tmp_lc["nch"] + 1,
+                        "nlch": tmp_lc["nlch"],
+                        "nrch": tmp_lc["nrch"] + 1}
+            stack.append(tmp_item)
+
+        # The U action creates a unary chain (e.g., "(NP (NP ...))").
+        match = re.search(r'^U:(.+)$', act)
+        if match:
+            nt = match.groups()[0]
+
+            tmp_c = stack.pop()
+            tmp_item = {"idx": tmp_c["idx"],
+                        "nt": nt,
+                        "tree": "({} {})".format(nt, tmp_c["tree"]),
+                        "head": tmp_c["head"],
+                        "hpos": tmp_c["hpos"],
+                        "lchnt": tmp_c["lchnt"],
+                        "rchnt": tmp_c["rchnt"],
+                        "lchpos": tmp_c["lchpos"],
+                        "rchpos": tmp_c["rchpos"],
+                        "lchw": tmp_c["lchw"],
+                        "rchw": tmp_c["rchw"],
+                        "nch": tmp_c["nch"],
+                        "nlch": tmp_c["nlch"],
+                        "nrch": tmp_c["nrch"]}
+            stack.append(tmp_item)
+
+        # The S action gets the next input token
+        # and puts it on the stack.
+        match = re.search(r'^S:(.+)$', act)
+        if match:
+            #pos = match.groups()[0]  # TODO was this meant for something or left over from the constituency parser?
+            stack.append(sent.pop(0))
+
     def parse(self, edus, train_mode=False):
         '''
         edus is a list of (word, pos) tuples
@@ -193,25 +313,34 @@ class Parser(object):
 
         wnum = 0  # TODO should this be a member variable?
 
+        # create a representation of the list of EDUS that make up the input
         for edu in edus:
             edu_words = [x[0] for x in edu]
             edu_pos_tags = [x[1] for x in edu]
             edustr = ' '.join(edu_words)
 
-            # TODO kenji, what is this doing? are the indices correct?
-            # TODO what happens if there is only one element in the list?
-            edu_words.insert(0, '{}:::1'.format(edu_words[1]))
-            edu_words.insert(0, '{}:::0'.format(edu_words[0]))
+            # TODO move this to mkfeats?
+            # This adds special tokens for the first two words and last
+            # word. These are used when computing features later. It would
+            # probably be better to do this in the feature extraction code
+            # rather than here.
+            # The ":::N" part is just a special marker to distinguish these
+            # from regular word tokens.
+            edu_words.insert(0, '{}:::1'.format(edu_words[1]
+                                                if len(edu_words) > 1
+                                                else ""))
+            edu_words.insert(0, '{}:::0'.format(edu_words[1]))
             edu_words.insert(0, '{}:::-1'.format(edu_words[-1]))
-            edu_pos_tags.insert(0, '{}:::1'.format(edu_pos_tags[1]))
-            edu_pos_tags.insert(0, '{}:::0'.format(edu_pos_tags[0]))
+            edu_pos_tags.insert(0, '{}:::1'.format(edu_pos_tags[1]
+                                                   if len(edu_pos_tags) > 1
+                                                   else ""))
+            edu_pos_tags.insert(0, '{}:::0'.format(edu_pos_tags[1]))
             edu_pos_tags.insert(0, '{}:::-1'.format(edu_pos_tags[-1]))
 
+            # make a dictionary for each EDU
             wnum += 1
-
-            # TODO what is this doing?
             tmp_item = {'idx' : wnum,
-                        'nt' : 'foo',  # TODO why was this $2?
+                        'nt' : edu_pos_tags[-1],  # TODO why was this $2 in the perl code?
                         'head' : edu_words,
                         'hpos' : edu_pos_tags,
                         'tree' : "(text _!{}!_)".format(edustr),
@@ -239,7 +368,7 @@ class Parser(object):
             #     <>;    #blank line
             pass
 
-        # initialize stack
+        # initialize the stack
         stack = []
         tmp_item = {'idx' : 0,
                     'nt' : "LEFTWALL",
@@ -261,7 +390,7 @@ class Parser(object):
         ucnt = 0
         initialsent = sent
 
-        # insert the initial state on the state list
+        # insert an initial state on the state list
         tmp_state = {"prevact": prevact,
                      "ucnt": 0,
                      "score": 1,
@@ -295,6 +424,9 @@ class Parser(object):
 
             acts = []
 
+            # Compute the possible actions given this state.
+            # During training, print them out.
+            # During parsing, score them according to the model and sort.
             if train_mode:
                 pass
                 # TODO
@@ -323,7 +455,6 @@ class Parser(object):
                 #     print "$acts[0]->{act} $featstr\n";
                 # }
             else:
-                # select the action using the maximum entropy model
                 acts = self.mxclassify(feats)
                 acts = sorted(acts.items(), key=itemgetter(1), reverse=True)
 
@@ -336,138 +467,25 @@ class Parser(object):
 
                 act, score = acts.pop(0)
 
-                # Verify validity of action
+                # If parsing, verify the validity of the action.
                 if not train_mode:
-
-                    # don't allow too many consecutive unary reduce actions
-                    if act.startswith("U") and ucnt > 2:
+                    if not self.is_valid_action(act, ucnt, sent, stack):
                         continue
 
-                    # don't allow a reduce action if the stack is empty
-                    # (contains only the leftwall)
-                    if act.startswith("U") and stack[-1]["head"] == "LEFTWALL":
-                        continue
+                if not train_mode:
+                    # If the action is a unary reduce, increment the count.
+                    # Otherwise, reset it.
+                    ucnt = ucnt + 1 if act.startswith("U") else 0
 
-                    # don't allow shift if there is nothing left to shift
-                    if act.startswith("S") and not sent:
-                        continue
-
-                    # don't allow a reduce right or left if there are not
-                    # at least two items in the stack to be reduced
-                    # (plus the leftwall)
-                    if re.search(r'^[RL]', act) \
-                            and act != "R:ROOT" and len(stack) < 3:
-                        continue
-
-                    if act.startswith("U"):
-                        # increase our count of unary reduce actions
-                        ucnt += 1
-                    else:
-                        # if it is not a unary reduce action, reset the counter
-                        ucnt = 0
-
-                # don't exceed the maximum number of actions
-                # to consider for a parser state
+                # Don't exceed the maximum number of actions
+                # to consider for a parser state.
                 nacts += 1
                 if nacts > self.max_acts:
                     break
 
-                # the R action reduces the stack, creating a
-                # non-terminal node with a lexical head coming
-                # from the left child
-                # (confusing name, but it refers to the
-                # direction of the dependency arrow.)
-                match = re.search(r'^R:(.+)$', act)
-                if match:
-                    label = match.groups()[0]
+                self.process_action(act, sent, stack)
 
-                    tmp_rc = stack.pop()
-                    tmp_lc = stack.pop()
-                    new_tree = "({} {} {})".format(label,
-                                                   tmp_lc["tree"],
-                                                   tmp_rc["tree"])
-                    if label.endswith("*") or label == "ROOT":
-                        new_tree = "{} {}".format(tmp_lc["tree"],
-                                                  tmp_rc["tree"])
-
-                    tmp_item = {"idx": tmp_lc["idx"],
-                                "nt": label,
-                                "tree": new_tree,
-                                "head": tmp_lc["head"],
-                                "hpos": tmp_lc["hpos"],
-                                "lchnt": tmp_lc["lchnt"],
-                                "rchnt": tmp_rc["nt"],
-                                "lchpos": tmp_lc["lchpos"],
-                                "rchpos": tmp_rc.get("pos", ""),
-                                "lchw": tmp_lc["lchw"],
-                                "rchw": tmp_rc["head"],
-                                "nch": tmp_lc["nch"] + 1,
-                                "nlch": tmp_lc["nlch"] + 1,
-                                "nrch": tmp_lc["nrch"]}
-                    stack.append(tmp_item)
-
-                # like the R action, but lexical head coming from left child
-                match = re.search(r'^L:(.+)$', act)
-                if match:
-                    label = match.groups()[0]
-
-                    tmp_rc = stack.pop()
-                    tmp_lc = stack.pop()
-
-                    new_tree = "({} {} {})".format(label,
-                                                   tmp_lc["tree"],
-                                                   tmp_rc["tree"])
-                    if label.endswith("*") or label == "ROOT":
-                        new_tree = "{} {}".format(tmp_lc["tree"],
-                                                  tmp_rc["tree"])
-
-                    tmp_item = {"idx": tmp_lc["idx"],
-                                "nt": label,
-                                "tree": new_tree,
-                                "head": tmp_lc["head"],
-                                "hpos": tmp_lc["hpos"],
-                                "lchnt": tmp_lc["lchnt"],
-                                "rchnt": tmp_rc["nt"],
-                                "lchpos": tmp_lc["lchpos"],
-                                "rchpos": tmp_rc.get("pos", ""),
-                                "lchw": tmp_lc["lchw"],
-                                "rchw": tmp_rc["head"],
-                                "nch": tmp_lc["nch"] + 1,
-                                "nlch": tmp_lc["nlch"],
-                                "nrch": tmp_lc["nrch"] + 1}
-                    stack.append(tmp_item)
-
-                # the U action creates a unary chain
-                match = re.search(r'^U:(.+)$', act)
-                if match:
-                    nt = match.groups()[0]
-
-                    tmp_c = stack.pop()
-                    tmp_item = {"idx": tmp_c["idx"],
-                                "nt": nt,
-                                "tree": "({} {})".format(nt, tmp_c["tree"]),
-                                "head": tmp_c["head"],
-                                "hpos": tmp_c["hpos"],
-                                "lchnt": tmp_c["lchnt"],
-                                "rchnt": tmp_c["rchnt"],
-                                "lchpos": tmp_c["lchpos"],
-                                "rchpos": tmp_c["rchpos"],
-                                "lchw": tmp_c["lchw"],
-                                "rchw": tmp_c["rchw"],
-                                "nch": tmp_c["nch"],
-                                "nlch": tmp_c["nlch"],
-                                "nrch": tmp_c["nrch"]}
-                    stack.append(tmp_item)
-
-                # the S action gets the next input token
-                # and puts it on the stack
-                match = re.search(r'^S:(.+)$', act)
-                if match:
-                    #pos = match.groups()[0]  # TODO was this meant for
-                                              # something or left over from the
-                                              # constituency parser?
-                    stack.append(sent.pop(0))
-
+                # Add the newly created state
                 tmp_state = {"prevact": act,
                              "ucnt": ucnt,
                              "score": cur_state["score"] * score,
@@ -476,21 +494,22 @@ class Parser(object):
                              "sent": sent}
                 sts.append(tmp_state)
 
-        # Done parsing, return the only item on the stack
+        # Done parsing.  Print the result(s).
         if not train_mode:
             if self.n_best > 1:
                 for tree in completetrees:
                     print(tree["score"])
-                    print("(TOP{})".format(tree["tree"]))
+                    print("(TOP {})".format(tree["tree"]))
                 print()
             else:
                 if completetrees:
-                    print("(TOP{})".format(completetrees[0]["tree"]))
+                    print("(TOP {})".format(completetrees[0]["tree"]))
                 else:
+                    # Default to a flat tree if there is no complete parse.
                     tmp_str = ""
                     for e in initialsent:
                         tmp_str += " (text {})".format(" ".join(e["head"]))
-                    print("(TOP{})".format(tmp_str))
+                    print("(TOP {})".format(tmp_str))
 
 
 def main():
@@ -524,8 +543,10 @@ def main():
         docs = re.split(r'\n\n+', data)
 
         for doc in docs:
-            # split the document into edus, one edu per line (with POS tags)
+            # Split the document into edus, one edu per line (with POS tags)
             # e.g., This/DT is/VBZ a/DT test/NN ./."
+            # TODO change this to read in the JSON format that also includes
+            # PTB trees.
             edus = []
             for edu_str in doc.split("\n"):
                 edu = []
