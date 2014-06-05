@@ -127,7 +127,7 @@ class Parser(object):
         for word in s0['head']:
             feats.append("S0w:{}".format(word))
         for pos_tag in s0['hpos']:
-            feats.append("S0w:{}".format(pos_tag))  #TODO the perl code has S0w here, but i think it should be S0p
+            feats.append("S0p:{}".format(pos_tag))
         feats.append("S0nt:{}".format(s0['nt']))
         feats.append("S0lnt:{}".format(s0['lchnt']))
         feats.append("S0rnt:{}".format(s0['rchnt']))
@@ -139,7 +139,7 @@ class Parser(object):
         for word in s1['head']:
             feats.append("S1w:{}".format(word))
         for pos_tag in s1['hpos']:
-            feats.append("S1w:{}".format(pos_tag))  #TODO the perl code has S1w here, but i think it should be S1p
+            feats.append("S1p:{}".format(pos_tag))
         feats.append("S1nt:{}".format(s1['nt']))
         feats.append("S1lnt:{}".format(s1.get('lchnt', '')))
         feats.append("S1rnt:{}".format(s1.get('rchnt', '')))
@@ -151,7 +151,7 @@ class Parser(object):
         for word in s2['head']:
             feats.append("S2w:{}".format(word))
         for pos_tag in s2['hpos']:
-            feats.append("S2w:{}".format(pos_tag))  #TODO the perl code has S2w here, but i think it should be S2p
+            feats.append("S2p:{}".format(pos_tag))
         feats.append("S2nt:{}".format(s2['nt']))
 
         # features of the 3rd item on the stack
