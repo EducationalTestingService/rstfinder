@@ -1,5 +1,6 @@
 
-from tree_util import HeadedParentedTree, find_first_common_ancestor
+from discourseparsing.tree_util import (HeadedParentedTree,
+                                        find_first_common_ancestor)
 
 
 def parse_node_features(nodes):

@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 
+'''
+A script to split up the official RST discourse treebank training set into a
+new, smaller training set and a development set.
+'''
+
 import json
 with open('rst_discourse_tb_edus_TRAINING.json') as f:
     data = json.load(f)

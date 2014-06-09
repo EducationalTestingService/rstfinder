@@ -7,8 +7,8 @@ A simple script for testing out head rules on a PTB file.
 import argparse
 import re
 
-from extract_segmentation_features import HeadedParentedTree
-from convert_rst_discourse_tb import convert_ptb_tree
+from discourseparsing.tree_util import HeadedParentedTree
+from discourseparsing.convert_rst_discourse_tb import convert_ptb_tree
 
 def depth(t):
     res = 0

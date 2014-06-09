@@ -33,8 +33,8 @@ import argparse
 
 # from pyparsing import OneOrMore, nestedExpr
 from nltk.tree import ParentedTree
-from tree_util import (convert_ptb_tree, extract_preterminals,
-                       extract_converted_terminals)
+from discourseparsing.tree_util import (convert_ptb_tree, extract_preterminals,
+                                        extract_converted_terminals)
 
 # file mapping from the RSTDTB documentation
 file_mapping = {'file1.edus': 'wsj_0764.out.edus',

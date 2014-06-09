@@ -14,10 +14,10 @@ from tempfile import NamedTemporaryFile
 import shlex
 import subprocess
 
-from discourse_segmentation import extract_segmentation_features
-from tree_util import (extract_preterminals,
-                       extract_converted_terminals)
-from parse_util import parse_document
+from discourseparsing.discourse_segmentation import extract_segmentation_features
+from discourseparsing.tree_util import (extract_preterminals,
+                                        extract_converted_terminals)
+from discourseparsing.parse_util import parse_document
 
 
 def segment_document(doc_dict, model_path):
@@ -30,7 +30,8 @@ def segment_document(doc_dict, model_path):
     tmpfile.flush()
 
     # get predictions from the CRF++ model
-    crf_output = subprocess.check_output(shlex.split('crf_test -m {} {}'.format(model_path, tmpfile.name))).decode('utf-8').strip()
+    crf_output = subprocess.check_output(shlex.split(
+        'crf_test -m {} {}'.format(model_path, tmpfile.name))).decode('utf-8').strip()
     tmpfile.close()
 
     # an index into the list of tokens for this document indicating where the
@@ -42,7 +43,8 @@ def segment_document(doc_dict, model_path):
 
     edu_number = 0
 
-    # construct the set of EDU start index tuples (sentence number, token number, EDU number)
+    # construct the set of EDU start index tuples (sentence number, token
+    # number, EDU number)
     edu_start_indices = []
     all_tokens = doc_dict['tokens']
     cur_sent = all_tokens[0]
@@ -50,9 +52,11 @@ def segment_document(doc_dict, model_path):
         if i >= sent_start_index + len(cur_sent):
             sent_start_index += len(cur_sent)
             sent_num += 1
-            cur_sent = all_tokens[sent_num] if sent_num < len(all_tokens) else None
+            cur_sent = all_tokens[sent_num] if sent_num < len(
+                all_tokens) else None
         if line.split()[-1] == "B-EDU":
-            edu_start_indices.append((sent_num, i - sent_start_index, edu_number))
+            edu_start_indices.append(
+                (sent_num, i - sent_start_index, edu_number))
             edu_number += 1
 
     # check that all sentences are covered by the output list of EDUs

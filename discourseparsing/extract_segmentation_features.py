@@ -12,13 +12,15 @@ with tune_segmentation_model.py.
 
 import argparse
 import json
-from discourse_segmentation import extract_segmentation_features
+from discourseparsing.discourse_segmentation import extract_segmentation_features
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('input_path', help='JSON file from convert_rst_discourse_tb.py')
-    parser.add_argument('output_path', help='TSV output file to be used by crf++')
+    parser.add_argument(
+        'input_path', help='JSON file from convert_rst_discourse_tb.py')
+    parser.add_argument(
+        'output_path', help='TSV output file to be used by crf++')
     args = parser.parse_args()
 
     with open(args.input_path) as f:

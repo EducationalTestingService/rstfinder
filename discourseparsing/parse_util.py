@@ -6,7 +6,7 @@ from tempfile import NamedTemporaryFile
 
 import nltk.data
 
-from tree_util import ParentedTree
+from discourseparsing.tree_util import ParentedTree
 
 tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
 
