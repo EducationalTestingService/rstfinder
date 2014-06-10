@@ -33,6 +33,7 @@ originally written by Kenji Sagae in perl.
 
 '''
 
+import logging
 import re
 import sys
 from collections import defaultdict, namedtuple
@@ -42,7 +43,7 @@ import numpy as np
 
 
 ScoredAction = namedtuple('ScoredAction', ['action', 'score'])
-
+logger = logging.getLogger(__name__)
 
 class Parser(object):
 
@@ -360,25 +361,14 @@ class Parser(object):
             res.append(tmp_item)
         return res
 
-    def parse(self, edus, train_file=None):
+    def parse(self, edus, gold_actions=None):
         '''
         edus is a list of (word, pos) tuples
         '''
-
-        gold_acts = []
         states = []
         completetrees = []
-        num_parse_errors = 0
 
         sent = self.initialize_edu_data(edus)
-
-        # if we are training, the gold actions should be
-        # in the training file
-        if train_file is not None:
-            for line in train_file:
-                line = line.strip()
-                if line.startswith('S:'):
-                    gold_acts.extend(line.split())
 
         # initialize the stack
         stack = []
@@ -426,7 +416,8 @@ class Parser(object):
                 # check if the current state corresponds to a complete tree
                 completetrees.append({'tree': cur_state["stack"][0]["tree"],
                                       'score': cur_state["score"]})
-                if train_file is not None or len(completetrees) >= self.n_best:
+                if gold_actions is not None or (len(completetrees) >=
+                                                self.n_best):
                     break
 
             stack = cur_state["stack"]
@@ -441,14 +432,13 @@ class Parser(object):
             # During training, print them out.
             # During parsing, score them according to the model and sort.
             scored_acts = []
-            if train_file is not None:
-                # take the next action from gold_acts
-                action_str = gold_acts.pop(0) if gold_acts else ''
+            if gold_actions is not None:
+                # take the next action from gold_actions
+                action_str = gold_actions.pop(0) if gold_actions else ''
                 if not action_str:
                     # import ipdb; ipdb.set_trace()
-                    print('Parse error (no more actions) %s' %
-                          (num_parse_errors), file=sys.stderr)
-                    num_parse_errors += 1
+                    logger.error('Ran out of gold actions with state %s and ' +
+                                 'gold_actions %s', cur_state, gold_actions)
                     break
 
                 action_str = re.sub(r'^S:(.*)$', r'S:POS',
@@ -480,7 +470,7 @@ class Parser(object):
                 action = scored_action.action
                 score = scored_action.score
 
-                if train_file is None:
+                if gold_actions is None:
                     # If parsing, verify the validity of the action.
                     if not self.is_valid_action(action, ucnt, sent, stack):
                         continue
@@ -508,7 +498,7 @@ class Parser(object):
 
         # Done parsing.  Print the result(s).
         # TODO have this return nltk.tree objects?
-        if train_file is None:
+        if gold_actions is None:
             if self.n_best > 1:
                 for tree in completetrees:
                     print(tree["score"])
