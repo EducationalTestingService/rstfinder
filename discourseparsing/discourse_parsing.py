@@ -41,7 +41,9 @@ import numpy as np
 
 ScoredAction = namedtuple('ScoredAction', ['action', 'score'])
 
+
 class Parser(object):
+
     def __init__(self, max_acts, max_states, n_best):
         self.max_acts = max_acts
         self.max_states = max_states
@@ -150,7 +152,8 @@ class Parser(object):
         # features of the 3rd item on the stack
         feats.append("S3nt:{}".format(s3['nt']))
 
-        # TODO are these variables appropriately named?  the perl code just had w and p
+        # TODO are these variables appropriately named?  the perl code just had
+        # w and p
         for word in nw1:
             feats.append("nw1:{}".format(word))
         for pos_tag in np1:
@@ -162,7 +165,8 @@ class Parser(object):
 
         # distance feature
         # TODO do these thresholds need to be adjusted?
-        dist = s0.get('idx', 0) - s1.get('idx', 0)  # TODO is it OK to assume 0 if key is not in dictionary?
+        # TODO is it OK to assume 0 if key is not in dictionary?
+        dist = s0.get('idx', 0) - s1.get('idx', 0)
         if dist > 10:
             dist = 10
         if dist > 7 and dist != 10:
@@ -301,7 +305,8 @@ class Parser(object):
         # and puts it on the stack.
         match = re.search(r'^S:(.+)$', act)
         if match:
-            #pos = match.groups()[0]  # TODO was this meant for something or left over from the constituency parser?
+            # pos = match.groups()[0]  # TODO was this meant for something or
+            # left over from the constituency parser?
             stack.append(sent.pop(0))
 
     @staticmethod
@@ -337,20 +342,20 @@ class Parser(object):
 
             # make a dictionary for each EDU
             wnum += 1
-            tmp_item = {'idx' : wnum,
-                        'nt' : "",  # TODO why was this $2 in the perl code?
-                        'head' : edu_words,
-                        'hpos' : edu_pos_tags,
-                        'tree' : "(text _!{}!_)".format(edustr),
-                        'lchnt' : "NONE",
-                        'rchnt' : "NONE",
-                        'lchpos' : "NONE",
-                        'rchpos' : "NONE",
-                        'lchw' : "NONE",
-                        'rchw' : "NONE",
-                        'nch' : 0,
-                        'nlch' : 0,
-                        'nrch' : 0}
+            tmp_item = {'idx': wnum,
+                        'nt': "",  # TODO why was this $2 in the perl code?
+                        'head': edu_words,
+                        'hpos': edu_pos_tags,
+                        'tree': "(text _!{}!_)".format(edustr),
+                        'lchnt': "NONE",
+                        'rchnt': "NONE",
+                        'lchpos': "NONE",
+                        'rchpos': "NONE",
+                        'lchw': "NONE",
+                        'rchw': "NONE",
+                        'nch': 0,
+                        'nlch': 0,
+                        'nrch': 0}
             res.append(tmp_item)
         return res
 
@@ -369,32 +374,32 @@ class Parser(object):
         # in the input file
         if train_mode:
             # TODO
-            #     <>;    #blank line
+            # <>;    #blank line
             #     my $actstr = <>;
             #     $actstr =~ s/[\n\r]//g;
-            #     # put the gold actions in @goldacts
+            # put the gold actions in @goldacts
             #     @goldacts = split /[ \t]+/, $actstr;
-            #     <>;    #blank line
+            # <>;    #blank line
             pass
 
         # initialize the stack
         stack = []
 
         # TODO make stack items namedtuples
-        tmp_item = {'idx' : 0,
-                    'nt' : "LEFTWALL",
-                    'tree' : "",
-                    'head' : ["LEFTWALL"],
-                    'hpos' : ["LW"],
-                    'lchnt' : "NONE",
-                    'rchnt' : "NONE",
+        tmp_item = {'idx': 0,
+                    'nt': "LEFTWALL",
+                    'tree': "",
+                    'head': ["LEFTWALL"],
+                    'hpos': ["LW"],
+                    'lchnt': "NONE",
+                    'rchnt': "NONE",
                     'lchpos': "NONE",
                     'rchpos': "NONE",
-                    'lchw' : "NONE",
-                    'rchw' : "NONE",
-                    'nch' : 0,
-                    'nlch' : 0,
-                    'nrch' : 0}
+                    'lchw': "NONE",
+                    'rchw': "NONE",
+                    'nch': 0,
+                    'nlch': 0,
+                    'nrch': 0}
         stack.append(tmp_item)
 
         prevact = "S"
@@ -441,7 +446,7 @@ class Parser(object):
                 scored_acts = []
                 pass
                 # TODO
-                # # take the next action from @goldacts
+                # take the next action from @goldacts
                 # my $tmpstr = shift @goldacts;
                 # $scored_acts[0] = {
                 #     act   => $tmpstr,
