@@ -437,13 +437,13 @@ class Parser(object):
                 action_str = gold_actions.pop(0) if gold_actions else ''
                 if not action_str:
                     # import ipdb; ipdb.set_trace()
-                    logger.error('Ran out of gold actions with state %s and ' +
+                    logger.error('Ran out of gold actions for state %s and ' +
                                  'gold_actions %s', cur_state, gold_actions)
                     break
 
                 action_str = re.sub(r'^S:(.*)$', r'S:POS',
                                             action_str)
-                action_str = re.sub(r'^([^\=\-]+)[\=\-].+', r'$1',
+                action_str = re.sub(r'^([^\=\-]+)[\=\-].+', r'\1',
                                             action_str)
 
                 if not (action_str == cur_state["prevact"] and
