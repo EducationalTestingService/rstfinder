@@ -34,7 +34,9 @@ originally written by Kenji Sagae in perl.
 '''
 
 import re
+import sys
 from collections import defaultdict, namedtuple
+from operator import attrgetter, itemgetter
 
 import numpy as np
 
@@ -205,8 +207,7 @@ class Parser(object):
         # Don't allow a reduce right or left if there are not
         # at least two items in the stack to be reduced
         # (plus the leftwall).
-        if re.search(r'^[RL]', act) \
-                and act != "R:ROOT" and len(stack) < 3:
+        if re.search(r'^[RL]', act) and act != "R:ROOT" and len(stack) < 3:
             return False
 
         # Default: the action is valid.
@@ -359,7 +360,7 @@ class Parser(object):
             res.append(tmp_item)
         return res
 
-    def parse(self, edus, train_mode=False):
+    def parse(self, edus, train_file=None):
         '''
         edus is a list of (word, pos) tuples
         '''
@@ -367,20 +368,17 @@ class Parser(object):
         gold_acts = []
         states = []
         completetrees = []
+        num_parse_errors = 0
 
         sent = self.initialize_edu_data(edus)
 
         # if we are training, the gold actions should be
-        # in the input file
-        if train_mode:
-            # TODO
-            # <>;    #blank line
-            #     my $actstr = <>;
-            #     $actstr =~ s/[\n\r]//g;
-            # put the gold actions in @goldacts
-            #     @goldacts = split /[ \t]+/, $actstr;
-            # <>;    #blank line
-            pass
+        # in the training file
+        if train_file is not None:
+            for line in train_file:
+                line = line.strip()
+                if line.startswith('S:'):
+                    gold_acts.extend(line.split())
 
         # initialize the stack
         stack = []
@@ -418,7 +416,7 @@ class Parser(object):
 
         # loop while there are states to process
         while states:
-            states.sort(key=lambda x: x['score'], reverse=True)
+            states.sort(key=itemgetter('score'), reverse=True)
             if len(states) > self.max_states:
                 states = states[:self.max_states]
 
@@ -428,7 +426,7 @@ class Parser(object):
                 # check if the current state corresponds to a complete tree
                 completetrees.append({'tree': cur_state["stack"][0]["tree"],
                                       'score': cur_state["score"]})
-                if train_mode or len(completetrees) >= self.n_best:
+                if train_file is not None or len(completetrees) >= self.n_best:
                     break
 
             stack = cur_state["stack"]
@@ -442,40 +440,33 @@ class Parser(object):
             # Compute the possible actions given this state.
             # During training, print them out.
             # During parsing, score them according to the model and sort.
-            if train_mode:
-                scored_acts = []
-                pass
-                # TODO
-                # take the next action from @goldacts
-                # my $tmpstr = shift @goldacts;
-                # $scored_acts[0] = {
-                #     act   => $tmpstr,
-                #     score => 1,
-                # };
-                # if ( $scored_acts[0]->{act} eq "" ) {
-                #     $numparseerror++;
-                #     print STDERR
-                #         "Parse error (no more actions). $numparseerror\n";
-                #     last;
-                # }
+            scored_acts = []
+            if train_file is not None:
+                # take the next action from gold_acts
+                action_str = gold_acts.pop(0) if gold_acts else ''
+                if not action_str:
+                    # import ipdb; ipdb.set_trace()
+                    print('Parse error (no more actions) %s' %
+                          (num_parse_errors), file=sys.stderr)
+                    num_parse_errors += 1
+                    break
 
-                # $scored_acts[0]->{act} =~ s/^S:(.*)$/S:POS/;
-                # $scored_acts[0]->{act} =~ s/^([^\=\-]+)[\=\-].+/$1/;
+                action_str = re.sub(r'^S:(.*)$', r'S:POS',
+                                            action_str)
+                action_str = re.sub(r'^([^\=\-]+)[\=\-].+', r'$1',
+                                            action_str)
 
-                # if (!(     ( $scored_acts[0]->{act} eq $prevact )
-                #         && ( $scored_acts[0]->{act} =~ /^U/ )
-                #     )
-                #     )
-                # {
-                #     my $featstr = join " ", @{$featsref};
-                #     print "$scored_acts[0]->{act} $featstr\n";
-                # }
+                if not (action_str == cur_state["prevact"] and
+                        action_str.startswith('U')):
+                    print(' '.join([action_str] + feats))
+
+                scored_acts.append(ScoredAction(action_str, 1))
             else:
                 scored_acts = self.mxclassify(feats)
                 scored_acts = sorted(scored_acts,
-                                     key=lambda x: x.score,
+                                     key=attrgetter('score'),
                                      reverse=True)
-                #import sys; print('\n'.join(['{} {:.4g}'.format(x.action, x.score) for x in scored_acts]), file=sys.stderr)
+                #print('\n'.join(['{} {:.4g}'.format(x.action, x.score) for x in scored_acts]), file=sys.stderr)
                 #print('\n', file=sys.stderr)
 
             num_acts = 0
@@ -489,7 +480,7 @@ class Parser(object):
                 action = scored_action.action
                 score = scored_action.score
 
-                if not train_mode:
+                if train_file is None:
                     # If parsing, verify the validity of the action.
                     if not self.is_valid_action(action, ucnt, sent, stack):
                         continue
@@ -517,7 +508,7 @@ class Parser(object):
 
         # Done parsing.  Print the result(s).
         # TODO have this return nltk.tree objects?
-        if not train_mode:
+        if train_file is None:
             if self.n_best > 1:
                 for tree in completetrees:
                     print(tree["score"])
