@@ -12,7 +12,7 @@ tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
 
 
 def parse_document(doc):
-    # TODO replace this with a server and/or a cython wrapper
+    # TODO replace this with a server and/or a ctypes wrapper
 
     # zpar.en expects one sentence per line from stdin
     tmpfile = NamedTemporaryFile('w')
@@ -23,7 +23,8 @@ def parse_document(doc):
     # import sys
     # print('temp file:{}'.format(tmpfile.name), file=sys.stderr)
 
-    zpar_output = subprocess.check_output(shlex.split('zpar/dist/zpar.en zpar/english -oc {}'.format(tmpfile.name))).decode('utf-8')
+    zpar_output = subprocess.check_output(
+        shlex.split('zpar/dist/zpar.en zpar/english -oc {}'.format(tmpfile.name))).decode('utf-8')
 
     tmpfile.close()
 

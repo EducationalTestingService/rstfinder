@@ -5,6 +5,7 @@ from nltk.tree import ParentedTree
 
 
 class HeadedParentedTree(ParentedTree):
+
     '''
     A subclass of nltk.tree.ParentedTree
     that also returns heads using head rules from Michael Collins's
@@ -128,9 +129,12 @@ class HeadedParentedTree(ParentedTree):
                 if self[-1].label() == "POS":
                     head_index = num_children - 1
 
-                # Otherwise, look right to left for NN, NNP, NNPS, NNS, NX, POS, or JJR.
+                # Otherwise, look right to left for NN, NNP, NNPS, NNS, NX,
+                # POS, or JJR.
                 if head_index is None:
-                    head_index = self._search_children(["NN", "NNP", "NNPS", "NNS", "NX", "POS", "JJR"],
+                    head_index = self._search_children(["NN", "NNP", "NNPS",
+                                                        "NNS", "NX", "POS",
+                                                        "JJR"],
                                                        "R")
 
                 # Otherwise, search left to right for NP.
@@ -150,7 +154,8 @@ class HeadedParentedTree(ParentedTree):
 
                 # Otherwise, search right to left for JJ, JJS, RB, or QP.
                 if head_index is None:
-                    head_index = self._search_children(["JJ", "JJS", "RB", "QP"],
+                    head_index = self._search_children(["JJ", "JJS", "RB",
+                                                        "QP"],
                                                        "R")
 
                 # Otherwise, return the last child.

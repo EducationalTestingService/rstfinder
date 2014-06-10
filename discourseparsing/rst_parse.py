@@ -38,7 +38,8 @@ def main():
         for doc in docs:
             # Split the document into edus, one edu per line (with POS tags)
             # e.g., This/DT is/VBZ a/DT test/NN ./."
-            # TODO change this to read in the JSON format that also includes PTB trees.
+            # TODO change this to read in the JSON format that also includes
+            # PTB trees.
             edus = []
             for edu_str in doc.split("\n"):
                 edu = []

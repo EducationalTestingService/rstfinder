@@ -11,8 +11,12 @@ def parse_node_features(nodes):
             continue
 
         node_head_preterminal = node.head_preterminal()
-        yield '{}({})'.format(node.label(), node_head_preterminal[0].lower()) if node else '*NULL*'
-        yield '{}({})'.format(node.label(), node_head_preterminal.label()) if node else '*NULL*'
+        yield ('{}({})'.format(node.label(),
+                               node_head_preterminal[0].lower())
+               if node else '*NULL*')
+        yield ('{}({})'.format(node.label(),
+                               node_head_preterminal.label())
+               if node else '*NULL*')
 
 
 def extract_segmentation_features(doc_dict):
@@ -47,17 +51,20 @@ def extract_segmentation_features(doc_dict):
             # preterminal node for the current word
             node_w = tree[tree_position]
             # node for the word to the right
-            node_r = tree[sent_tree_positions[token_num + 1]] if token_num + 1 < len(sent_tree_positions) else None
+            node_r = tree[sent_tree_positions[token_num + 1]] if token_num + \
+                1 < len(sent_tree_positions) else None
             # parent node
 
-            node_p, ancestor_w, ancestor_r, node_p_parent, node_p_right_sibling = None, None, None, None, None
+            node_p, ancestor_w, ancestor_r = None, None, None
+            node_p_parent, node_p_right_sibling = None, None
             if node_r:
                 node_p = find_first_common_ancestor(node_w, node_r)
                 node_p_treeposition = node_p.treeposition()
+                node_p_len = len(node_p_treeposition)
                 # child subtree of node_p that includes node_w
-                ancestor_w = node_p[node_w.treeposition()[len(node_p_treeposition)]]
+                ancestor_w = node_p[node_w.treeposition()[node_p_len]]
                 # child subtree of node_p that includes node_r
-                ancestor_r = node_p[node_r.treeposition()[len(node_p_treeposition)]]
+                ancestor_r = node_p[node_r.treeposition()[node_p_len]]
                 node_p_parent = node_p.parent()
                 node_p_right_sibling = node_p.right_sibling()
 

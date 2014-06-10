@@ -23,18 +23,20 @@ Each of these dictionaries has the following keys:
 
 '''
 
-from glob import glob
+import argparse
+import json
 import os.path
 import re
 import sys
-import json
-import argparse
+from glob import glob
 # import warnings
 
 # from pyparsing import OneOrMore, nestedExpr
 from nltk.tree import ParentedTree
+
 from discourseparsing.tree_util import (convert_ptb_tree, extract_preterminals,
                                         extract_converted_terminals)
+
 
 # file mapping from the RSTDTB documentation
 file_mapping = {'file1.edus': 'wsj_0764.out.edus',
@@ -45,9 +47,16 @@ file_mapping = {'file1.edus': 'wsj_0764.out.edus',
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('rst_discourse_tb_dir', help='directory for the RST Discourse Treebank.  This should have a subdirectory data/RSTtrees-WSJ-main-1.0.')
-    parser.add_argument('ptb_dir', help='directory for the Penn Treebank.  This should have a subdirectory parsed/mrg/wsj.')
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('rst_discourse_tb_dir',
+                        help='directory for the RST Discourse Treebank.  \
+                              This should have a subdirectory \
+                              data/RSTtrees-WSJ-main-1.0.')
+    parser.add_argument('ptb_dir',
+                        help='directory for the Penn Treebank.  This should \
+                              have a subdirectory parsed/mrg/wsj.')
     args = parser.parse_args()
 
     # rst_discourse_tb_dir = '/Users/mheilman/corpora/rst_discourse_treebank'
@@ -57,13 +66,19 @@ def main():
     for dataset in ['TRAINING', 'TEST']:
         print(dataset, file=sys.stderr)
 
-        for path_index, path in enumerate(sorted(glob(os.path.join(args.rst_discourse_tb_dir, 'data', 'RSTtrees-WSJ-main-1.0', dataset, '*.edus')))):
+        for path_index, path in enumerate(sorted(glob(os.path.join(args.rst_discourse_tb_dir,
+                                                                   'data',
+                                                                   'RSTtrees-WSJ-main-1.0',
+                                                                   dataset,
+                                                                   '*.edus')))):
             tokens_doc = []
             edu_start_indices = []
 
             path_basename = os.path.basename(path)
             print('{} {}'.format(path_index, path_basename), file=sys.stderr)
-            ptb_id = (file_mapping[path_basename] if path_basename in file_mapping else path_basename)[:-9]
+            ptb_id = (file_mapping[path_basename] if
+                      path_basename in file_mapping else
+                      path_basename)[:-9]
             ptb_path = os.path.join(args.ptb_dir, 'parsed', 'mrg', 'wsj',
                                     ptb_id[4:6], '{}.mrg'.format(ptb_id))
 
@@ -127,22 +142,29 @@ def main():
                     elif path_basename == 'wsj_1158.out.edus':
                         edu = re.sub(r'\s*\-$', r'', edu)
                     elif path_basename == 'wsj_1367.out.edus':
-                        edu = edu.replace('-- that turban --', '-- that turban')
+                        edu = edu.replace('-- that turban --',
+                                          '-- that turban')
                     elif path_basename == 'wsj_1377.out.edus':
-                        edu = edu.replace(r'Part of a Series', r'Part of a Series }')
-                        edu = edu.replace(r'(All buyers 47%)', r'')
+                        edu = edu.replace('Part of a Series',
+                                          'Part of a Series }')
+                        edu = edu.replace('(All buyers 47%)', '')
                     elif path_basename == 'wsj_1974.out.edus':
                         edu = edu.replace(r'5/ 16', r'5/16')
                     elif path_basename == 'file2.edus':
-                        edu = edu.replace('read it into the record,', 'read it into the record.')
+                        edu = edu.replace('read it into the record,',
+                                          'read it into the record.')
                     elif path_basename == 'file3.edus':
                         edu = edu.replace('about $to $', 'about $2 to $4')
                     elif path_basename == 'file5.edus':
-                        edu = edu.replace('panic among analysts', 'panic among')
+                        edu = edu.replace('panic among analysts',
+                                          'panic among')
                         edu = edu.replace('his bid Oct. 17', 'his bid Oct. 5')
-                        edu = edu.replace('his bid on Oct. 17', 'his bid on Oct. 5')
-                        edu = edu.replace('to commit $billion,', 'to commit $3 billion,')
-                        edu = edu.replace('received $million in fees', 'received $8 million in fees')
+                        edu = edu.replace('his bid on Oct. 17',
+                                          'his bid on Oct. 5')
+                        edu = edu.replace('to commit $billion,',
+                                          'to commit $3 billion,')
+                        edu = edu.replace('received $million in fees',
+                                          'received $8 million in fees')
                         edu = edu.replace('`` in light', '"in light')
                         edu = edu.replace('3.00 a share', '2 a share')
                     elif path_basename == 'wsj_1331.out.edus':
@@ -150,12 +172,14 @@ def main():
                     elif path_basename == 'wsj_1373.out.edus':
                         edu = edu.replace('.. An N.V.', 'An N.V.')
 
-                    edu_start_indices.append((tree_index, tok_index, edu_index))
+                    edu_start_indices.append((tree_index, tok_index,
+                                              edu_index))
 
                 # remove the next token from the edu, along with any whitespace
                 if edu.startswith(tok):
                     edu = edu[len(tok):].strip()
-                elif re.search(r'[^a-zA-Z0-9]', edu[0]) and edu[1:].startswith(tok):
+                elif re.search(r'[^a-zA-Z0-9]',
+                               edu[0]) and edu[1:].startswith(tok):
                     print("loose match: {} {}".format(tok, edu),
                           file=sys.stderr)
                     edu = edu[len(tok) + 1:].strip()
@@ -163,7 +187,11 @@ def main():
                     m_tok = re.search(r'^[^a-zA-Z ]+$', tok)
                     m_edu = re.search(r'^[^a-zA-Z ]+(.*)', edu)
                     if not m_tok or not m_edu:
-                        raise Exception('\n\npath_index: {}\ntok: {}\nedu: {}\nfull_edu:{}\nleaves:{}\n\n'.format(path_index, tok, edu, edus[edu_index], tree.leaves()))
+                        raise Exception(('\n\npath_index: {}\ntok: {}\n' +
+                                         'edu: {}\nfull_edu:{}\nleaves:' +
+                                         '{}\n\n').format(path_index, tok, edu,
+                                                          edus[edu_index],
+                                                          tree.leaves()))
                     print("loose match: {} ==> {}".format(tok, edu),
                           file=sys.stderr)
                     edu = m_edu.groups()[0].strip()
@@ -185,7 +213,9 @@ def main():
                       "rst_tree": rst_tree}
             outputs.append(output)
 
-        with open(os.path.join(output_dir, 'rst_discourse_tb_edus_{}.json'.format(dataset)), 'w') as outfile:
+        with open(os.path.join(output_dir, ('rst_discourse_tb_edus_' +
+                                            '{}.json').format(dataset)),
+                  'w') as outfile:
             json.dump(outputs, outfile)
 
 
