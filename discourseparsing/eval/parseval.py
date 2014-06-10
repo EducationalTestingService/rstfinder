@@ -72,6 +72,14 @@ def recall_half(gold, parse, ignore_labels=True):
             successes += 1
     return (successes,total)
 
+def compute_fscore(precision, recall):
+	if precision == 0:
+		return 0
+	if recall == 0:
+		return 0
+
+	return (2 * precision * recall) / (precision + recall)
+	
 def corpus_eval(goldfile,parsefile):
     
     paridx = 0
@@ -180,7 +188,8 @@ def example1():
     
     pscore = precision(gold,parse)
     rscore = recall(gold,parse)
-    print pscore, rscore
+    fscore = compute_fscore(pscore, rscore)
+    print pscore, rscore, fscore
 
 def example2():
     gold = Tree.parse(
