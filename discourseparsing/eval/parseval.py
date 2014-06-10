@@ -29,7 +29,7 @@ def precision_half(gold,parse,ignore_labels=True):
 
     parsebrackets_u = list_brackets(parse, ignore_labels=True)
     goldbrackets_u = list_brackets(gold, ignore_labels=True)
-    print parse
+    #print parse
 
     if ignore_labels:
         candidate = parsebrackets_u
@@ -79,7 +79,7 @@ def compute_fscore(precision, recall):
 		return 0
 
 	return (2 * precision * recall) / (precision + recall)
-	
+
 def corpus_eval(goldfile,parsefile):
     
     paridx = 0
@@ -251,6 +251,6 @@ def example2():
 def main():
     example1()
     #corpus_eval(test_file, parsed_sentence_file)
-#    example2()
+    example2()
     
 if __name__ == "__main__": main()
