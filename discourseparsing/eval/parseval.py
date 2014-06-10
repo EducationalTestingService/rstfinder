@@ -88,8 +88,8 @@ def corpus_eval(goldfile,parsefile):
         return False
     while paridx < len(parse):
         if True:
-            gold_tree = bracket_parse(gold[goldidx].decode('gbk'))
-            parse_tree = bracket_parse(parse[paridx].decode('gbk'))
+            gold_tree = Tree.parse(gold[goldidx].decode('gbk'))
+            parse_tree = Tree.parse(parse[paridx].decode('gbk'))
             
             s,t = precision_half(gold_tree,parse_tree)
             pcs_suc += s
@@ -145,14 +145,14 @@ def list_brackets(tree, ignore_labels=False):
         if ignore_labels:
             return "ignore"
         else:
-            return tr.node
+            return tr.label()
 
     out = []
     subtrees = tree.subtrees(filter=not_pos_tag)
     return [(firstleaf(sub), lastleaf(sub), label(sub)) for sub in subtrees]
 
 def example1():
-    gold = bracket_parse(
+    gold = Tree.parse(
 """
 (PX
     (PX
@@ -166,7 +166,7 @@ def example1():
     (ADVX (ADV vielleicht)))
 """)
 
-    parse = bracket_parse(
+    parse = Tree.parse(
 """
 (PX
     (PX
@@ -183,7 +183,7 @@ def example1():
     print pscore, rscore
 
 def example2():
-    gold = bracket_parse(
+    gold = Tree.parse(
 """
 (SIMPX
     (VF
@@ -208,7 +208,7 @@ def example2():
             (nn Fundament))))
 """)
 
-    parse = bracket_parse(
+    parse = Tree.parse(
 """
 (R-SIMPX
     (LV
@@ -241,7 +241,7 @@ def example2():
 
 def main():
     example1()
-    corpus_eval(test_file, parsed_sentence_file)
+    #corpus_eval(test_file, parsed_sentence_file)
 #    example2()
     
 if __name__ == "__main__": main()
