@@ -5,8 +5,8 @@ from pyparsing import OneOrMore, nestedExpr
 ### naive visualization of RST in png format
 ### run on Python 3
 ### usage: python viz_discourse.py test.dis
-### result: example_graph.png, where each node has span and RST labels.
-###         Edges with '*' indicates the Nucleus its parent.
+### result: example_graph.png, where each node has span and RST label.
+###         Edges with '*' indicate the Nucleus of its parent.
 
 f = open(sys.argv[1], 'r').read()
 data = (OneOrMore(nestedExpr()).parseString(f))
