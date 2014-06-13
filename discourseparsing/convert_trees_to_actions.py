@@ -20,45 +20,42 @@ import re
 ShiftReduceAction = namedtuple('ShiftReduceAction', ['type', 'label'])
 
 
-def get_dependencies(dep_file):
-    dtree = []
-    dtree.append({'idx': 0, 'word': "leftwall", 'pos': "LW", 'link': -1})
+def dependencies_generator(dep_file):
+    dtree_strings = re.split(r'\n\n+', dep_file.read().strip())
+    for dtree_string in dtree_strings:
+        dtree = []
+        dtree.append({'idx': 0, 'word': "leftwall", 'pos': "LW", 'link': -1})
 
-    tmp_str = dep_file.readline().strip()
-    while re.search(r'^[ \t\n\r]*$', tmp_str):
-        tmp_str = dep_file.readline().strip()
-
-    parts = tmp_str.split('\n')
-    for part in parts:
-        a = re.split(r'[ \t]', part)
-        dtree.append({'idx': a[0],
-                      'word': a[1],
-                      'lemma': a[2],
-                      'cpos': a[3],
-                      'pos': a[4],
-                      'morph': a[5],
-                      'link': a[6]})
-    return dtree
+        parts = dtree_string.split('\n')
+        for part in parts:
+            a = re.split(r'[ \t]', part)
+            dtree.append({'idx': a[0],
+                          'word': a[1],
+                          'lemma': a[2],
+                          'cpos': a[3],
+                          'pos': a[4],
+                          'morph': a[5],
+                          'link': a[6]})
+        yield dtree
 
 
 def convert_trees_to_actions(constituent_file, dep_file):
     tree = ""
 
-    for line in constituent_file:
+    for line, dtree in zip(constituent_file, dependencies_generator(dep_file)):
         tree = Tree(line.strip())
-
-        dtree = get_dependencies(dep_file)
+        tree.set_label('ROOT')
 
         stack = []
         cstack = [{'nt': 'LEFTWALL', 'parent': 'LEFTWALL', 'tree': ''}]
         dstack = [0]
-        dptr = 0
+        dptr = [0]  # this is a list so it's mutable and passed by reference
 
         actseq = []
 
-        convert_tree_to_actions_helper(tree, stack, cstack, dstack, dptr, dtree, actseq)
+        _convert_tree_to_actions_helper(tree, stack, cstack, dstack, dptr, dtree, actseq)
 
-        merge_constituent_end_shifts(actseq)
+        actseq = merge_constituent_end_shifts(actseq)
 
         yield actseq
 
@@ -74,7 +71,8 @@ def merge_constituent_end_shifts(actseq):
 
     res = []
     for act in actseq:
-        if act.type == 'U' and res and (res[-1] == 'L' or res[-1] == 'R'):
+        if act.type == 'U' and res and (res[-1].type == 'L'
+                                        or res[-1].type == 'R'):
             assert '{}*'.format(act.label) == res[-1].label
             tmp_act = res.pop()
             res.append(ShiftReduceAction(type=tmp_act.type, label=act.label))
@@ -83,43 +81,48 @@ def merge_constituent_end_shifts(actseq):
     return res
 
 
-def convert_tree_to_actions_helper(node, stack, cstack, dstack, dptr, dtree, actseq):
-    stack.append(node.label())
+def _convert_tree_to_actions_helper(node, stack, cstack, dstack, dptr_list, dtree, actseq):
+    stack.append(node)
 
     for child in node:
-        convert_tree_to_actions_helper(child, stack, cstack, dstack, dptr, dtree, actseq)
+        # TODO need this???
+        if isinstance(child, str):
+            continue
+        _convert_tree_to_actions_helper(child, stack, cstack, dstack, dptr_list, dtree, actseq)
 
     nt = stack.pop()
 
-    # if the current node is a preterminal, add a shift
+    # If the current node is a preterminal, add a shift action.
+    tmp_parent = cstack[-1]['parent']
     if isinstance(nt[0], str):
         actseq.append(ShiftReduceAction(type='S', label='POS'))
         cstack.append({'nt': '{}(from shift)'.format(nt),
                        'parent': stack[-1],
                        'tree': '({})'.format(nt)})
-        dptr += 1  # TODO ok if this is modified only locally?
-        dstack.append(dptr)
-    # otherwise (for nonterminals), add a unary reduce or reduce_right:root
+        dptr_list[0] += 1
+        dstack.append(dptr_list[0])
+    # Or if we are at the root of the tree, then add reduce_right:ROOT.
+    elif tmp_parent.label() == "ROOT":
+        actseq.append(ShiftReduceAction(type='R', label='ROOT'))
+        chflg = False
+    # Otherwise, we have visited all the children of a nonterminal node,
+    # and we should add a unary reduce
     else:
-        tmpstr = cstack[-1]['parent']
-        if tmpstr == "TOP":
-            actseq.append(ShiftReduceAction(type='R', label='ROOT'))
-        else:
-            actseq.append(ShiftReduceAction(type='U', label=tmpstr))
-
-
+        actseq.append(ShiftReduceAction(type='U', label=tmp_parent.label()))
         tmpc = cstack.pop()
-        cstack.append({'nt': '{}(from reduce = {})'.format(tmpc['nt'], tmpc['parent']),
+        cstack.append({'nt': '{}(from reduce = {})'.format(tmpc['nt'],
+                                                           tmpc['parent']),
                        'parent': stack[-1],
                        'tree': '({} {})'.format(tmpc['parent'], tmpc['tree'])})
 
-    # check to see if there should be any reduce right or reduce left actions
+    # Check to see if there should be any reduce right or reduce left actions.
     chflg = True
-    while chflg:
+    while chflg and stack:
         chflg = False
-        # if the head of most recently visited node is the 2nd most recently visited node,
+        # If the head of most recently visited node
+        # is the 2nd most recently visited node,
         # and they have the same parent,
-        # then add a reduce_right
+        # then add a reduce_right.
         if dtree[dstack[-1]]['link'] == dtree[dstack[-2]]['idx'] \
                 and cstack[-1]['parent'] == cstack[-2]['parent']:
             tmpR = dstack.pop()
@@ -130,16 +133,19 @@ def convert_tree_to_actions_helper(node, stack, cstack, dstack, dptr, dtree, act
             tmpLc = cstack.pop()
             cstack.append({'parent': stack[-1],
                            'nt': tmpLc['nt'],
-                           'tree': '{} {}'.format(tmpLc['tree'], tmpRc['tree'])})
-            tmpstr = cstack[-1]['parent']
+                           'tree': '{} {}'.format(tmpLc['tree'],
+                                                  tmpRc['tree'])})
+            tmp_parent = cstack[-1]['parent']
 
-            actseq.append(ShiftReduceAction(type='R', label='{}*'.format(tmpstr)))
+            actseq.append(ShiftReduceAction(type='R',
+                                            label='{}*'.format(tmp_parent.label())))
 
             chflg = True
 
-        # if the most recently visited node is the head of the 2nd most recently visited node
+        # If the most recently visited node
+        # is the head of the 2nd most recently visited node
         # and they both have the same parent,
-        # then add a reduce_left
+        # then add a reduce_left.
         if dtree[dstack[-2]]['link'] == dtree[dstack[-1]]['idx'] \
                 and cstack[-1]['parent'] == cstack[-2]['parent']:
             tmpR = dstack.pop()
@@ -151,9 +157,10 @@ def convert_tree_to_actions_helper(node, stack, cstack, dstack, dptr, dtree, act
             cstack.append({'parent': stack[-1],
                            'nt': tmpRc['nt'],
                            'tree': '{} {}'.format(tmpLc['tree'], tmpRc['tree'])})
-            tmpstr = cstack[-1]['parent']
+            tmp_parent = cstack[-1]['parent']
 
-            actseq.append(ShiftReduceAction(type='L', label='{}*'.format(tmpstr)))
+            actseq.append(ShiftReduceAction(type='L',
+                                            label='{}*'.format(tmp_parent.label())))
 
             chflg = True
 
@@ -166,7 +173,7 @@ def main():
 
     with open(args.mrg_path) as constituent_file, open(args.dep_path) as dep_file:
         for actseq in convert_trees_to_actions(constituent_file, dep_file):
-            print(' '.join(actseq))
+            print(' '.join(['{}:{}'.format(x.type, x.label) for x in actseq]))
 
 
 if __name__ == '__main__':
