@@ -345,7 +345,7 @@ class Parser(object):
             # make a dictionary for each EDU
             wnum += 1
             tmp_item = {'idx': wnum,
-                        'nt': "",  # TODO why was this $2 in the perl code?
+                        'nt': "EDU",  # TODO why was this $2 in the perl code?
                         'head': edu_words,
                         'hpos': edu_pos_tags,
                         'tree': "(text _!{}!_)".format(edustr),
