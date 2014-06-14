@@ -6,6 +6,7 @@ import json
 from discourseparsing.discourse_parsing import Parser
 from discourseparsing.extract_actions_from_trees import extract_parse_actions
 from discourseparsing.collapse18 import collapse_rst_labels
+from discourseparsing.segment_document import extract_edus_tokens
 from nltk.tree import ParentedTree
 
 def gold_action_gen(action_file, edus):
@@ -28,6 +29,14 @@ def gold_action_gen(action_file, edus):
                 for slash_str in line.split(' '):
                     idx = int(slash_str.split('/')[0])
                     doc_for_actions.append(edus[idx - 1])
+
+def extract_tagged_doc_edus(doc_dict):
+    edu_start_indices = doc_dict['edu_start_indices']
+    res = [list(zip(edu_words, edu_tags))
+                    for edu_words, edu_tags
+                    in zip(extract_edus_tokens(edu_start_indices, doc_dict['tokens']),
+                           extract_edus_tokens(edu_start_indices, doc_dict['pos_tags']))]
+    return res
 
 
 def main():
@@ -72,7 +81,8 @@ def main():
     train_data = json.load(args.train_file)
 
     for doc_dict in train_data:
-        doc_edus = [list(zip(edu_tokens, edu_tags)) for edu_tokens, edu_tags in zip(doc_dict['tokens'], doc_dict['pos_tags'])]
+        logging.info(doc_dict['path_basename'])
+        doc_edus = extract_tagged_doc_edus(doc_dict)
         tree = ParentedTree(doc_dict['rst_tree'])
 
         collapse_rst_labels(tree)
