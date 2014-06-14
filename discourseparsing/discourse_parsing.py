@@ -228,7 +228,7 @@ class Parser(object):
             new_tree = "({} {} {})".format(label,
                                            tmp_lc["tree"],
                                            tmp_rc["tree"])
-            if label.endswith("*") or label == "ROOT":
+            if label.endswith("*") or label == "root":
                 new_tree = "{} {}".format(tmp_lc["tree"],
                                           tmp_rc["tree"])
 
@@ -260,7 +260,7 @@ class Parser(object):
             new_tree = "({} {} {})".format(label,
                                            tmp_lc["tree"],
                                            tmp_rc["tree"])
-            if label.endswith("*") or label == "ROOT":
+            if label.endswith("*") or label == "root":
                 new_tree = "{} {}".format(tmp_lc["tree"],
                                           tmp_rc["tree"])
 
@@ -347,7 +347,7 @@ class Parser(object):
                         'nt': "EDU",  # TODO why was this $2 in the perl code?
                         'head': edu_words,
                         'hpos': edu_pos_tags,
-                        'tree': "(text _!{}!_)".format(edustr),
+                        'tree': "(text _!{}_!)".format(edustr),
                         'lchnt': "NONE",
                         'rchnt': "NONE",
                         'lchpos': "NONE",

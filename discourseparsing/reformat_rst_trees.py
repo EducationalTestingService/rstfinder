@@ -78,10 +78,7 @@ def reformat_rst_tree(input_tree):
         input_tree.pprint(margin=TREE_PRINT_MARGIN)))
 
     # 1. rename the top node
-    for s in input_tree.subtrees():
-        # directly modify the tree
-        if s.label() == 'Root':
-            s.set_label('ROOT')
+    input_tree.set_label('ROOT')
 
     # 2. delete all of the span and leaf nodes (they seem to be just for
     # book keeping)

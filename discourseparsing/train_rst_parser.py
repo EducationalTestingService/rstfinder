@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 import logging
-import re
 import json
-from collections import defaultdict
 
 from discourseparsing.discourse_parsing import Parser
-
+from discourseparsing.extract_actions_from_trees import extract_parse_actions
+from discourseparsing.collapse18 import collapse_rst_labels
+from nltk.tree import ParentedTree
 
 def gold_action_gen(action_file, edus):
     '''
@@ -35,8 +35,8 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('train_file',
-                       help='Path to JSON training file.',
-                       type=argparse.FileType('r'))
+                        help='Path to JSON training file.',
+                        type=argparse.FileType('r'))
     parser.add_argument('-a', '--max_acts',
                         help='Maximum number of actions for...?',
                         type=int, default=1)
@@ -70,11 +70,27 @@ def main():
     # Create a giant list of all EDUs for all documents
 
     train_data = json.load(args.train_file)
-    import pdb;pdb.set_trace()
-    doc_edus = None #TODO
-    actions = None #TODO
 
-    for doc_edus, actions in gold_action_gen(args.train_file, edus):
+    for doc_dict in train_data:
+        doc_edus = [list(zip(edu_tokens, edu_tags)) for edu_tokens, edu_tags in zip(doc_dict['tokens'], doc_dict['pos_tags'])]
+        tree = ParentedTree(doc_dict['rst_tree'])
+
+        collapse_rst_labels(tree)
+
+        # TODO take this part out
+        i = 1
+        for subtree in tree.subtrees():
+            if isinstance(subtree[0], str):
+                subtree.clear()
+                subtree.set_label('edu')
+                subtree.append(str(i))
+                i += 1
+
+        # TODO make the tree conversion procedure handle this instead
+        tree.set_label('nucleus:span')
+        tree = ParentedTree('(ROOT {})'.format(tree.pprint()))
+
+        actions = ["{}:{}".format(act.type, act.label) for act in extract_parse_actions(tree)]
         logger.debug('Extracting features for %s with actions %s',
                      doc_edus, actions)
         parser.parse(doc_edus, gold_actions=actions)

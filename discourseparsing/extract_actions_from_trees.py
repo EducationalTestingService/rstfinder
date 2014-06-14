@@ -20,6 +20,10 @@ ShiftReduceAction = namedtuple('ShiftReduceAction', ['type', 'label'])
 
 
 def extract_parse_actions(tree):
+    '''
+    Extracts a list of ShiftReduceAction objects for the given tree.
+    '''
+
     if tree.label() == '':
         tree.set_label('ROOT')
     assert tree.label() == 'ROOT'
@@ -27,13 +31,13 @@ def extract_parse_actions(tree):
     stack = []
     cstack = [ParentedTree('(DUMMY0 (DUMMY1 DUMMY3))')]
     actseq = []
-    _convert_tree_to_actions_helper(tree, stack, cstack, actseq)
-    actseq = merge_constituent_end_shifts(actseq)
+    _extract_parse_actions_helper(tree, stack, cstack, actseq)
+    actseq = _merge_constituent_end_shifts(actseq)
 
     return actseq
 
 
-def merge_constituent_end_shifts(actseq):
+def _merge_constituent_end_shifts(actseq):
     '''
     convert_tree_to_actions_helper always puts * on binary reduce actions,
     and then puts a unary reduce after a sequence of binary reduces for the
@@ -43,7 +47,7 @@ def merge_constituent_end_shifts(actseq):
     '''
 
     res = []
-    for act in actseq:
+    for i, act in enumerate(actseq):
         if act.type == 'U' and res and (res[-1].type == 'L'
                                         or res[-1].type == 'R'):
             assert '{}*'.format(act.label) == res[-1].label
@@ -67,13 +71,13 @@ def _is_head_of(n1, n2):
     return False
 
 
-def _convert_tree_to_actions_helper(node, stack, cstack, actseq):
+def _extract_parse_actions_helper(node, stack, cstack, actseq):
     stack.append(node)
 
     for child in node:
         if isinstance(child, str):
             continue
-        _convert_tree_to_actions_helper(child, stack, cstack, actseq)
+        _extract_parse_actions_helper(child, stack, cstack, actseq)
 
     nt = stack.pop()
 

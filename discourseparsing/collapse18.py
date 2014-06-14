@@ -24,43 +24,49 @@ def collapse_rst_labels(tree):
 
 
 def _collapse_rst_label(label):
-    res = label
-    label_lc = label.lower()
-    if re.search(r'^attribution', label_lc):
-        res = "ATTRIBUTION"
-    elif re.search(r'^(background|circumstance)', label_lc):
-        res = "BACKGROUND"
-    elif re.search(r'^(cause|result|consequence)', label_lc):
-        res = "CAUSE"
-    elif re.search(r'^(comparison|preference|analogy|proportion)', label_lc):
-        res = "COMPARISON"
-    elif re.search(r'^(condition|hypothetical|contingency|otherwise)', label_lc):
-        res = "CONDITION"
-    elif re.search(r'^(contrast|concession|antithesis)', label_lc):
-        res = "CONTRAST"
-    elif re.search(r'^(elaboration.*|example|definition)', label_lc):
-        res = "ELABORATION"
-    elif re.search(r'^(purpose|enablement)', label_lc):
-        res = "ENABLEMENT"
-    elif re.search(r'^(evaluation|interpretation|conclusion|comment)', label_lc):
-        res = "EVALUATION"
-    elif re.search(r'^(evidence|explanation.*|reason)', label_lc):
-        res = "EXPLANATION"
-    elif re.search(r'^(list|disjunction)', label_lc):
-        res = "JOINT"
-    elif re.search(r'^(manner|means)', label_lc):
-        res = "MANNERMEANS"
-    elif re.search(r'^(problem\-solution|question\-answer|statement\-response|topic\-comment|comment\-topic|rhetorical\-question)', label_lc):
-        res = "TOPICCOMMENT"
-    elif re.search(r'^(summary|restatement)', label_lc):
-        res = "SUMMARY"
-    elif re.search(r'^(temporal\-.*|sequence|inverted\-sequence)', label_lc):
-        res = "TEMPORAL"
-    elif re.search(r'^(topic-.*)', label_lc):
-        res = "TOPICCHANGE"
-    res = res.lower()
-    # elif re.search(r'^(span|same\-unit|textualorganization)', label_lc):
+    if not re.search(':', label):
+        return label
+
+    direction, relation = label.split(':')
+    
+    relation_lc = relation.lower()
+    if re.search(r'^attribution', relation_lc):
+        relation = "ATTRIBUTION"
+    elif re.search(r'^(background|circumstance)', relation_lc):
+        relation = "BACKGROUND"
+    elif re.search(r'^(cause|result|consequence)', relation_lc):
+        relation = "CAUSE"
+    elif re.search(r'^(comparison|preference|analogy|proportion)', relation_lc):
+        relation = "COMPARISON"
+    elif re.search(r'^(condition|hypothetical|contingency|otherwise)', relation_lc):
+        relation = "CONDITION"
+    elif re.search(r'^(contrast|concession|antithesis)', relation_lc):
+        relation = "CONTRAST"
+    elif re.search(r'^(elaboration.*|example|definition)', relation_lc):
+        relation = "ELABORATION"
+    elif re.search(r'^(purpose|enablement)', relation_lc):
+        relation = "ENABLEMENT"
+    elif re.search(r'^(evaluation|interpretation|conclusion|comment)', relation_lc):
+        relation = "EVALUATION"
+    elif re.search(r'^(evidence|explanation.*|reason)', relation_lc):
+        relation = "EXPLANATION"
+    elif re.search(r'^(list|disjunction)', relation_lc):
+        relation = "JOINT"
+    elif re.search(r'^(manner|means)', relation_lc):
+        relation = "MANNERMEANS"
+    elif re.search(r'^(problem\-solution|question\-answer|statement\-response|topic\-comment|comment\-topic|rhetorical\-question)', relation_lc):
+        relation = "TOPICCOMMENT"
+    elif re.search(r'^(summary|restatement)', relation_lc):
+        relation = "SUMMARY"
+    elif re.search(r'^(temporal\-.*|sequence|inverted\-sequence)', relation_lc):
+        relation = "TEMPORAL"
+    elif re.search(r'^(topic-.*)', relation_lc):
+        relation = "TOPICCHANGE"
+    #relation = res.lower()
+    # elif re.search(r'^(span|same\-unit|textualorganization)', relation_lc):
     #    res = label
+
+    res = "{}:{}".format(direction, relation).lower()
 
     return res
 
