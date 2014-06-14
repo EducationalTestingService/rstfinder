@@ -13,14 +13,17 @@ from nltk.tree import Tree
 
 def collapse_rst_labels(tree):
     '''
-    collapse the RST labels to the 18 described by the Carlson et al. paper that comes with the RST discourse treebank
+    Collapse the RST labels to the 18 described by the Carlson et al. paper
+    that comes with the RST discourse treebank.
+
+    This modifies the tree in place.
     '''
     for subtree in tree.subtrees():
         # Walk the tree, modify any terminals whose parent is rel2par.
-        subtree.set_label(collapse_rst_label(subtree.label()))
+        subtree.set_label(_collapse_rst_label(subtree.label()))
 
 
-def collapse_rst_label(label):
+def _collapse_rst_label(label):
     res = label
     label_lc = label.lower()
     if re.search(r'^attribution', label_lc):
@@ -56,7 +59,7 @@ def collapse_rst_label(label):
     elif re.search(r'^(topic-.*)', label_lc):
         res = "TOPICCHANGE"
     res = res.lower()
-    #elif re.search(r'^(span|same\-unit|textualorganization)', label_lc):
+    # elif re.search(r'^(span|same\-unit|textualorganization)', label_lc):
     #    res = label
 
     return res
@@ -64,8 +67,10 @@ def collapse_rst_label(label):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('input_path', help='path to an original RST discourse treebank .dis file')
-    parser.add_argument('output_path', help='path to where the converted output should go')
+    parser.add_argument(
+        'input_path', help='path to an original RST discourse treebank .dis file')
+    parser.add_argument('output_path',
+                        help='path to where the converted output should go')
     args = parser.parse_args()
 
     with open(args.input_path) as input_file:
@@ -78,5 +83,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-

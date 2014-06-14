@@ -29,13 +29,15 @@ import os.path
 import re
 import sys
 from glob import glob
-# import warnings
 
-# from pyparsing import OneOrMore, nestedExpr
 from nltk.tree import ParentedTree
 
 from discourseparsing.tree_util import (convert_ptb_tree, extract_preterminals,
-                                        extract_converted_terminals)
+                                        extract_converted_terminals,
+                                        TREE_PRINT_MARGIN)
+from discourseparsing.reformat_rst_trees import (reformat_rst_tree,
+                                                 fix_rst_treebank_tree_str,
+                                                 convert_brackets_and_parens)
 
 
 # file mapping from the RSTDTB documentation
@@ -57,20 +59,22 @@ def main():
     parser.add_argument('ptb_dir',
                         help='directory for the Penn Treebank.  This should \
                               have a subdirectory parsed/mrg/wsj.')
+    parser.add_argument('--output_dir',
+                        help='directory where the output JSON files go.',
+                        default='.')
     args = parser.parse_args()
 
-    # rst_discourse_tb_dir = '/Users/mheilman/corpora/rst_discourse_treebank'
-    output_dir = '.'
     outputs = []
 
     for dataset in ['TRAINING', 'TEST']:
         print(dataset, file=sys.stderr)
 
-        for path_index, path in enumerate(sorted(glob(os.path.join(args.rst_discourse_tb_dir,
-                                                                   'data',
-                                                                   'RSTtrees-WSJ-main-1.0',
-                                                                   dataset,
-                                                                   '*.edus')))):
+        for path_index, path in enumerate(
+                sorted(glob(os.path.join(args.rst_discourse_tb_dir,
+                                         'data',
+                                         'RSTtrees-WSJ-main-1.0',
+                                         dataset,
+                                         '*.edus')))):
             tokens_doc = []
             edu_start_indices = []
 
@@ -94,10 +98,14 @@ def main():
                 edus = [line.strip() for line in f.readlines()]
             path_dis = "{}.dis".format(path[:-5])
             with open(path_dis) as f:
-                # warnings.filterwarnings("ignore", category=DeprecationWarning)
-                # rst_tree = OneOrMore(nestedExpr()).parseString(f.read().strip()).asList()
-                # warnings.filterwarnings("always", category=DeprecationWarning)
-                rst_tree = f.read().strip()
+                rst_tree_str = f.read().strip()
+                rst_tree_str = fix_rst_treebank_tree_str(rst_tree_str)
+                rst_tree_str = convert_brackets_and_parens(rst_tree_str)
+                rst_tree = ParentedTree.parse(rst_tree_str)
+                                              #leaf_pattern=r'(_![^_(?=!)]+_!)')
+                # this leaf_pattern keeps the EDU texts together as one token rather than splitting on whitespace
+                # TODO make a utility function for reading in rst trees, so this leaf pattern doesn't have to be in multiple places
+                reformat_rst_tree(rst_tree)
 
             edu_index = -1
             tok_index = 0
@@ -202,7 +210,8 @@ def main():
                       "path_basename": path_basename,
                       "tokens": tokens_doc,
                       "edu_strings": edus,
-                      "syntax_trees": [t.pprint() for t in trees],
+                      "syntax_trees": [t.pprint(margin=TREE_PRINT_MARGIN)
+                                       for t in trees],
                       "token_tree_positions": [[x.treeposition() for x in
                                                 preterminals_sentence]
                                                for preterminals_sentence
@@ -210,11 +219,11 @@ def main():
                       "pos_tags": [[x.label() for x in preterminals_sentence]
                                    for preterminals_sentence in preterminals],
                       "edu_start_indices": edu_start_indices,
-                      "rst_tree": rst_tree}
+                      "rst_tree": rst_tree.pprint(margin=TREE_PRINT_MARGIN)}
             outputs.append(output)
 
-        with open(os.path.join(output_dir, ('rst_discourse_tb_edus_' +
-                                            '{}.json').format(dataset)),
+        with open(os.path.join(args.output_dir, ('rst_discourse_tb_edus_' +
+                                                 '{}.json').format(dataset)),
                   'w') as outfile:
             json.dump(outputs, outfile)
 

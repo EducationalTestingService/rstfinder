@@ -29,6 +29,7 @@ setup(name='discourseparsing',
       entry_points={'console_scripts': ['segment_document = discourseparsing.segment_document:main',
                                         'tune_segmentation_model = discourseparsing.tune_segmentation_model:main',
                                         'rst_parse = discourseparsing.rst_parse:main',
+                                        'train_rst_parser = discourseparsing.train_rst_parser:main',
                                         'convert_rst_discourse_tb = discourseparsing.convert_rst_discourse_tb:main',
                                         'make_segmentation_crfpp_template = discourseparsing.make_segmentation_crfpp_template:main']},
       install_requires=requirements())

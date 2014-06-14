@@ -14,71 +14,23 @@ be space-separated.
 import argparse
 from nltk.tree import ParentedTree
 from collections import namedtuple
-import re
 
 
 ShiftReduceAction = namedtuple('ShiftReduceAction', ['type', 'label'])
 
 
-# def _find_rst_heads(tree, index_list, heads):
-
-
-#     # preterminal (stopping condition)
-#     if isinstance(tree[0], str):
-#         heads[index] = index
-#         return
-
-#     for i, child in enumerate(tree):
-#         _find_rst_heads(tree, index, heads)
-
-
-
-# def compute_rst_dependencies(tree):
-#     dtree = []
-#     dtree.append({'idx': 0, 'word': "leftwall", 'pos': "LW", 'link': -1})
-
-#     # Do a post-order traversal of the tree and
-#     # set the head of each node to be the head of the leftmost of its children
-#     # (or itself if it is a preterminal).
-#     _find_rst_heads(tree, [0], {})
-
-
-#     # For each preterminal, walk up the tree until the current node's head is 
-#     # not the preterminal.  Then, set the preterminal's head to be that node's
-#     # head.  Add the resulting dependency.
-
-#     for part in parts:
-#         a = re.split(r'[ \t]', part)
-#         dtree.append({'idx': a[0],
-#                       'word': a[1],
-#                       'lemma': a[2],
-#                       'cpos': a[3],
-#                       'pos': a[4],
-#                       'morph': a[5],
-#                       'link': a[6]})
-#     return dtree
-
-
-def convert_trees_to_actions(constituent_file):
-    tree = ""
-
-    for line in constituent_file:
-        tree = ParentedTree(line.strip())
+def extract_parse_actions(tree):
+    if tree.label() == '':
         tree.set_label('ROOT')
-        #dtree = compute_rst_dependencies(tree)
+    assert tree.label() == 'ROOT'
 
-        stack = []
-        cstack = [ParentedTree('(DUMMY0 (DUMMY1 DUMMY3))')]
-        #dstack = [0]
-        #dptr = [0]  # this is a list so it's mutable and passed by reference
+    stack = []
+    cstack = [ParentedTree('(DUMMY0 (DUMMY1 DUMMY3))')]
+    actseq = []
+    _convert_tree_to_actions_helper(tree, stack, cstack, actseq)
+    actseq = merge_constituent_end_shifts(actseq)
 
-        actseq = []
-
-        _convert_tree_to_actions_helper(tree, stack, cstack, actseq)
-
-        actseq = merge_constituent_end_shifts(actseq)
-
-        yield actseq
+    return actseq
 
 
 def merge_constituent_end_shifts(actseq):
@@ -100,6 +52,7 @@ def merge_constituent_end_shifts(actseq):
         else:
             res.append(act)
     return res
+
 
 def _is_head_of(n1, n2):
     n1parent = n1.parent()
@@ -175,11 +128,14 @@ def _convert_tree_to_actions_helper(node, stack, cstack, actseq):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('mrg_path', help='a file with constituent trees in mrg format.')
+    parser.add_argument(
+        'mrg_path', help='a file with constituent trees in mrg format.')
     args = parser.parse_args()
 
     with open(args.mrg_path) as constituent_file:
-        for actseq in convert_trees_to_actions(constituent_file):
+        for line in constituent_file:
+            tree = ParentedTree(line.strip())
+            actseq = extract_parse_actions(tree)
             print(' '.join(['{}:{}'.format(x.type, x.label) for x in actseq]))
 
 

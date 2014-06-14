@@ -4,6 +4,9 @@ import re
 from nltk.tree import ParentedTree
 
 
+TREE_PRINT_MARGIN = 1000000
+
+
 class HeadedParentedTree(ParentedTree):
 
     '''

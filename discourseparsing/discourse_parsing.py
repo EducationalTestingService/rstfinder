@@ -35,7 +35,6 @@ originally written by Kenji Sagae in perl.
 
 import logging
 import re
-import sys
 from collections import defaultdict, namedtuple
 from operator import attrgetter, itemgetter
 

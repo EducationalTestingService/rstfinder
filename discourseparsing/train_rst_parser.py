@@ -2,42 +2,41 @@
 
 import logging
 import re
+import json
 from collections import defaultdict
 
 from discourseparsing.discourse_parsing import Parser
 
 
-def edus_for_doc(doc):
+def gold_action_gen(action_file, edus):
     '''
-    Split the document into edus, one edu per line (with POS tags)
-    e.g., This/DT is/VBZ a/DT test/NN ./."
-
-    :todo:  change this to read in the JSON format that also includes
-            PTB trees.
+    Given an "actionseq" file and a list of EDUs, this will generate gold
+    parser actions and a subset of the EDUs that those actions go with.
     '''
-    edus = []
-    for edu_str in doc.split("\n"):
-        edu = []
-        # Don't split on all whitespace because of crazy characters
-        for tagged_token in edu_str.strip().split(' '):
-            slash_idx = tagged_token.rindex('/')
-            edu.append((tagged_token[:slash_idx],
-                        tagged_token[slash_idx + 1:]))
-        edus.append(edu)
-    return edus
+    doc_for_actions = []
+    for line in action_file:
+        line = line.strip()
+        # ignore blanks
+        if line:
+            # action line
+            if line.startswith('S:'):
+                actions = line.split(' ')
+                yield doc_for_actions, actions
+            # EDU indices line
+            else:
+                doc_for_actions = []
+                for slash_str in line.split(' '):
+                    idx = int(slash_str.split('/')[0])
+                    doc_for_actions.append(edus[idx - 1])
 
 
 def main():
     import argparse
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('input_file',
-                        help='file to parse, with one EDU per line, with POS \
-                              tags (e.g., "This/DT is/VBZ a/DT test/NN ./.").',
-                        type=argparse.FileType('r'))
-    parser.add_argument('-m', '--model_file',
-                        help='Path to model file.',
-                        type=argparse.FileType('r'))
+    parser.add_argument('train_file',
+                       help='Path to JSON training file.',
+                       type=argparse.FileType('r'))
     parser.add_argument('-a', '--max_acts',
                         help='Maximum number of actions for...?',
                         type=int, default=1)
@@ -67,21 +66,19 @@ def main():
                                 '%(message)s'), level=log_level)
     logger = logging.getLogger(__name__)
 
-    # read the model
-    logger.info('Loading model')
-    weights = defaultdict(dict)
-    for line in args.model_file:
-        parts = line.strip().split()
-        weights[parts[0]][parts[1]] = float(parts[2])
-    parser.set_weights(weights)
+    logger.info('Training model')
+    # Create a giant list of all EDUs for all documents
 
-    data = args.input_file.read().strip()
-    docs = re.split(r'\n\n+', data)
+    train_data = json.load(args.train_file)
+    import pdb;pdb.set_trace()
+    doc_edus = None #TODO
+    actions = None #TODO
 
-    for doc in docs:
-        doc_edus = edus_for_doc(doc)
-        logger.debug('Parsing %s', doc_edus)
-        parser.parse(edus_for_doc(doc))
+    for doc_edus, actions in gold_action_gen(args.train_file, edus):
+        logger.debug('Extracting features for %s with actions %s',
+                     doc_edus, actions)
+        parser.parse(doc_edus, gold_actions=actions)
+
 
 if __name__ == '__main__':
     main()
