@@ -41,7 +41,7 @@ from discourseparsing.tree_util import (convert_ptb_tree, extract_preterminals,
                                         TREE_PRINT_MARGIN)
 from discourseparsing.reformat_rst_trees import (reformat_rst_tree,
                                                  fix_rst_treebank_tree_str,
-                                                 convert_parens_in_edu)
+                                                 convert_parens_in_rst_tree_str)
 from discourseparsing.tree_util import convert_paren_tokens_to_ptb_format
 
 
@@ -84,8 +84,6 @@ def main():
             edu_start_indices = []
 
             path_basename = os.path.basename(path)
-            # if path_basename != 'wsj_1105.out.edus':
-            #     continue  #TODO
             print('{} {}'.format(path_index, path_basename), file=sys.stderr)
             ptb_id = (file_mapping[path_basename] if
                       path_basename in file_mapping else
@@ -107,7 +105,7 @@ def main():
             with open(path_dis) as f:
                 rst_tree_str = f.read().strip()
                 rst_tree_str = fix_rst_treebank_tree_str(rst_tree_str)
-                rst_tree_str = convert_parens_in_edu(rst_tree_str)
+                rst_tree_str = convert_parens_in_rst_tree_str(rst_tree_str)
                 rst_tree = ParentedTree.parse(rst_tree_str)
                                               #leaf_pattern=r'(_![^_(?=!)]+_!)')
                 # this leaf_pattern keeps the EDU texts together as one token rather than splitting on whitespace

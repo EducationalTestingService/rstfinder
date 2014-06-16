@@ -18,7 +18,7 @@ def fix_rst_treebank_tree_str(rst_tree_str):
     return re.sub(r'\)//TT_ERR', ')', rst_tree_str)
 
 
-def convert_parens_in_edu(rst_tree_str):
+def convert_parens_in_rst_tree_str(rst_tree_str):
     '''
     This converts any brackets and parentheses in the EDUs of the RST discourse
     treebank to look like Penn Treebank tokens (e.g., -LRB-),
@@ -101,7 +101,7 @@ def main():
     with open(args.inputfile) as f:
         rst_tree_str = f.read().strip()
         rst_tree_str = fix_rst_treebank_tree_str(rst_tree_str)
-        rst_tree_str = convert_brackets_and_parens(rst_tree_str)
+        rst_tree_str = convert_parens_in_rst_tree_str(rst_tree_str)
         t = ParentedTree(rst_tree_str)
         reformat_rst_tree(t)
         print(t.pprint(margin=TREE_PRINT_MARGIN))

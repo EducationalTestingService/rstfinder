@@ -9,33 +9,13 @@ from discourseparsing.collapse18 import collapse_rst_labels
 from discourseparsing.segment_document import extract_edus_tokens
 from nltk.tree import ParentedTree
 
-def gold_action_gen(action_file, edus):
-    '''
-    Given an "actionseq" file and a list of EDUs, this will generate gold
-    parser actions and a subset of the EDUs that those actions go with.
-    '''
-    doc_for_actions = []
-    for line in action_file:
-        line = line.strip()
-        # ignore blanks
-        if line:
-            # action line
-            if line.startswith('S:'):
-                actions = line.split(' ')
-                yield doc_for_actions, actions
-            # EDU indices line
-            else:
-                doc_for_actions = []
-                for slash_str in line.split(' '):
-                    idx = int(slash_str.split('/')[0])
-                    doc_for_actions.append(edus[idx - 1])
 
 def extract_tagged_doc_edus(doc_dict):
     edu_start_indices = doc_dict['edu_start_indices']
     res = [list(zip(edu_words, edu_tags))
-                    for edu_words, edu_tags
-                    in zip(extract_edus_tokens(edu_start_indices, doc_dict['tokens']),
-                           extract_edus_tokens(edu_start_indices, doc_dict['pos_tags']))]
+           for edu_words, edu_tags
+           in zip(extract_edus_tokens(edu_start_indices, doc_dict['tokens']),
+                  extract_edus_tokens(edu_start_indices, doc_dict['pos_tags']))]
     return res
 
 
@@ -105,11 +85,10 @@ def main():
         actions = ["{}:{}".format(act.type, act.label) for act in extract_parse_actions(tree)]
         logger.debug('Extracting features for %s with actions %s',
                      doc_edus, actions)
-    
+
         parser.parse(doc_edus, gold_actions=actions)
         # except Exception as e:
         #     logging.error('{} with {}'.format(type(e), doc_dict['path_basename']))
-        
 
 
 if __name__ == '__main__':
