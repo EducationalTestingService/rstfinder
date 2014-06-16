@@ -163,8 +163,6 @@ def main():
                         edu = edu.replace('S.p. A.', 'S.p.A.')
                     elif path_basename == 'wsj_1329.out.edus':
                         edu = edu.replace('G.m.b. H.', 'G.m.b.H.')
-                    elif path_basename == 'wsj_1158.out.edus':
-                        edu = re.sub(r'\s*\-$', r'', edu)
                     elif path_basename == 'wsj_1367.out.edus':
                         edu = edu.replace('-- that turban --',
                                           '-- that turban')
@@ -193,22 +191,39 @@ def main():
                     elif path_basename == 'wsj_1331.out.edus':
                         edu = edu.replace('`S', "'S")
                     elif path_basename == 'wsj_1373.out.edus':
-                        edu = edu.replace('.. An N.V.', 'An N.V.')
+                        edu = edu.replace('... An N.V.', 'An N.V.')
+                        edu = edu.replace('features.', 'features....')
                     elif path_basename == 'wsj_1123.out.edus':
                         edu = edu.replace('" Reuben', 'Reuben')
                         edu = edu.replace('subscribe to.', 'subscribe to."')
+                    elif path_basename == 'wsj_2317.out.edus':
+                        edu = edu.replace('. The lower', 'The lower')
+                        edu = edu.replace('$4 million', '$4 million.')
                     elif path_basename == 'wsj_1105.out.edus':
-                        # This is actually an error in the PTB.
-                        # A sentence starts with an end quote.
+                        # PTB error: a sentence starts with an end quote.
+                        # For simplicity, we'll just make the
+                        # EDU string look like the PTB sentence.
                         edu = edu.replace('By lowering prices',
                                           '"By lowering prices')
-                        edu = edu.replace(' 70% off."',
-                                          ' 70% off.')
+                        edu = edu.replace(' 70% off."', ' 70% off.')
                     elif path_basename == 'wsj_1125.out.edus':
-                        # This is actually an error in the PTB.
-                        # A sentence starts with an end quote.
+                        # PTB error: a sentence ends with an start quote.
                         edu = edu.replace('developer.', 'developer."')
                         edu = edu.replace('"So developers', 'So developers')
+                    elif path_basename == 'wsj_1158.out.edus':
+                        edu = re.sub(r'\s*\-$', r'', edu)
+                        # PTB error: a sentence starts with an end quote.
+                        edu = edu.replace(' virtues."', ' virtues.')
+                        edu = edu.replace('So much for', '"So much for')
+                    elif path_basename == 'wsj_0632.out.edus':
+                        # PTB error: a sentence starts with an end quote.
+                        edu = edu.replace(' individual.', ' individual."')
+                        edu = edu.replace('"If there ', 'If there ')
+                    elif path_basename == 'wsj_2386.out.edus':
+                        # PTB error: a sentence starts with an end quote.
+                        edu = edu.replace('lenders."', 'lenders.')
+                        edu = edu.replace('Mr. P', '"Mr. P')
+
 
                     edu_start_indices.append((tree_index, tok_index,
                                               edu_index))
