@@ -7,6 +7,17 @@ from nltk.tree import ParentedTree
 TREE_PRINT_MARGIN = 1000000
 
 
+_ptb_paren_mapping = {'(': r'-LRB-',
+                      ')': r'-RRB-',
+                      '[': r'-LSB-',
+                      ']': r'-RSB-',
+                      '{': r'-LCB-',
+                      '}': r'-RCB-'}
+_reverse_ptb_paren_mapping = {bracket_replacement: bracket_type
+                              for bracket_type, bracket_replacement
+                              in _ptb_paren_mapping.items()}
+
+
 class HeadedParentedTree(ParentedTree):
 
     '''
@@ -211,20 +222,18 @@ def extract_preterminals(tree):
     return [node for node in tree.subtrees() if node.height() == 2]
 
 
+def convert_paren_tokens_to_ptb_format(toks):
+    return [_ptb_paren_mapping.get(tok, tok) for tok in toks]
+
+
 def extract_converted_terminals(tree):
     res = []
     prev_w = ""
     for w in tree.leaves():
         if prev_w and prev_w == "U.S." and w == ".":
             continue
-        if w == '-LCB-':
-            w = '{'
-        elif w == '-RCB-':
-            w = '}'
-        elif w == '-LRB-':
-            w = '('
-        elif w == '-RRB-':
-            w = ')'
+        if w in _reverse_ptb_paren_mapping:
+            w = _reverse_ptb_paren_mapping[w]
         elif w == '``' or w == "''":
             w = '"'
 

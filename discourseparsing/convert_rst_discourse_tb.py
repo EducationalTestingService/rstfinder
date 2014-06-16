@@ -26,18 +26,23 @@ Each of these dictionaries has the following keys:
 import argparse
 import json
 import os.path
+import logging
 import re
 import sys
 from glob import glob
 
 from nltk.tree import ParentedTree
+import nltk
+from nltk.tokenize.treebank import TreebankWordTokenizer
+
 
 from discourseparsing.tree_util import (convert_ptb_tree, extract_preterminals,
                                         extract_converted_terminals,
                                         TREE_PRINT_MARGIN)
 from discourseparsing.reformat_rst_trees import (reformat_rst_tree,
                                                  fix_rst_treebank_tree_str,
-                                                 convert_brackets_and_parens)
+                                                 convert_parens_in_edu)
+from discourseparsing.tree_util import convert_paren_tokens_to_ptb_format
 
 
 # file mapping from the RSTDTB documentation
@@ -64,10 +69,10 @@ def main():
                         default='.')
     args = parser.parse_args()
 
-    outputs = []
-
     for dataset in ['TRAINING', 'TEST']:
         print(dataset, file=sys.stderr)
+
+        outputs = []
 
         for path_index, path in enumerate(
                 sorted(glob(os.path.join(args.rst_discourse_tb_dir,
@@ -79,6 +84,8 @@ def main():
             edu_start_indices = []
 
             path_basename = os.path.basename(path)
+            # if path_basename != 'wsj_1105.out.edus':
+            #     continue  #TODO
             print('{} {}'.format(path_index, path_basename), file=sys.stderr)
             ptb_id = (file_mapping[path_basename] if
                       path_basename in file_mapping else
@@ -100,11 +107,10 @@ def main():
             with open(path_dis) as f:
                 rst_tree_str = f.read().strip()
                 rst_tree_str = fix_rst_treebank_tree_str(rst_tree_str)
-                rst_tree_str = convert_brackets_and_parens(rst_tree_str)
+                rst_tree_str = convert_parens_in_edu(rst_tree_str)
                 rst_tree = ParentedTree.parse(rst_tree_str)
                                               #leaf_pattern=r'(_![^_(?=!)]+_!)')
                 # this leaf_pattern keeps the EDU texts together as one token rather than splitting on whitespace
-                # TODO make a utility function for reading in rst trees, so this leaf pattern doesn't have to be in multiple places
                 reformat_rst_tree(rst_tree)
 
             edu_index = -1
@@ -118,12 +124,22 @@ def main():
             preterminals = [extract_preterminals(t) for t in trees]
 
             while edu_index < len(edus) - 1:
+                # print("{} {} {} {}".format(edu_index, tree_index, tok_index, edu), file=sys.stderr)
                 # if we are out of tokens for the sentence we are working
                 # with, move to the next sentence.
                 if tok_index >= len(tokens):
                     tree_index += 1
                     if tree_index >= len(trees):
-                        break
+                        logging.warning('There are not enough syntax trees for {}. The remaining EDUs will be automatically tagged.'.format(path_basename))
+                        unparsed_edus = ' '.join(edus[edu_index + 1:])
+                        unparsed_edus = re.sub(r'---', '--', unparsed_edus)  # the tokenizer splits '---' into '--' '-'.  this is a hack to get around that
+                        for tagged_sent in [nltk.pos_tag(convert_paren_tokens_to_ptb_format(TreebankWordTokenizer().tokenize(x)))
+                                            for x in nltk.sent_tokenize(unparsed_edus)]:
+                            new_tree = ParentedTree('((S {}))'.format(' '.join(['({} {})'.format(tag, word) for word, tag in tagged_sent])))
+                            trees.append(new_tree)
+                            tokens_doc.append(extract_converted_terminals(new_tree))
+                            preterminals.append(extract_preterminals(new_tree))
+
                     tree = trees[tree_index]
                     tokens = tokens_doc[tree_index]
                     tok_index = 0
@@ -155,7 +171,6 @@ def main():
                     elif path_basename == 'wsj_1377.out.edus':
                         edu = edu.replace('Part of a Series',
                                           'Part of a Series }')
-                        edu = edu.replace('(All buyers 47%)', '')
                     elif path_basename == 'wsj_1974.out.edus':
                         edu = edu.replace(r'5/ 16', r'5/16')
                     elif path_basename == 'file2.edus':
@@ -179,6 +194,21 @@ def main():
                         edu = edu.replace('`S', "'S")
                     elif path_basename == 'wsj_1373.out.edus':
                         edu = edu.replace('.. An N.V.', 'An N.V.')
+                    elif path_basename == 'wsj_1123.out.edus':
+                        edu = edu.replace('" Reuben', 'Reuben')
+                        edu = edu.replace('subscribe to.', 'subscribe to."')
+                    elif path_basename == 'wsj_1105.out.edus':
+                        # This is actually an error in the PTB.
+                        # A sentence starts with an end quote.
+                        edu = edu.replace('By lowering prices',
+                                          '"By lowering prices')
+                        edu = edu.replace(' 70% off."',
+                                          ' 70% off.')
+                    elif path_basename == 'wsj_1125.out.edus':
+                        # This is actually an error in the PTB.
+                        # A sentence starts with an end quote.
+                        edu = edu.replace('developer.', 'developer."')
+                        edu = edu.replace('"So developers', 'So developers')
 
                     edu_start_indices.append((tree_index, tok_index,
                                               edu_index))
@@ -186,8 +216,8 @@ def main():
                 # remove the next token from the edu, along with any whitespace
                 if edu.startswith(tok):
                     edu = edu[len(tok):].strip()
-                elif re.search(r'[^a-zA-Z0-9]',
-                               edu[0]) and edu[1:].startswith(tok):
+                elif (re.search(r'[^a-zA-Z0-9]', edu[0])
+                      and edu[1:].startswith(tok)):
                     print("loose match: {} {}".format(tok, edu),
                           file=sys.stderr)
                     edu = edu[len(tok) + 1:].strip()

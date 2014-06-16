@@ -6,7 +6,7 @@ import re
 
 from nltk.tree import ParentedTree
 
-from discourseparsing.tree_util import TREE_PRINT_MARGIN
+from discourseparsing.tree_util import TREE_PRINT_MARGIN, _ptb_paren_mapping
 
 
 def fix_rst_treebank_tree_str(rst_tree_str):
@@ -18,19 +18,14 @@ def fix_rst_treebank_tree_str(rst_tree_str):
     return re.sub(r'\)//TT_ERR', ')', rst_tree_str)
 
 
-def convert_brackets_and_parens(rst_tree_str):
+def convert_parens_in_edu(rst_tree_str):
     '''
     This converts any brackets and parentheses in the EDUs of the RST discourse
     treebank to look like Penn Treebank tokens (e.g., -LRB-),
     so that the NLTK tree API doesn't crash when trying to read in the
     RST trees.
     '''
-    for bracket_type, bracket_replacement in (('(', r'-LRB-'),
-                                              (')', r'-RRB-'),
-                                              ('[', r'-LSB-'),
-                                              (']', r'-RSB-'),
-                                              ('{', r'-LCB-'),
-                                              ('}', r'-RCB-')):
+    for bracket_type, bracket_replacement in _ptb_paren_mapping.items():
         rst_tree_str = re.sub('(_![^_(?=!)]*)\\{}([^_(?=!)]*_!)'.format(bracket_type),
                               '\\g<1>{}\\g<2>'.format(bracket_replacement),
                               rst_tree_str)

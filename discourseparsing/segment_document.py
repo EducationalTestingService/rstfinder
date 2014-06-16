@@ -75,15 +75,16 @@ def extract_edus_tokens(edu_start_indices, tokens_doc):
                                         edu_start_indices[-1][2] + 1]]
 
     for (prev_sent_index, prev_tok_index, prev_edu_index), \
-            (sent_index, tok_index, edu_index) \
+            (sent_index, tok_index, _) \
             in zip(tmp_indices, tmp_indices[1:]):
         if sent_index == prev_sent_index and tok_index > prev_tok_index:
             res.append(tokens_doc[prev_sent_index][prev_tok_index:tok_index])
         elif sent_index > prev_sent_index and tok_index == 0:
             res.append(tokens_doc[prev_sent_index][prev_tok_index:])
         else:
-            raise ValueError('An EDU crosses sentences: ({}, {}) => ({}, {})'
-                             .format(prev_sent_index, prev_tok_index,
+            raise ValueError('An EDU ({}) crosses sentences: (sent {}, tok {}) => (sent {}, tok {})'
+                             .format(prev_edu_index,
+                                     prev_sent_index, prev_tok_index,
                                      sent_index, tok_index))
     return res
 

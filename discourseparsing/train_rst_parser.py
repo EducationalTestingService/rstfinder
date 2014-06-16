@@ -81,29 +81,39 @@ def main():
     train_data = json.load(args.train_file)
 
     for doc_dict in train_data:
-        logging.info(doc_dict['path_basename'])
-        doc_edus = extract_tagged_doc_edus(doc_dict)
-        tree = ParentedTree(doc_dict['rst_tree'])
+        try:
+            logging.info(doc_dict['path_basename'])
+            
+            pbn = doc_dict['path_basename']
+            if pbn == 'wsj_1123.out.edus' or pbn == 'wsj_1125.out.edus':
+                continue #TODO
+            
+            doc_edus = extract_tagged_doc_edus(doc_dict)
+            tree = ParentedTree(doc_dict['rst_tree'])
 
-        collapse_rst_labels(tree)
+            collapse_rst_labels(tree)
 
-        # TODO take this part out
-        i = 1
-        for subtree in tree.subtrees():
-            if isinstance(subtree[0], str):
-                subtree.clear()
-                subtree.set_label('edu')
-                subtree.append(str(i))
-                i += 1
+            # TODO take this part out
+            i = 1
+            for subtree in tree.subtrees():
+                if isinstance(subtree[0], str):
+                    subtree.clear()
+                    subtree.set_label('edu')
+                    subtree.append(str(i))
+                    i += 1
 
-        # TODO make the tree conversion procedure handle this instead
-        tree.set_label('nucleus:span')
-        tree = ParentedTree('(ROOT {})'.format(tree.pprint()))
+            # TODO make the tree conversion procedure handle this instead
+            tree.set_label('nucleus:span')
+            tree = ParentedTree('(ROOT {})'.format(tree.pprint()))
 
-        actions = ["{}:{}".format(act.type, act.label) for act in extract_parse_actions(tree)]
-        logger.debug('Extracting features for %s with actions %s',
-                     doc_edus, actions)
-        parser.parse(doc_edus, gold_actions=actions)
+            actions = ["{}:{}".format(act.type, act.label) for act in extract_parse_actions(tree)]
+            logger.debug('Extracting features for %s with actions %s',
+                         doc_edus, actions)
+        
+            parser.parse(doc_edus, gold_actions=actions)
+        except Exception as e:
+            logging.error('{} with {}'.format(type(e), doc_dict['path_basename']))
+        
 
 
 if __name__ == '__main__':
