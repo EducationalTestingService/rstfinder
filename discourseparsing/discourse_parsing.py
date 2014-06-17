@@ -441,11 +441,6 @@ class Parser(object):
 
                 action_str = re.sub(r'^S:(.*)$', r'S:POS', action_str)
 
-                # TODO is this left over from the syntactic parsing code?
-                # this will change "same-unit" to "same".
-                action_str = re.sub(r'^([^\=\-]+)[\=\-].+', r'\1',
-                                            action_str)
-
                 if not (action_str == cur_state["prevact"] and
                         action_str.startswith('U')):
                     print(' '.join([action_str] + feats))
