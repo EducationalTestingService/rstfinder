@@ -31,5 +31,5 @@ setup(name='discourseparsing',
                                         'rst_parse = discourseparsing.rst_parse:main',
                                         'train_rst_parser = discourseparsing.train_rst_parser:main',
                                         'convert_rst_discourse_tb = discourseparsing.convert_rst_discourse_tb:main',
-                                        'make_segmentation_crfpp_template = discourseparsing.make_segmentation_crfpp_template:main']},
+                                        'extract_segmentation_features = discourseparsing.extract_segmentation_features:main']},
       install_requires=requirements())
