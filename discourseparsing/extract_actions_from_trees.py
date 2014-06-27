@@ -23,10 +23,18 @@ def extract_parse_actions(tree):
     '''
     Extracts a list of ShiftReduceAction objects for the given tree.
     '''
-
     if tree.label() == '':
         tree.set_label('ROOT')
     assert tree.label() == 'ROOT'
+
+    # replace the EDU tokens with indices
+    # TODO why?
+    i = 1
+    for subtree in tree.subtrees():
+        if isinstance(subtree[0], str):
+            subtree.clear()
+            subtree.append(str(i))
+            i += 1
 
     stack = []
     cstack = [ParentedTree('(DUMMY0 (DUMMY1 DUMMY3))')]
@@ -47,7 +55,7 @@ def _merge_constituent_end_shifts(actseq):
     '''
 
     res = []
-    for i, act in enumerate(actseq):
+    for act in actseq:
         if act.type == 'U' and res and (res[-1].type == 'L'
                                         or res[-1].type == 'R'):
             assert '{}*'.format(act.label) == res[-1].label

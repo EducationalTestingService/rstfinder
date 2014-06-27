@@ -109,7 +109,7 @@ def main():
                 rst_tree = ParentedTree.parse(rst_tree_str)
                                               #leaf_pattern=r'(_![^_(?=!)]+_!)')
                 # this leaf_pattern keeps the EDU texts together as one token rather than splitting on whitespace
-                reformat_rst_tree(rst_tree)
+                rst_tree = reformat_rst_tree(rst_tree)
 
             edu_index = -1
             tok_index = 0

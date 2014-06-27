@@ -81,7 +81,16 @@ def main():
     for doc in docs:
         doc_edus = edus_for_doc(doc)
         logger.debug('Parsing %s', doc_edus)
-        parser.parse(edus_for_doc(doc))
+        complete_trees = parser.parse(edus_for_doc(doc))
+
+        if args.n_best > 1:
+            for tree in complete_trees:
+                print(tree["score"])
+                print("(ROOT {})".format(tree["tree"].pprint()))
+            print()
+        else:
+            print("(ROOT {})".format(complete_trees[0]["tree"].pprint()))
+
 
 if __name__ == '__main__':
     main()

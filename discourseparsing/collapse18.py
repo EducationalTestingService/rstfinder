@@ -28,7 +28,7 @@ def _collapse_rst_label(label):
         return label
 
     direction, relation = label.split(':')
-    
+
     relation_lc = relation.lower()
     if re.search(r'^attribution', relation_lc):
         relation = "ATTRIBUTION"
@@ -66,6 +66,7 @@ def _collapse_rst_label(label):
     # elif re.search(r'^(span|same\-unit|textualorganization)', relation_lc):
     #    res = label
 
+    # TODO make this all upper case (to resemble PTB nonterminals)
     res = "{}:{}".format(direction, relation).lower()
 
     return res

@@ -228,7 +228,7 @@ class Parser(object):
             new_tree = "({} {} {})".format(label,
                                            tmp_lc["tree"],
                                            tmp_rc["tree"])
-            if label.endswith("*") or label == "root":
+            if label.endswith("*") or label == "ROOT":
                 new_tree = "{} {}".format(tmp_lc["tree"],
                                           tmp_rc["tree"])
 
@@ -260,7 +260,7 @@ class Parser(object):
             new_tree = "({} {} {})".format(label,
                                            tmp_lc["tree"],
                                            tmp_rc["tree"])
-            if label.endswith("*") or label == "root":
+            if label.endswith("*") or label == "ROOT":
                 new_tree = "{} {}".format(tmp_lc["tree"],
                                           tmp_rc["tree"])
 
@@ -391,7 +391,6 @@ class Parser(object):
 
         prevact = "S"
         ucnt = 0  # number of consecutive unary reduce actions
-        initialsent = sent
 
         # insert an initial state on the state list
         # TODO make state items namedtuples
@@ -443,7 +442,7 @@ class Parser(object):
 
                 if not (action_str == cur_state["prevact"] and
                         action_str.startswith('U')):
-                    print(' '.join([action_str] + feats))
+                    yield((action_str, feats))
 
                 scored_acts.append(ScoredAction(action_str, 1))
             else:
@@ -491,20 +490,16 @@ class Parser(object):
                              "sent": sent}
                 states.append(tmp_state)
 
-        # Done parsing.  Print the result(s).
-        # TODO have this return nltk.tree objects?
+        if not completetrees:
+            # Default to a flat tree if there is no complete parse.
+            # TODO return tree objects rather than strings
+            tmp_str = ""
+            for e in edus:
+                tmp_str += " (text _!{}_!)".format(" ".join(e["head"]))
+            completetrees.append({'tree': "(TOP {})".format(tmp_str),
+                                  'score': 0.0})
+
+        # TODO do these need to be sorted?
         if gold_actions is None:
-            if self.n_best > 1:
-                for tree in completetrees:
-                    print(tree["score"])
-                    print("(TOP{})".format(tree["tree"]))
-                print()
-            else:
-                if completetrees:
-                    print("(TOP{})".format(completetrees[0]["tree"]))
-                else:
-                    # Default to a flat tree if there is no complete parse.
-                    tmp_str = ""
-                    for e in initialsent:
-                        tmp_str += " (text {})".format(" ".join(e["head"]))
-                    print("(TOP{})".format(tmp_str))
+            return completetrees
+

@@ -61,7 +61,6 @@ def main():
     train_data = json.load(args.train_file)
 
     for doc_dict in train_data:
-        # try:
         logging.info(doc_dict['path_basename'])
 
         doc_edus = extract_tagged_doc_edus(doc_dict)
@@ -69,26 +68,14 @@ def main():
 
         collapse_rst_labels(tree)
 
-        # TODO take this part out
-        i = 1
-        for subtree in tree.subtrees():
-            if isinstance(subtree[0], str):
-                subtree.clear()
-                subtree.set_label('edu')
-                subtree.append(str(i))
-                i += 1
-
-        # TODO make the tree conversion procedure handle this instead
-        tree.set_label('nucleus:span')
-        tree = ParentedTree('(ROOT {})'.format(tree.pprint()))
-
         actions = ["{}:{}".format(act.type, act.label) for act in extract_parse_actions(tree)]
         logger.debug('Extracting features for %s with actions %s',
                      doc_edus, actions)
 
-        parser.parse(doc_edus, gold_actions=actions)
-        # except Exception as e:
-        #     logging.error('{} with {}'.format(type(e), doc_dict['path_basename']))
+        for action_str, feats in parser.parse(doc_edus, gold_actions=actions):
+            print("{} {}".format(action_str, " ".join(feats)))
+
+    # TODO modify the feature/label format and run a learning algorithm (e.g., with SKLL)
 
 
 if __name__ == '__main__':
