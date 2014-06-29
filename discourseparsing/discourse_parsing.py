@@ -35,10 +35,13 @@ originally written by Kenji Sagae in perl.
 
 import logging
 import re
-from collections import defaultdict, namedtuple
-from operator import attrgetter, itemgetter
+from collections import namedtuple, Counter
+from operator import itemgetter
 
-import numpy as np
+from nltk.tree import ParentedTree
+
+from discourseparsing.perceptron import Perceptron
+from discourseparsing.tree_util import collapse_binarized_nodes
 
 
 ScoredAction = namedtuple('ScoredAction', ['action', 'score'])
@@ -50,33 +53,11 @@ class Parser(object):
         self.max_acts = max_acts
         self.max_states = max_states
         self.n_best = n_best
-        self.weights = None
+        self.model = None
 
-    def set_weights(self, weights):
-        self.weights = weights
-
-    def mxclassify(self, feats):
-        '''
-        Do maximum entropy classification using weight vector.
-
-        Returns a list of ScoredAction objects.
-        '''
-        z = 0.0
-        scores = defaultdict(float)
-        for action in self.weights.keys():
-            for feat in feats:
-                if feat in self.weights[action]:
-                    scores[action] += self.weights[action][feat]
-
-            z += np.exp(scores[action])
-
-        # divide all by z to make a distribution
-        res = []
-        for action in self.weights.keys():
-            res.append(ScoredAction(action=action,
-                                    score=np.exp(scores[action]) / z))
-
-        return res
+    def load_model(self, model_path):
+        self.model = Perceptron()
+        self.model.load_model(model_path)
 
     @staticmethod
     def mkfeats(prevact, sent, stack):
@@ -154,8 +135,7 @@ class Parser(object):
         # features of the 3rd item on the stack
         feats.append("S3nt:{}".format(s3['nt']))
 
-        # TODO are these variables appropriately named?  the perl code just had
-        # w and p
+        # features for the next items on the input queue
         for word in nw1:
             feats.append("nw1:{}".format(word))
         for pos_tag in np1:
@@ -167,7 +147,6 @@ class Parser(object):
 
         # distance feature
         # TODO do these thresholds need to be adjusted?
-        # TODO is it OK to assume 0 if key is not in dictionary?
         dist = s0.get('idx', 0) - s1.get('idx', 0)
         if dist > 10:
             dist = 10
@@ -181,11 +160,11 @@ class Parser(object):
             feats.append("combo:{}~S0p:{}".format(feats[i],
                                                   s0['hpos'][1]
                                                   if len(s0['hpos']) > 1
-                                                  else ""))  # TODO is this the right index for s0['hpos']?
+                                                  else ""))
             feats.append("combo:{}~np1:{}".format(feats[i],
                                                   np1[1]
                                                   if len(np1) > 1
-                                                  else ""))  # TODO is this the right index for np1?
+                                                  else ""))
 
         return feats
 
@@ -225,12 +204,9 @@ class Parser(object):
 
             tmp_rc = stack.pop()
             tmp_lc = stack.pop()
-            new_tree = "({} {} {})".format(label,
-                                           tmp_lc["tree"],
-                                           tmp_rc["tree"])
-            if label.endswith("*") or label == "ROOT":
-                new_tree = "{} {}".format(tmp_lc["tree"],
-                                          tmp_rc["tree"])
+            new_tree = ParentedTree("({})".format(label))
+            new_tree.append(tmp_lc['tree'])
+            new_tree.append(tmp_rc['tree'])
 
             tmp_item = {"idx": tmp_lc["idx"],
                         "nt": label,
@@ -257,12 +233,9 @@ class Parser(object):
             tmp_rc = stack.pop()
             tmp_lc = stack.pop()
 
-            new_tree = "({} {} {})".format(label,
-                                           tmp_lc["tree"],
-                                           tmp_rc["tree"])
-            if label.endswith("*") or label == "ROOT":
-                new_tree = "{} {}".format(tmp_lc["tree"],
-                                          tmp_rc["tree"])
+            new_tree = ParentedTree("({})".format(label))
+            new_tree.append(tmp_lc["tree"])
+            new_tree.append(tmp_rc["tree"])
 
             tmp_item = {"idx": tmp_rc["idx"],
                         "nt": label,
@@ -286,9 +259,11 @@ class Parser(object):
             nt = match.groups()[0]
 
             tmp_c = stack.pop()
+            new_tree = ParentedTree("({})".format(nt))
+            new_tree.append(tmp_c["tree"])
             tmp_item = {"idx": tmp_c["idx"],
                         "nt": nt,
-                        "tree": "({} {})".format(nt, tmp_c["tree"]),
+                        "tree": new_tree,
                         "head": tmp_c["head"],
                         "hpos": tmp_c["hpos"],
                         "lchnt": tmp_c["lchnt"],
@@ -306,8 +281,6 @@ class Parser(object):
         # and puts it on the stack.
         match = re.search(r'^S:(.+)$', act)
         if match:
-            # pos = match.groups()[0]  # TODO was this meant for something or
-            # left over from the constituency parser?
             stack.append(sent.pop(0))
 
     @staticmethod
@@ -316,14 +289,14 @@ class Parser(object):
         Create a representation of the list of EDUS that make up the input.
         '''
 
-        wnum = 0  # TODO should this be a member variable?
+        wnum = 0  # counter for distance features
         res = []
         for edu in edus:
             edu_words = [x[0] for x in edu]
             edu_pos_tags = [x[1] for x in edu]
             edustr = ' '.join(edu_words)
 
-            # TODO move this to mkfeats?
+            # TODO move the chunk of code immediately below to mkfeats?
             # This adds special tokens for the first two words and last
             # word. These are used when computing features later. It would
             # probably be better to do this in the feature extraction code
@@ -343,11 +316,13 @@ class Parser(object):
 
             # make a dictionary for each EDU
             wnum += 1
+            new_tree = ParentedTree('(text)')
+            new_tree.append("_!{}_!".format(edustr))
             tmp_item = {'idx': wnum,
-                        'nt': "EDU",  # TODO why was this $2 in the perl code?
+                        'nt': "EDU",
                         'head': edu_words,
                         'hpos': edu_pos_tags,
-                        'tree': "(text _!{}_!)".format(edustr),
+                        'tree': new_tree,
                         'lchnt': "NONE",
                         'rchnt': "NONE",
                         'lchpos': "NONE",
@@ -375,7 +350,7 @@ class Parser(object):
         # TODO make stack items namedtuples
         tmp_item = {'idx': 0,
                     'nt': "LEFTWALL",
-                    'tree': "",
+                    'tree': ParentedTree('(LEFTWALL)'),
                     'head': ["LEFTWALL"],
                     'hpos': ["LW"],
                     'lchnt': "NONE",
@@ -412,8 +387,20 @@ class Parser(object):
 
             if len(cur_state["sent"]) == 0 and len(cur_state["stack"]) == 1:
                 # check if the current state corresponds to a complete tree
-                completetrees.append({'tree': cur_state["stack"][0]["tree"],
+                tree = cur_state["stack"][0]["tree"]
+
+                # remove the dummy LEFTWALL node
+                assert tree[0].label() == 'LEFTWALL'
+                del tree[0]
+
+                # collapse binary branching * rules in the output
+                collapse_binarized_nodes(tree)
+
+                completetrees.append({'tree': tree,
                                       'score': cur_state["score"]})
+                logging.debug('complete tree found')
+
+                # stop if we have found enough trees
                 if gold_actions is not None or (len(completetrees) >=
                                                 self.n_best):
                     break
@@ -442,27 +429,27 @@ class Parser(object):
 
                 if not (action_str == cur_state["prevact"] and
                         action_str.startswith('U')):
-                    yield((action_str, feats))
+                    yield (action_str, feats)
 
                 scored_acts.append(ScoredAction(action_str, 1))
             else:
-                scored_acts = self.mxclassify(feats)
-                scored_acts = sorted(scored_acts,
-                                     key=attrgetter('score'),
+                scored_acts = self.model.compute_scores(Counter(feats))
+                scored_acts = sorted(scored_acts.items(),
+                                     key=itemgetter(1),
                                      reverse=True)
                 #print('\n'.join(['{} {:.4g}'.format(x.action, x.score) for x in scored_acts]), file=sys.stderr)
                 #print('\n', file=sys.stderr)
 
             num_acts = 0
             while scored_acts:
-                stack = cur_state["stack"]  # TODO does this need to be a copy?
-                sent = cur_state["sent"]  # TODO does this need to be a copy?
+                stack = cur_state["stack"]
+                sent = cur_state["sent"]
                 prevact = cur_state["prevact"]
                 ucnt = cur_state["ucnt"]
 
                 scored_action = scored_acts.pop(0)
-                action = scored_action.action
-                score = scored_action.score
+                action = scored_action[0]
+                score = scored_action[1]
 
                 if gold_actions is None:
                     # If parsing, verify the validity of the action.
@@ -492,14 +479,12 @@ class Parser(object):
 
         if not completetrees:
             # Default to a flat tree if there is no complete parse.
-            # TODO return tree objects rather than strings
-            tmp_str = ""
+            new_tree = ParentedTree("(ROOT)")
             for e in edus:
-                tmp_str += " (text _!{}_!)".format(" ".join(e["head"]))
-            completetrees.append({'tree': "(TOP {})".format(tmp_str),
-                                  'score': 0.0})
+                new_tree.append(ParentedTree("(text _!{}_!)".format(" ".join(e["head"]))))
+            completetrees.append({'tree': new_tree, 'score': 0.0})
 
-        # TODO do these need to be sorted?
         if gold_actions is None:
-            return completetrees
+            for t in completetrees:
+                yield t
 

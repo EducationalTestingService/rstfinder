@@ -2,7 +2,6 @@
 
 import logging
 import re
-from collections import defaultdict
 
 from discourseparsing.discourse_parsing import Parser
 
@@ -36,17 +35,16 @@ def main():
                               tags (e.g., "This/DT is/VBZ a/DT test/NN ./.").',
                         type=argparse.FileType('r'))
     parser.add_argument('-m', '--model_file',
-                        help='Path to model file.',
-                        type=argparse.FileType('r'))
-    parser.add_argument('-a', '--max_acts',
-                        help='Maximum number of actions for...?',
-                        type=int, default=1)
-    parser.add_argument('-n', '--n_best',
-                        help='Number of parses to return', type=int, default=1)
-    parser.add_argument('-s', '--max_states',
-                        help='Maximum number of states to retain for \
-                              best-first search',
-                        type=int, default=1)
+                        help='Path to model file.')
+    # parser.add_argument('-a', '--max_acts',
+    #                     help='Maximum number of actions for...?',
+    #                     type=int, default=1)
+    # parser.add_argument('-n', '--n_best',
+    #                     help='Number of parses to return', type=int, default=1)
+    # parser.add_argument('-s', '--max_states',
+    #                     help='Maximum number of states to retain for \
+    #                           best-first search',
+    #                     type=int, default=1)
     parser.add_argument('-v', '--verbose',
                         help='Print more status information. For every ' +
                         'additional time this flag is specified, ' +
@@ -54,9 +52,12 @@ def main():
                         default=0, action='count')
     args = parser.parse_args()
 
-    parser = Parser(max_acts=args.max_acts,
-                    max_states=args.max_states,
-                    n_best=args.n_best)
+    # TODO currently, the parser uses the perceptron rather than a probabilistic model, so it only supports greedy search.
+    parser = Parser(max_acts=1, max_states=1, n_best=1)
+
+    # parser = Parser(max_acts=args.max_acts,
+    #             max_states=args.max_states,
+    #             n_best=args.n_best)
 
     # Convert verbose flag to actually logging level
     log_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
@@ -69,11 +70,7 @@ def main():
 
     # read the model
     logger.info('Loading model')
-    weights = defaultdict(dict)
-    for line in args.model_file:
-        parts = line.strip().split()
-        weights[parts[0]][parts[1]] = float(parts[2])
-    parser.set_weights(weights)
+    parser.load_model(args.model_file)
 
     data = args.input_file.read().strip()
     docs = re.split(r'\n\n+', data)
@@ -83,13 +80,15 @@ def main():
         logger.debug('Parsing %s', doc_edus)
         complete_trees = parser.parse(edus_for_doc(doc))
 
-        if args.n_best > 1:
-            for tree in complete_trees:
-                print(tree["score"])
-                print("(ROOT {})".format(tree["tree"].pprint()))
-            print()
-        else:
-            print("(ROOT {})".format(complete_trees[0]["tree"].pprint()))
+        # if args.n_best > 1:
+        #     for tree in complete_trees:
+        #         print(tree["score"])
+        #         print("(ROOT {})".format(tree["tree"].pprint()))
+        #     print()
+        # else:
+        tree = next(complete_trees)
+
+        print(tree["tree"].pprint(margin=99999999))
 
 
 if __name__ == '__main__':

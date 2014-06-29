@@ -1,13 +1,86 @@
 #!/usr/bin/env python3
 
+'''
+A script to train an RST parsing model.
+This takes a JSON-formatted training set created by `convert_rst_discourse_tb.py`,
+trains a model, and saves the model in a user-specified location.
+'''
+
+from collections import Counter
 import logging
+
 import json
+from nltk.tree import ParentedTree
 
 from discourseparsing.discourse_parsing import Parser
 from discourseparsing.extract_actions_from_trees import extract_parse_actions
 from discourseparsing.collapse18 import collapse_rst_labels
 from discourseparsing.segment_document import extract_edus_tokens
-from nltk.tree import ParentedTree
+from discourseparsing.perceptron import Perceptron
+
+
+def train_rst_parsing_model(train_examples, model_path, train_params=None):
+    if train_params is None:
+        train_params = {"max_iters": 2}
+
+    learner = Perceptron()
+    learner.train(train_examples, train_params["max_iters"])
+    learner.save_model(model_path)
+
+    # Below is code to use SKLL, but online, global learning may be better,
+    # so the above uses the perceptron, which should be easier to adapt/extend.
+
+    # if not os.path.exists(working_path):
+    #     os.mkdir(working_path)
+    # if not os.path.exists(model_path):
+    #     os.mkdir(model_path)
+
+    # learner_name = 'LogisticRegression'
+    # #param_grid_list = [{'C': [10.0 ** x for x in range(-3, 4)]}]
+    # param_grid_list = [{'C': [1.0]}]
+    # grid_objective = 'f1_score_macro'
+    # fixed_parameters = [{'random_state': 123456789, 'penalty': 'l1'}]
+
+    # # Make the SKLL jsonlines feature file
+    # train_dir = working_path
+    # train_path = os.path.join(train_dir, 'rst_parsing.jsonlines')
+    # with open(train_path, 'w') as train_file:
+    #     for example in train_examples:
+    #         train_file.write('{}\n'.format(json.dumps(example)))
+
+    # # Make the SKLL config file.
+    # cfg_dict = {"General": {"task": "train",
+    #                         "experiment_name": "rst_parsing"},
+    #             "Input": {"train_location": train_dir,
+    #                       "ids_to_floats": "False",
+    #                       "featuresets": json.dumps([["rst_parsing"]]),
+    #                       "featureset_names": json.dumps(["rst_parsing"]),
+    #                       "suffix": '.jsonlines',
+    #                       "fixed_parameters": json.dumps(fixed_parameters),
+    #                       "learners": json.dumps([learner_name])},
+    #             "Tuning": {"feature_scaling": "none",
+    #                        "grid_search": "True",
+    #                        "min_feature_count": "1",
+    #                        "objective": grid_objective,
+    #                        "param_grids": json.dumps([param_grid_list])},
+    #             "Output": {"probability": "False",
+    #                        "models": model_path,
+    #                        "log": working_path}
+    #            }
+
+    # # write config file
+    # cfg_path = os.path.join(working_path, 'rst_parsing.cfg')
+    # cfg = ConfigParser()
+    # for section_name, section_dict in list(cfg_dict.items()):
+    #     cfg.add_section(section_name)
+    #     for key, val in section_dict.items():
+    #         cfg.set(section_name, key, val)
+    # with open(cfg_path, 'w') as config_file:
+    #     cfg.write(config_file)
+
+    # # run SKLL
+    # run_configuration(cfg_path)
+
 
 
 def extract_tagged_doc_edus(doc_dict):
@@ -26,6 +99,11 @@ def main():
     parser.add_argument('train_file',
                         help='Path to JSON training file.',
                         type=argparse.FileType('r'))
+    parser.add_argument('model_path',
+                        help='Path to where the model should be stored')
+    parser.add_argument('-w', '--working_path',
+                        help='Path to where intermediate files should be stored (defaults to "working" in the current directory)',
+                        default='working')  # TODO is there a better default location?  e.g., /tmp?
     parser.add_argument('-a', '--max_acts',
                         help='Maximum number of actions for...?',
                         type=int, default=1)
@@ -55,27 +133,34 @@ def main():
                                 '%(message)s'), level=log_level)
     logger = logging.getLogger(__name__)
 
-    logger.info('Training model')
-    # Create a giant list of all EDUs for all documents
-
+    logger.info('Extracting examples')
     train_data = json.load(args.train_file)
 
+    examples = []
+
     for doc_dict in train_data:
-        logging.info(doc_dict['path_basename'])
+        path_basename = doc_dict['path_basename']
+        logging.info('Extracting examples for {}'.format(path_basename))
 
         doc_edus = extract_tagged_doc_edus(doc_dict)
         tree = ParentedTree(doc_dict['rst_tree'])
 
         collapse_rst_labels(tree)
 
-        actions = ["{}:{}".format(act.type, act.label) for act in extract_parse_actions(tree)]
+        actions = ["{}:{}".format(act.type, act.label)
+                   for act in extract_parse_actions(tree)]
         logger.debug('Extracting features for %s with actions %s',
                      doc_edus, actions)
 
-        for action_str, feats in parser.parse(doc_edus, gold_actions=actions):
-            print("{} {}".format(action_str, " ".join(feats)))
+        for i, (action_str, feats) in \
+                enumerate(parser.parse(doc_edus, gold_actions=actions)):
+            example_id = "{}_{}".format(path_basename, i)
+            example = {"x": Counter(feats), "y": action_str, "id": example_id}
+            examples.append(example)
+            # print("{} {}".format(action_str, " ".join(feats)))
 
-    # TODO modify the feature/label format and run a learning algorithm (e.g., with SKLL)
+    logger.info('Training model')
+    train_rst_parsing_model(examples, args.model_path)
 
 
 if __name__ == '__main__':
