@@ -47,6 +47,7 @@ from discourseparsing.tree_util import collapse_binarized_nodes
 ScoredAction = namedtuple('ScoredAction', ['action', 'score'])
 logger = logging.getLogger(__name__)
 
+
 class Parser(object):
 
     def __init__(self, max_acts, max_states, n_best):
@@ -487,4 +488,3 @@ class Parser(object):
         if gold_actions is None:
             for t in completetrees:
                 yield t
-

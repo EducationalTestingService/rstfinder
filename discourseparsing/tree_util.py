@@ -6,7 +6,6 @@ from nltk.tree import ParentedTree
 
 TREE_PRINT_MARGIN = 1000000
 
-
 _ptb_paren_mapping = {'(': r'-LRB-',
                       ')': r'-RRB-',
                       '[': r'-LSB-',
@@ -224,6 +223,14 @@ def extract_preterminals(tree):
 
 def convert_paren_tokens_to_ptb_format(toks):
     return [_ptb_paren_mapping.get(tok, tok) for tok in toks]
+
+
+def convert_parens_to_ptb_format(sent):
+    for key, val in _ptb_paren_mapping.items():
+        sent = sent.replace(key, ' {} '.format(val))
+     # Remove extra spaces added by normalizing brackets.
+    sent = re.sub(r'\s+', r' ', sent).strip()
+    return sent
 
 
 def extract_converted_terminals(tree):

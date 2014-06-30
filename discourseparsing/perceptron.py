@@ -88,6 +88,7 @@ class Perceptron():
         This computes the dot products between the features and the weights
         for each action.
         '''
+        #TODO cythonize this since it's the inner loop?
         scores = {}
         for action, action_weights in self.weights.items():
             scores[action] = 0.0

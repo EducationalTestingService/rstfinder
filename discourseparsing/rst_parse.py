@@ -1,41 +1,63 @@
 #!/usr/bin/env python3
 
 import logging
-import re
 
 from discourseparsing.discourse_parsing import Parser
+from discourseparsing.discourse_segmentation import (Segmenter,
+                                                     extract_edus_tokens)
+from discourseparsing.parse_util import SyntaxParserWrapper
+from discourseparsing.tree_util import (TREE_PRINT_MARGIN,
+                                        extract_preterminals,
+                                        extract_converted_terminals)
 
 
-def edus_for_doc(doc):
+def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
     '''
-    Split the document into edus, one edu per line (with POS tags)
-    e.g., This/DT is/VBZ a/DT test/NN ./."
-
-    :todo:  change this to read in the JSON format that also includes
-            PTB trees.
+    A method to perform syntax parsing, discourse segmentation, and RST parsing
+    as necessary, given a partial document dictionary.
+    See `convert_rst_discourse_tb.py` for details about document dictionaries.
     '''
-    edus = []
-    for edu_str in doc.split("\n"):
-        edu = []
-        # Don't split on all whitespace because of crazy characters
-        for tagged_token in edu_str.strip().split(' '):
-            slash_idx = tagged_token.rindex('/')
-            edu.append((tagged_token[:slash_idx],
-                        tagged_token[slash_idx + 1:]))
-        edus.append(edu)
-    return edus
+
+    if 'syntax_trees' not in doc_dict:
+        trees = syntax_parser.parse_document(doc_dict['raw_text'])
+        doc_dict['syntax_trees'] = [t.pprint(margin=TREE_PRINT_MARGIN)
+                                    for t in trees]
+        preterminals = [extract_preterminals(t) for t in trees]
+        doc_dict['token_tree_positions'] = [[x.treeposition() for x in
+                                             preterminals_sentence]
+                                            for preterminals_sentence
+                                            in preterminals]
+        doc_dict['tokens'] = [extract_converted_terminals(t) for t in trees]
+        doc_dict['pos_tags'] = [[x.label() for x in preterminals_sentence]
+                                for preterminals_sentence in preterminals]
+
+    if 'edu_start_indices' not in doc_dict:
+        segmenter.segment_document(doc_dict)
+
+    edu_tags = extract_edus_tokens(doc_dict['edu_start_indices'],
+                                   doc_dict['pos_tags'])
+    edu_tokens = extract_edus_tokens(doc_dict['edu_start_indices'],
+                                     doc_dict['tokens'])
+
+    tagged_edus = []
+    for (tags, tokens) in zip(edu_tags, edu_tokens):
+        tagged_edus.append(list(zip(tokens, tags)))
+
+    return rst_parser.parse(tagged_edus)
 
 
 def main():
     import argparse
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('input_file',
-                        help='file to parse, with one EDU per line, with POS \
-                              tags (e.g., "This/DT is/VBZ a/DT test/NN ./.").',
+    parser.add_argument('input_files',
+                        nargs='+',
+                        help='A document to segment and parse.',
                         type=argparse.FileType('r'))
-    parser.add_argument('-m', '--model_file',
-                        help='Path to model file.')
+    parser.add_argument('-g', '--segmentation_model',
+                        help='Path to segmentation model.')
+    parser.add_argument('-p', '--parsing_model',
+                        help='Path to RST parsing model.')
     # parser.add_argument('-a', '--max_acts',
     #                     help='Maximum number of actions for...?',
     #                     type=int, default=1)
@@ -45,19 +67,13 @@ def main():
     #                     help='Maximum number of states to retain for \
     #                           best-first search',
     #                     type=int, default=1)
+    parser.add_argument('-z', '--zpar_directory', default='zpar')
     parser.add_argument('-v', '--verbose',
                         help='Print more status information. For every ' +
                         'additional time this flag is specified, ' +
                         'output gets more verbose.',
                         default=0, action='count')
     args = parser.parse_args()
-
-    # TODO currently, the parser uses the perceptron rather than a probabilistic model, so it only supports greedy search.
-    parser = Parser(max_acts=1, max_states=1, n_best=1)
-
-    # parser = Parser(max_acts=args.max_acts,
-    #             max_states=args.max_states,
-    #             n_best=args.n_best)
 
     # Convert verbose flag to actually logging level
     log_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
@@ -68,17 +84,26 @@ def main():
                                 '%(message)s'), level=log_level)
     logger = logging.getLogger(__name__)
 
-    # read the model
-    logger.info('Loading model')
-    parser.load_model(args.model_file)
+    # read the models
+    logger.info('Loading models')
+    syntax_parser = SyntaxParserWrapper(args.zpar_directory)
+    segmenter = Segmenter(args.segmentation_model)
 
-    data = args.input_file.read().strip()
-    docs = re.split(r'\n\n+', data)
+    # TODO currently, the parser uses the perceptron rather than a probabilistic model, so it only supports greedy search.
+    parser = Parser(max_acts=1, max_states=1, n_best=1)
 
-    for doc in docs:
-        doc_edus = edus_for_doc(doc)
-        logger.debug('Parsing %s', doc_edus)
-        complete_trees = parser.parse(edus_for_doc(doc))
+    # parser = Parser(max_acts=args.max_acts,
+    #             max_states=args.max_states,
+    #             n_best=args.n_best)
+    parser.load_model(args.parsing_model)
+
+    for input_file in args.input_files:
+        doc = input_file.read().strip()
+        logger.debug('Parsing: %s', doc)
+        doc_dict = {"raw_text": doc}
+
+        complete_trees = segment_and_parse(doc_dict, syntax_parser, segmenter,
+                                           parser)
 
         # if args.n_best > 1:
         #     for tree in complete_trees:
