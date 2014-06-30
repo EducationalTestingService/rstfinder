@@ -113,7 +113,7 @@ def main():
         # else:
         tree = next(complete_trees)
 
-        print(tree["tree"].pprint(margin=99999999))
+        print(tree["tree"].pprint(margin=TREE_PRINT_MARGIN))
 
 
 if __name__ == '__main__':
