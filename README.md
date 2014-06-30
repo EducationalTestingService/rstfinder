@@ -4,6 +4,7 @@ Setup
 
 This repository is pip-installable.  To make it work properly, I recommend running `pip install -e .` to set it up.  This will make a local, editable copy in your python environment.
 
+Additionally, the code expects by default for a directory `zpar` to be in the current working directory.  This should contain the ZPar distribution (version 0.6), along with the English models in a subdirectory `english`.  This `zpar` directory can be a symbolic link.
 
 Input Preparation
 =================
@@ -40,13 +41,14 @@ tune_segmentation_model rst_discourse_tb_edus_features_TRAINING_TRAIN.tsv rst_di
 Parsing
 =======
 
-To extract features for training a parsing model, run:
+To train an RST parsing model, run:
 
 ```
-train_rst_parser rst_discourse_tb_edus_TRAINING_TRAIN.json > train_features
+train_rst_parser rst_discourse_tb_edus_TRAINING_TRAIN.json mymodel.msgpack
 ```
 
-(TODO: After that, we need to figure out what to run to train a model, with, e.g., sklearn or SKLL.  Currently, the files have one action with features per line, with each line separated by features with the action in the first column followed by the active features.)
+To process a raw text document `my_document` with the end-to-end parser (assuming C10.0 was the best according to `tune_segmentation_model`), run:
 
-
-
+```
+rst_parse -g segmentationModel.C10.0 -p mymodel.msgpack my_document
+```

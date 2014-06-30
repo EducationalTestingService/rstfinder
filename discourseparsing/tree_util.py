@@ -6,7 +6,6 @@ from nltk.tree import ParentedTree
 
 TREE_PRINT_MARGIN = 1000000
 
-
 _ptb_paren_mapping = {'(': r'-LRB-',
                       ')': r'-RRB-',
                       '[': r'-LSB-',
@@ -226,6 +225,14 @@ def convert_paren_tokens_to_ptb_format(toks):
     return [_ptb_paren_mapping.get(tok, tok) for tok in toks]
 
 
+def convert_parens_to_ptb_format(sent):
+    for key, val in _ptb_paren_mapping.items():
+        sent = sent.replace(key, ' {} '.format(val))
+     # Remove extra spaces added by normalizing brackets.
+    sent = re.sub(r'\s+', r' ', sent).strip()
+    return sent
+
+
 def extract_converted_terminals(tree):
     res = []
     prev_w = ""
@@ -276,6 +283,8 @@ def find_first_common_ancestor(n1, n2):
     tree.
     '''
 
+    # TODO write a unit test for this
+
     # make sure we are in the same tree
     assert n1.root() == n2.root()
 
@@ -301,3 +310,20 @@ def find_first_common_ancestor(n1, n2):
 
     assert res is not None
     return res
+
+def collapse_binarized_nodes(t):
+    '''
+    For each node that is marked as a temporary, binarized node (with a *),
+    remove it from its parent and add its children in its place.
+
+    Note that this modifies the tree in place.
+    '''
+    # TODO write a unit test for this
+    for subtree in t.subtrees():
+        if subtree.label().endswith('*'):
+            parent = subtree.parent()
+            tmp_index = parent.index(subtree)
+            del parent[tmp_index]
+            while subtree:
+                child = subtree.pop()
+                parent.insert(tmp_index, child)

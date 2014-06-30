@@ -42,8 +42,9 @@ def main():
                                               C)))
         crf_test_output = subprocess.check_output(shlex.split(
             'crf_test -m {} {}'.format(model_path, args.dev_path))).decode('utf-8')
-        output_split = [
-            re.split(r'\t', x)[-2:] for x in re.split(r'\n+', crf_test_output) if x.strip()]
+        output_split = [re.split(r'\t', x)[-2:]
+                        for x in re.split(r'\n+', crf_test_output)
+                        if x.strip()]
         gold = [1 if x[0] == 'B-EDU' else 0 for x in output_split]
         pred = [1 if x[1] == 'B-EDU' else 0 for x in output_split]
 
