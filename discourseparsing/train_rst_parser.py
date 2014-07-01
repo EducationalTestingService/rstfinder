@@ -8,79 +8,70 @@ trains a model, and saves the model in a user-specified location.
 
 from collections import Counter
 import logging
-
+import os
 import json
+from configparser import ConfigParser
+
+from skll.experiments import run_configuration
 from nltk.tree import ParentedTree
 
 from discourseparsing.discourse_parsing import Parser
 from discourseparsing.extract_actions_from_trees import extract_parse_actions
 from discourseparsing.collapse18 import collapse_rst_labels
 from discourseparsing.segment_document import extract_edus_tokens
-from discourseparsing.perceptron import Perceptron
 
 
-def train_rst_parsing_model(train_examples, model_path, train_params=None):
-    if train_params is None:
-        train_params = {"max_iters": 2}
+def train_rst_parsing_model(train_examples, model_path, working_path):
+    if not os.path.exists(working_path):
+        os.mkdir(working_path)
+    if not os.path.exists(model_path):
+        os.mkdir(model_path)
 
-    learner = Perceptron()
-    learner.train(train_examples, train_params["max_iters"])
-    learner.save_model(model_path)
+    learner_name = 'LogisticRegression'
+    param_grid_list = [{'C': [10.0 ** x for x in range(-2, 3)]}]
+    #param_grid_list = [{'C': [1.0]}]
+    grid_objective = 'f1_score_macro'
+    fixed_parameters = [{'random_state': 123456789, 'penalty': 'l2'}]
 
-    # Below is code to use SKLL, but online, global learning may be better,
-    # so the above uses the perceptron, which should be easier to adapt/extend.
+    # Make the SKLL jsonlines feature file
+    train_dir = working_path
+    train_path = os.path.join(train_dir, 'rst_parsing.jsonlines')
+    with open(train_path, 'w') as train_file:
+        for example in train_examples:
+            train_file.write('{}\n'.format(json.dumps(example)))
 
-    # if not os.path.exists(working_path):
-    #     os.mkdir(working_path)
-    # if not os.path.exists(model_path):
-    #     os.mkdir(model_path)
+    # Make the SKLL config file.
+    cfg_dict = {"General": {"task": "train",
+                            "experiment_name": "rst_parsing"},
+                "Input": {"train_location": train_dir,
+                          "ids_to_floats": "False",
+                          "featuresets": json.dumps([["rst_parsing"]]),
+                          "featureset_names": json.dumps(["rst_parsing"]),
+                          "suffix": '.jsonlines',
+                          "fixed_parameters": json.dumps(fixed_parameters),
+                          "learners": json.dumps([learner_name])},
+                "Tuning": {"feature_scaling": "none",
+                           "grid_search": "True",
+                           "min_feature_count": "1",
+                           "objective": grid_objective,
+                           "param_grids": json.dumps([param_grid_list])},
+                "Output": {"probability": "True",
+                           "models": model_path,
+                           "log": working_path}
+               }
 
-    # learner_name = 'LogisticRegression'
-    # #param_grid_list = [{'C': [10.0 ** x for x in range(-3, 4)]}]
-    # param_grid_list = [{'C': [1.0]}]
-    # grid_objective = 'f1_score_macro'
-    # fixed_parameters = [{'random_state': 123456789, 'penalty': 'l1'}]
+    # write config file
+    cfg_path = os.path.join(working_path, 'rst_parsing.cfg')
+    cfg = ConfigParser()
+    for section_name, section_dict in list(cfg_dict.items()):
+        cfg.add_section(section_name)
+        for key, val in section_dict.items():
+            cfg.set(section_name, key, val)
+    with open(cfg_path, 'w') as config_file:
+        cfg.write(config_file)
 
-    # # Make the SKLL jsonlines feature file
-    # train_dir = working_path
-    # train_path = os.path.join(train_dir, 'rst_parsing.jsonlines')
-    # with open(train_path, 'w') as train_file:
-    #     for example in train_examples:
-    #         train_file.write('{}\n'.format(json.dumps(example)))
-
-    # # Make the SKLL config file.
-    # cfg_dict = {"General": {"task": "train",
-    #                         "experiment_name": "rst_parsing"},
-    #             "Input": {"train_location": train_dir,
-    #                       "ids_to_floats": "False",
-    #                       "featuresets": json.dumps([["rst_parsing"]]),
-    #                       "featureset_names": json.dumps(["rst_parsing"]),
-    #                       "suffix": '.jsonlines',
-    #                       "fixed_parameters": json.dumps(fixed_parameters),
-    #                       "learners": json.dumps([learner_name])},
-    #             "Tuning": {"feature_scaling": "none",
-    #                        "grid_search": "True",
-    #                        "min_feature_count": "1",
-    #                        "objective": grid_objective,
-    #                        "param_grids": json.dumps([param_grid_list])},
-    #             "Output": {"probability": "False",
-    #                        "models": model_path,
-    #                        "log": working_path}
-    #            }
-
-    # # write config file
-    # cfg_path = os.path.join(working_path, 'rst_parsing.cfg')
-    # cfg = ConfigParser()
-    # for section_name, section_dict in list(cfg_dict.items()):
-    #     cfg.add_section(section_name)
-    #     for key, val in section_dict.items():
-    #         cfg.set(section_name, key, val)
-    # with open(cfg_path, 'w') as config_file:
-    #     cfg.write(config_file)
-
-    # # run SKLL
-    # run_configuration(cfg_path)
-
+    # run SKLL
+    run_configuration(cfg_path)
 
 
 def extract_tagged_doc_edus(doc_dict):
@@ -104,15 +95,6 @@ def main():
     parser.add_argument('-w', '--working_path',
                         help='Path to where intermediate files should be stored (defaults to "working" in the current directory)',
                         default='working')  # TODO is there a better default location?  e.g., /tmp?
-    parser.add_argument('-a', '--max_acts',
-                        help='Maximum number of actions for...?',
-                        type=int, default=1)
-    parser.add_argument('-n', '--n_best',
-                        help='Number of parses to return', type=int, default=1)
-    parser.add_argument('-s', '--max_states',
-                        help='Maximum number of states to retain for \
-                              best-first search',
-                        type=int, default=1)
     parser.add_argument('-v', '--verbose',
                         help='Print more status information. For every ' +
                         'additional time this flag is specified, ' +
@@ -120,9 +102,7 @@ def main():
                         default=0, action='count')
     args = parser.parse_args()
 
-    parser = Parser(max_acts=args.max_acts,
-                    max_states=args.max_states,
-                    n_best=args.n_best)
+    parser = Parser(1, 1, 1)
 
     # Convert verbose flag to actually logging level
     log_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
@@ -160,7 +140,7 @@ def main():
             # print("{} {}".format(action_str, " ".join(feats)))
 
     logger.info('Training model')
-    train_rst_parsing_model(examples, args.model_path)
+    train_rst_parsing_model(examples, args.model_path, working_path=args.working_path)
 
 
 if __name__ == '__main__':

@@ -19,6 +19,17 @@ def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
     '''
 
     if 'syntax_trees' not in doc_dict:
+        # #TODO remove this debugging code
+        # import os
+        # from nltk.tree import ParentedTree
+        # if os.path.exists('tmp_trees'):
+        #     with open('tmp_trees') as f:
+        #         trees = [ParentedTree(line.strip()) for line in f]
+        # else:
+        #     trees = syntax_parser.parse_document(doc_dict['raw_text'])
+        #     with open('tmp_trees', 'w') as f:
+        #         for t in trees:
+        #             print(t.pprint(TREE_PRINT_MARGIN), file=f)
         trees = syntax_parser.parse_document(doc_dict['raw_text'])
         doc_dict['syntax_trees'] = [t.pprint(margin=TREE_PRINT_MARGIN)
                                     for t in trees]
@@ -58,15 +69,15 @@ def main():
                         help='Path to segmentation model.')
     parser.add_argument('-p', '--parsing_model',
                         help='Path to RST parsing model.')
-    # parser.add_argument('-a', '--max_acts',
-    #                     help='Maximum number of actions for...?',
-    #                     type=int, default=1)
-    # parser.add_argument('-n', '--n_best',
-    #                     help='Number of parses to return', type=int, default=1)
-    # parser.add_argument('-s', '--max_states',
-    #                     help='Maximum number of states to retain for \
-    #                           best-first search',
-    #                     type=int, default=1)
+    parser.add_argument('-a', '--max_acts',
+                        help='Maximum number of actions for...?',
+                        type=int, default=1)
+    parser.add_argument('-n', '--n_best',
+                        help='Number of parses to return', type=int, default=1)
+    parser.add_argument('-s', '--max_states',
+                        help='Maximum number of states to retain for \
+                              best-first search',
+                        type=int, default=1)
     parser.add_argument('-z', '--zpar_directory', default='zpar')
     parser.add_argument('-v', '--verbose',
                         help='Print more status information. For every ' +
@@ -89,12 +100,9 @@ def main():
     syntax_parser = SyntaxParserWrapper(args.zpar_directory)
     segmenter = Segmenter(args.segmentation_model)
 
-    # TODO currently, the parser uses the perceptron rather than a probabilistic model, so it only supports greedy search.
-    parser = Parser(max_acts=1, max_states=1, n_best=1)
-
-    # parser = Parser(max_acts=args.max_acts,
-    #             max_states=args.max_states,
-    #             n_best=args.n_best)
+    parser = Parser(max_acts=args.max_acts,
+                    max_states=args.max_states,
+                    n_best=args.n_best)
     parser.load_model(args.parsing_model)
 
     for input_file in args.input_files:
@@ -105,16 +113,9 @@ def main():
         complete_trees = segment_and_parse(doc_dict, syntax_parser, segmenter,
                                            parser)
 
-        # if args.n_best > 1:
-        #     for tree in complete_trees:
-        #         print(tree["score"])
-        #         print("(ROOT {})".format(tree["tree"].pprint()))
-        #     print()
-        # else:
-        tree = next(complete_trees)
-
-        print(tree["tree"].pprint(margin=TREE_PRINT_MARGIN))
-
+        for tree in complete_trees:
+            print("{}\t{}".format(tree["tree"].pprint(margin=TREE_PRINT_MARGIN),
+                                  tree["score"]))
 
 if __name__ == '__main__':
     main()

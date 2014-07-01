@@ -33,19 +33,24 @@ originally written by Kenji Sagae in perl.
 
 '''
 
+import os
 import logging
 import re
 from collections import namedtuple, Counter
 from operator import itemgetter
+from copy import deepcopy
 
 from nltk.tree import ParentedTree
+import numpy as np
+import skll
 
-from discourseparsing.perceptron import Perceptron
 from discourseparsing.tree_util import collapse_binarized_nodes
 
 
 ScoredAction = namedtuple('ScoredAction', ['action', 'score'])
 logger = logging.getLogger(__name__)
+
+skll.MAX_CONCURRENT_PROCESSES = 1
 
 
 class Parser(object):
@@ -57,8 +62,7 @@ class Parser(object):
         self.model = None
 
     def load_model(self, model_path):
-        self.model = Perceptron()
-        self.model.load_model(model_path)
+        self.model = skll.learner.Learner.from_file(os.path.join(model_path, 'rst_parsing_rst_parsing_LogisticRegression.model'))
 
     @staticmethod
     def mkfeats(prevact, sent, stack):
@@ -188,6 +192,10 @@ class Parser(object):
         # at least two items in the stack to be reduced
         # (plus the leftwall).
         if re.search(r'^[RL]', act) and act != "R:ROOT" and len(stack) < 3:
+            return False
+
+        # Don't allow R:ROOT unless we have a complete parse
+        if act == "R:ROOT" and (len(stack) != 2 or sent):
             return False
 
         # Default: the action is valid.
@@ -336,10 +344,20 @@ class Parser(object):
             res.append(tmp_item)
         return res
 
+    @staticmethod
+    def deep_copy_stack_or_queue(data_list):
+        res = [dict((key, val.copy(deep=True)) if key == 'tree'
+                    else (key, deepcopy(val))
+                    for key, val in list_item.items())
+               for list_item in data_list]
+        return res
+
     def parse(self, edus, gold_actions=None):
         '''
         edus is a list of (word, pos) tuples
         '''
+        logging.info('parsing document...')
+
         states = []
         completetrees = []
 
@@ -372,7 +390,7 @@ class Parser(object):
         # TODO make state items namedtuples
         tmp_state = {"prevact": prevact,
                      "ucnt": 0,
-                     "score": 1,
+                     "score": 0.0,  # log probability
                      "nsteps": 0,
                      "stack": stack,
                      "sent": sent}
@@ -381,13 +399,13 @@ class Parser(object):
         # loop while there are states to process
         while states:
             states.sort(key=itemgetter('score'), reverse=True)
-            if len(states) > self.max_states:
-                states = states[:self.max_states]
+            states = states[:self.max_states]
 
             cur_state = states.pop(0)  # should maybe replace this with a deque
+            logging.debug("cur_state score: {}, num. states: {}".format(cur_state["score"], len(states)))
 
+            # check if the current state corresponds to a complete tree
             if len(cur_state["sent"]) == 0 and len(cur_state["stack"]) == 1:
-                # check if the current state corresponds to a complete tree
                 tree = cur_state["stack"][0]["tree"]
 
                 # remove the dummy LEFTWALL node
@@ -405,6 +423,9 @@ class Parser(object):
                 if gold_actions is not None or (len(completetrees) >=
                                                 self.n_best):
                     break
+
+                # otherwise, move on to the next best state
+                continue
 
             stack = cur_state["stack"]
             sent = cur_state["sent"]
@@ -434,23 +455,26 @@ class Parser(object):
 
                 scored_acts.append(ScoredAction(action_str, 1))
             else:
-                scored_acts = self.model.compute_scores(Counter(feats))
-                scored_acts = sorted(scored_acts.items(),
+                examples = skll.data.convert_examples([{'id': 'foo', 'x': Counter(feats)}])
+                scores = [np.log(x) for x in self.model.predict(examples)[0]]
+                scored_acts = sorted(zip(self.model.label_list, scores),
                                      key=itemgetter(1),
                                      reverse=True)
                 #print('\n'.join(['{} {:.4g}'.format(x.action, x.score) for x in scored_acts]), file=sys.stderr)
                 #print('\n', file=sys.stderr)
 
-            num_acts = 0
+            # Don't exceed the maximum number of actions
+            # to consider for a parser state.
+            scored_acts = scored_acts[:self.max_acts]
+
             while scored_acts:
-                stack = cur_state["stack"]
-                sent = cur_state["sent"]
+                # Make deep copies of the input queue and stack.
+                sent = self.deep_copy_stack_or_queue(cur_state["sent"])
+                stack = self.deep_copy_stack_or_queue(cur_state["stack"])
                 prevact = cur_state["prevact"]
                 ucnt = cur_state["ucnt"]
 
-                scored_action = scored_acts.pop(0)
-                action = scored_action[0]
-                score = scored_action[1]
+                action, score = scored_acts.pop(0)
 
                 if gold_actions is None:
                     # If parsing, verify the validity of the action.
@@ -461,18 +485,12 @@ class Parser(object):
                     # Otherwise, reset it.
                     ucnt = ucnt + 1 if action.startswith("U") else 0
 
-                # Don't exceed the maximum number of actions
-                # to consider for a parser state.
-                num_acts += 1
-                if num_acts > self.max_acts:
-                    break
-
                 self.process_action(action, sent, stack)
 
                 # Add the newly created state
                 tmp_state = {"prevact": action,
                              "ucnt": ucnt,
-                             "score": cur_state["score"] * score,
+                             "score": cur_state["score"] + score,
                              "nsteps": cur_state["nsteps"] + 1,
                              "stack": stack,
                              "sent": sent}
@@ -483,7 +501,7 @@ class Parser(object):
             new_tree = ParentedTree("(ROOT)")
             for e in edus:
                 new_tree.append(ParentedTree("(text _!{}_!)"
-                                             .format(" ".join(e["head"]))))
+                                             .format(" ".join(x[0] for x in e))))
             completetrees.append({'tree': new_tree, 'score': 0.0})
 
         if gold_actions is None:
