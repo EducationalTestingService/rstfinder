@@ -455,7 +455,10 @@ class Parser(object):
 
                 scored_acts.append(ScoredAction(action_str, 1))
             else:
-                examples = skll.data.convert_examples([{'id': 'foo', 'x': Counter(feats)}])
+                vectorizer = self.model.feat_vectorizer
+                examples = skll.data.ExamplesTuple(None, None,
+                                                   vectorizer.transform(Counter(feats)),
+                                                   vectorizer)
                 scores = [np.log(x) for x in self.model.predict(examples)[0]]
                 scored_acts = sorted(zip(self.model.label_list, scores),
                                      key=itemgetter(1),
