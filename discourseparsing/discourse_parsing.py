@@ -50,8 +50,6 @@ from discourseparsing.tree_util import collapse_binarized_nodes
 ScoredAction = namedtuple('ScoredAction', ['action', 'score'])
 logger = logging.getLogger(__name__)
 
-skll.MAX_CONCURRENT_PROCESSES = 1
-
 
 class Parser(object):
 
