@@ -28,10 +28,10 @@ def train_rst_parsing_model(train_examples, model_path, working_path):
         os.mkdir(model_path)
 
     learner_name = 'LogisticRegression'
-    param_grid_list = [{'C': [10.0 ** x for x in range(-2, 3)]}]
+    param_grid_list = [{'C': [10.0 ** x for x in range(-3, 4)]}]
     #param_grid_list = [{'C': [1.0]}]
     grid_objective = 'f1_score_macro'
-    fixed_parameters = [{'random_state': 123456789, 'penalty': 'l2'}]
+    fixed_parameters = [{'random_state': 123456789, 'penalty': 'l1'}]
 
     # Make the SKLL jsonlines feature file
     train_dir = working_path
@@ -46,7 +46,7 @@ def train_rst_parsing_model(train_examples, model_path, working_path):
                 "Input": {"train_location": train_dir,
                           "ids_to_floats": "False",
                           "featuresets": json.dumps([["rst_parsing"]]),
-                          "featureset_names": json.dumps(["rst_parsing"]),
+                          "featureset_names": json.dumps(["all_feats"]),
                           "suffix": '.jsonlines',
                           "fixed_parameters": json.dumps(fixed_parameters),
                           "learners": json.dumps([learner_name])},

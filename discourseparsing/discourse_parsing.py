@@ -62,7 +62,9 @@ class Parser(object):
         self.model = None
 
     def load_model(self, model_path):
-        self.model = skll.learner.Learner.from_file(os.path.join(model_path, 'rst_parsing_rst_parsing_LogisticRegression.model'))
+        self.model = skll.learner.Learner.from_file(
+            os.path.join(model_path,
+                         'rst_parsing_all_feats_LogisticRegression.model'))
 
     @staticmethod
     def mkfeats(prevact, sent, stack):
@@ -151,7 +153,7 @@ class Parser(object):
             feats.append("np2:{}".format(pos_tag))
 
         # distance feature
-        # TODO do these thresholds need to be adjusted?
+        # TODO do these thresholds for distance features need to be adjusted?
         dist = s0.get('idx', 0) - s1.get('idx', 0)
         if dist > 10:
             dist = 10
@@ -160,17 +162,17 @@ class Parser(object):
         feats.append("dist:{}".format(dist))
 
         # combinations of features
-        for i in range(len(feats)):
-            feats.append("combo:{}~PREV:{}".format(feats[i], prevact))
-            feats.append("combo:{}~S0p:{}".format(feats[i],
-                                                  s0['hpos'][1]
-                                                  if len(s0['hpos']) > 1
-                                                  else ""))
-            feats.append("combo:{}~np1:{}".format(feats[i],
-                                                  np1[1]
-                                                  if len(np1) > 1
-                                                  else ""))
-
+        # TODO re-enable combo features?
+        # for i in range(len(feats)):
+        #     feats.append("combo:{}~PREV:{}".format(feats[i], prevact))
+        #     feats.append("combo:{}~S0p:{}".format(feats[i],
+        #                                           s0['hpos'][1]
+        #                                           if len(s0['hpos']) > 1
+        #                                           else ""))
+        #     feats.append("combo:{}~np1:{}".format(feats[i],
+        #                                           np1[1]
+        #                                           if len(np1) > 1
+        #                                           else ""))
         return feats
 
     @staticmethod
@@ -354,9 +356,12 @@ class Parser(object):
 
     def parse(self, edus, gold_actions=None):
         '''
-        edus is a list of (word, pos) tuples
+        `edus` is a list of (word, pos) tuples.
+        
+        If `gold_actions` is specified, then the parser will behave as if in 
+        training mode.
         '''
-        logging.info('parsing document...')
+        logging.info('RST parsing document...')
 
         states = []
         completetrees = []
