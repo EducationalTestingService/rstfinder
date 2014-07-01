@@ -19,7 +19,7 @@ def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
     '''
 
     if 'syntax_trees' not in doc_dict:
-        # #TODO remove this debugging code
+        # #TODO remove this debugging
         # import os
         # from nltk.tree import ParentedTree
         # if os.path.exists('tmp_trees'):

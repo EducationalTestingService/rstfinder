@@ -463,6 +463,11 @@ class Parser(object):
                 #print('\n'.join(['{} {:.4g}'.format(x.action, x.score) for x in scored_acts]), file=sys.stderr)
                 #print('\n', file=sys.stderr)
 
+            # If parsing, verify the validity of the actions.
+            if gold_actions is None:
+                scored_acts = [x for x in scored_acts
+                               if self.is_valid_action(x[0], ucnt, sent, stack)]
+
             # Don't exceed the maximum number of actions
             # to consider for a parser state.
             scored_acts = scored_acts[:self.max_acts]
@@ -476,14 +481,9 @@ class Parser(object):
 
                 action, score = scored_acts.pop(0)
 
-                if gold_actions is None:
-                    # If parsing, verify the validity of the action.
-                    if not self.is_valid_action(action, ucnt, sent, stack):
-                        continue
-
-                    # If the action is a unary reduce, increment the count.
-                    # Otherwise, reset it.
-                    ucnt = ucnt + 1 if action.startswith("U") else 0
+                # If the action is a unary reduce, increment the count.
+                # Otherwise, reset it.
+                ucnt = ucnt + 1 if action.startswith("U") else 0
 
                 self.process_action(action, sent, stack)
 
