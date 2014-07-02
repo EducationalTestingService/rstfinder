@@ -10,7 +10,7 @@ from discourseparsing.discourse_segmentation import (Segmenter,
                                                      extract_edus_tokens)
 from discourseparsing.parse_util import SyntaxParserWrapper
 from discourseparsing.rst_parse import segment_and_parse
-from discourseparsing.collapse18 import collapse_rst_labels
+from discourseparsing.collapse_rst_labels import collapse_rst_labels
 
 
 def _extract_spans(doc_id, edu_tokens_lists, tree):
