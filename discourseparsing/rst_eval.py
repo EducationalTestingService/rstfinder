@@ -12,13 +12,85 @@ from discourseparsing.parse_util import SyntaxParserWrapper
 from discourseparsing.rst_parse import segment_and_parse
 
 
-def compute_rst_eval_results(pred_edu_tokens, pred_trees, gold_edu_tokens,
-                             gold_trees):
-    res = None
-    # TODO extract sets of labeled spans for the gold and predicted trees
+def _extract_spans(doc_id, edu_tokens_lists, tree):
+    # Precompute the token indices for each EDU.
+    edu_token_spans = []
+    prev_end = -1
+    for edu_tokens_list in edu_tokens_lists:
+        start = prev_end + 1
+        end = start + len(edu_tokens_list) - 1
+        edu_token_spans.append((start, end))
+        prev_end = end
+    # Now compute the token spans for each subtree in the RST tree,
+    # whose leaves are indices into the list of EDUs.
+    res = set()
+    for subtree in tree.subtrees():
+        if subtree.label() == 'text' or subtree.label() == 'ROOT':
+            # TODO the ROOT and text spans should be skipped, right?
+            continue
+        leaves = subtree.leaves()
+        res.add((doc_id,
+                 subtree.label(),
+                 edu_token_spans[int(leaves[0])][0],
+                 edu_token_spans[int(leaves[-1])][1]))
+    return res
 
-    # TODO Evaluate F1 for unlabeled spans, spans with nuclearity labels, and spans with full labels 
-    import pdb;pdb.set_trace()
+def compute_p_r_f1(gold_tuples, pred_tuples):
+    precision = float(len(gold_tuples & pred_tuples)) / len(pred_tuples)
+    recall = float(len(gold_tuples & pred_tuples)) / len(gold_tuples)
+    f1 = 2.0 * precision * recall / (precision + recall)
+    return precision, recall, f1
+
+def compute_rst_eval_results(pred_edu_tokens_lists, pred_trees,
+                             gold_edu_tokens_lists, gold_trees):
+    res = None
+    # TODO is it correct that the gold standard trees should have just one nucleus:span node under the root?
+
+    # Extract sets of labeled spans for the gold and predicted trees.
+    pred_tuples = set()
+    for i, (edu_tokens_list, tree) in enumerate(zip(pred_edu_tokens_lists,
+                                                    pred_trees)):
+        pred_tuples |= _extract_spans(i, edu_tokens_list, tree)
+    gold_tuples = set()
+    for i, (edu_tokens_list, tree) in enumerate(zip(gold_edu_tokens_lists,
+                                                    gold_trees)):
+        gold_tuples |= _extract_spans(i, edu_tokens_list, tree)
+
+    # compute p/r/f1 for labeled spans
+    labeled_precision, labeled_recall, labeled_f1 \
+        = compute_p_r_f1(gold_tuples, pred_tuples)
+    
+    # logging.info('false positives: {}'.format(
+    #     sorted(pred_tuples - gold_tuples)))
+    # logging.info('false negatives: {}'.format(
+    #     sorted(gold_tuples - pred_tuples)))
+
+    # compute p/r/f1 for spans + nuclearity
+    gold_tuples = {(tup[0], tup[1].split(':')[0], tup[2], tup[3])
+                   for tup in gold_tuples}
+    pred_tuples = {(tup[0], tup[1].split(':')[0], tup[2], tup[3])
+                   for tup in pred_tuples}
+    nuc_precision, nuc_recall, nuc_f1 = compute_p_r_f1(gold_tuples, pred_tuples)
+
+    # compute p/r/f1 for just spans
+    gold_tuples = {(tup[0], tup[2], tup[3])
+                   for tup in gold_tuples}
+    pred_tuples = {(tup[0], tup[2], tup[3])
+                   for tup in pred_tuples}
+    span_precision, span_recall, span_f1 = compute_p_r_f1(gold_tuples, pred_tuples)
+
+    # TODO Evaluate F1 for unlabeled spans, spans with nuclearity labels, and spans with full labels.
+    res = [("labeled_precision", labeled_precision),
+           ("labeled_recall", labeled_recall),
+           ("labeled_f1", labeled_f1),
+           ("nuc_precision", nuc_precision),
+           ("nuc_recall", nuc_recall),
+           ("nuc_f1", nuc_f1),
+           ("span_precision", span_precision),
+           ("span_recall", span_recall),
+           ("span_f1", span_f1)
+           ]
+
     return res
 
 
@@ -30,12 +102,16 @@ def main():
                         help='The dev or test set JSON file',
                         type=argparse.FileType('r'))
     parser.add_argument('-g', '--segmentation_model',
-                        help='Path to segmentation model.')
+                        help='Path to segmentation model.  If not specified,' +
+                        'then gold EDUs will be used.',
+                        default=None)
     parser.add_argument('-p', '--parsing_model',
-                        help='Path to RST parsing model.')
+                        help='Path to RST parsing model.',
+                        required=True)
     parser.add_argument('-z', '--zpar_directory', default='zpar')
-    parser.add_argument('-e', '--use_gold_edus', action='store_true')
-    parser.add_argument('-e', '--use_gold_trees', action='store_true')
+    parser.add_argument('-t', '--use_gold_syntax',
+                        help='If specified, then gold PTB syntax trees will' +
+                        'be used.', action='store_true')
     parser.add_argument('-a', '--max_acts',
                         help='Maximum number of actions to perform on each ' +
                         'state', type=int, default=1)
@@ -48,6 +124,9 @@ def main():
                         'output gets more verbose.',
                         default=0, action='count')
     args = parser.parse_args()
+    assert args.use_gold_syntax or args.segmentation_model
+
+    print("*** THIS EVAL SCRIPT IS UNDER DEVELOPMENT AND WILL PROBABLY NOT GIVE THE CORRECT RESULTS YET. ***")
 
     # Convert verbose flag to actually logging level
     log_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
@@ -63,44 +142,47 @@ def main():
     syntax_parser = SyntaxParserWrapper(args.zpar_directory)
     segmenter = Segmenter(args.segmentation_model)
 
-    parser = Parser(max_acts=args.max_acts,
-                    max_states=args.max_states,
-                    n_best=1)
-    parser.load_model(args.parsing_model)
+    rst_parser = Parser(max_acts=args.max_acts,
+                        max_states=args.max_states,
+                        n_best=1)
+    rst_parser.load_model(args.parsing_model)
 
     eval_data = json.load(args.evaluation_set)
 
-    pred_edu_tokens = []
+    pred_edu_tokens_lists = []
     pred_trees = []
-    gold_edu_tokens = []
+    gold_edu_tokens_lists = []
     gold_trees = []
 
     for doc_dict in eval_data:
-        gold_edu_tokens.append(extract_edus_tokens(doc_dict['edu_start_indices'],
+        logging.info('processing {}...'.format(doc_dict['path_basename']))
+        gold_edu_tokens_lists.append(extract_edus_tokens(doc_dict['edu_start_indices'],
                                                    doc_dict['tokens']))
         gold_trees.append(ParentedTree(doc_dict['rst_tree']))
 
+        # TODO when not using gold syntax, should the script still use gold standard tokens?
+
         # remove gold standard trees or EDU boundaries if evaluating
         # using automatic preprocessing
-        if not args.use_gold_trees:
+        if not args.use_gold_syntax:
             # TODO will merging the EDU strings here to make the raw_text variable produce the appropriate eval result when not using gold standard trees?
             doc_dict['raw_text'] = ' '.join(doc_dict['edu_strings'])
             del doc_dict['syntax_trees']
             del doc_dict['token_tree_positions']
             del doc_dict['tokens']
             del doc_dict['pos_tags']
-        if not args.use_gold_edus:
+        if args.segmentation_model:
             del doc_dict['edu_start_indices']
 
         # predict the RST tree
         tokens, trees = segment_and_parse(doc_dict, syntax_parser,
-                                                   segmenter, parser)
-        pred_trees.append(next(trees))
-        pred_edu_tokens.append(tokens)
+                                                   segmenter, rst_parser)
+        pred_trees.append(next(trees)['tree'])
+        pred_edu_tokens_lists.append(tokens)
 
-    results = compute_rst_eval_results(pred_edu_tokens, pred_trees,
-                                       gold_edu_tokens, gold_trees)
-    print(json.dumps(results, indent=4))
+    results = compute_rst_eval_results(pred_edu_tokens_lists, pred_trees,
+                                       gold_edu_tokens_lists, gold_trees)
+    print(json.dumps(results))
 
 
 if __name__ == '__main__':

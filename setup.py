@@ -31,5 +31,6 @@ setup(name='discourseparsing',
                                         'rst_parse = discourseparsing.rst_parse:main',
                                         'train_rst_parser = discourseparsing.train_rst_parser:main',
                                         'convert_rst_discourse_tb = discourseparsing.convert_rst_discourse_tb:main',
+                                        'rst_eval = discourseparsing.rst_eval:main',
                                         'extract_segmentation_features = discourseparsing.extract_segmentation_features:main']},
       install_requires=requirements())
