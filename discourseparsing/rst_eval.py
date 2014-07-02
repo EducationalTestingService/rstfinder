@@ -10,6 +10,7 @@ from discourseparsing.discourse_segmentation import (Segmenter,
                                                      extract_edus_tokens)
 from discourseparsing.parse_util import SyntaxParserWrapper
 from discourseparsing.rst_parse import segment_and_parse
+from discourseparsing.collapse18 import collapse_rst_labels
 
 
 def _extract_spans(doc_id, edu_tokens_lists, tree):
@@ -21,12 +22,14 @@ def _extract_spans(doc_id, edu_tokens_lists, tree):
         end = start + len(edu_tokens_list) - 1
         edu_token_spans.append((start, end))
         prev_end = end
+    # TODO Are just the start and end indices sufficient if there are same-unit relations, where some other EDU (e.g., attribution) might be in the middle?  Or should we use a list of tokens instead of just (start, end) indices?
+
     # Now compute the token spans for each subtree in the RST tree,
     # whose leaves are indices into the list of EDUs.
     res = set()
     for subtree in tree.subtrees():
         if subtree.label() == 'text' or subtree.label() == 'ROOT':
-            # TODO the ROOT and text spans should be skipped, right?
+            # TODO should the nodes immediately above the text nodes be skipped as well (they seem important for evaluating labeled spans but trivial for the case of evaluating unlabeled spans)
             continue
         leaves = subtree.leaves()
         res.add((doc_id,
@@ -43,8 +46,6 @@ def compute_p_r_f1(gold_tuples, pred_tuples):
 
 def compute_rst_eval_results(pred_edu_tokens_lists, pred_trees,
                              gold_edu_tokens_lists, gold_trees):
-    res = None
-    # TODO is it correct that the gold standard trees should have just one nucleus:span node under the root?
 
     # Extract sets of labeled spans for the gold and predicted trees.
     pred_tuples = set()
@@ -56,30 +57,33 @@ def compute_rst_eval_results(pred_edu_tokens_lists, pred_trees,
                                                     gold_trees)):
         gold_tuples |= _extract_spans(i, edu_tokens_list, tree)
 
-    # compute p/r/f1 for labeled spans
+    # Evaluate F1 for unlabeled spans, spans with nuclearity labels,
+    # and spans with full labels.
+
+    # Compute p/r/f1 for labeled spans.
     labeled_precision, labeled_recall, labeled_f1 \
         = compute_p_r_f1(gold_tuples, pred_tuples)
-    
+
     # logging.info('false positives: {}'.format(
     #     sorted(pred_tuples - gold_tuples)))
     # logging.info('false negatives: {}'.format(
     #     sorted(gold_tuples - pred_tuples)))
 
-    # compute p/r/f1 for spans + nuclearity
+    # Compute p/r/f1 for spans + nuclearity.
     gold_tuples = {(tup[0], tup[1].split(':')[0], tup[2], tup[3])
                    for tup in gold_tuples}
     pred_tuples = {(tup[0], tup[1].split(':')[0], tup[2], tup[3])
                    for tup in pred_tuples}
     nuc_precision, nuc_recall, nuc_f1 = compute_p_r_f1(gold_tuples, pred_tuples)
 
-    # compute p/r/f1 for just spans
+    # Compute p/r/f1 for just spans.
     gold_tuples = {(tup[0], tup[2], tup[3])
                    for tup in gold_tuples}
     pred_tuples = {(tup[0], tup[2], tup[3])
                    for tup in pred_tuples}
     span_precision, span_recall, span_f1 = compute_p_r_f1(gold_tuples, pred_tuples)
 
-    # TODO Evaluate F1 for unlabeled spans, spans with nuclearity labels, and spans with full labels.
+    # Create a list of all the eval statistics.
     res = [("labeled_precision", labeled_precision),
            ("labeled_recall", labeled_recall),
            ("labeled_f1", labeled_f1),
@@ -88,8 +92,7 @@ def compute_rst_eval_results(pred_edu_tokens_lists, pred_trees,
            ("nuc_f1", nuc_f1),
            ("span_precision", span_precision),
            ("span_recall", span_recall),
-           ("span_f1", span_f1)
-           ]
+           ("span_f1", span_f1)]
 
     return res
 
@@ -149,6 +152,11 @@ def main():
 
     eval_data = json.load(args.evaluation_set)
 
+    # TODO remove this or comment it out (it's just for debugging)
+    eval_data = eval_data[:10]
+
+    # TODO simplify attribute labels in gold trees
+
     pred_edu_tokens_lists = []
     pred_trees = []
     gold_edu_tokens_lists = []
@@ -158,7 +166,12 @@ def main():
         logging.info('processing {}...'.format(doc_dict['path_basename']))
         gold_edu_tokens_lists.append(extract_edus_tokens(doc_dict['edu_start_indices'],
                                                    doc_dict['tokens']))
-        gold_trees.append(ParentedTree(doc_dict['rst_tree']))
+
+        # Collapse the RST labels to use the coarse relations that the parser
+        # produces.
+        gold_tree = ParentedTree(doc_dict['rst_tree'])
+        collapse_rst_labels(gold_tree)
+        gold_trees.append(gold_tree)
 
         # TODO when not using gold syntax, should the script still use gold standard tokens?
 
@@ -176,7 +189,7 @@ def main():
 
         # predict the RST tree
         tokens, trees = segment_and_parse(doc_dict, syntax_parser,
-                                                   segmenter, rst_parser)
+                                          segmenter, rst_parser)
         pred_trees.append(next(trees)['tree'])
         pred_edu_tokens_lists.append(tokens)
 
