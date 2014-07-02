@@ -44,11 +44,11 @@ Parsing
 To train an RST parsing model, run:
 
 ```
-train_rst_parser rst_discourse_tb_edus_TRAINING_TRAIN.json mymodel.msgpack
+train_rst_parser rst_discourse_tb_edus_TRAINING_TRAIN.json mymodel
 ```
 
 To process a raw text document `my_document` with the end-to-end parser (assuming C10.0 was the best according to `tune_segmentation_model`), run:
 
 ```
-rst_parse -g segmentationModel.C10.0 -p mymodel.msgpack my_document
+rst_parse -g segmentationModel.C10.0 -p mymodel my_document
 ```

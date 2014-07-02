@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import logging
+import json
 
 from discourseparsing.discourse_parsing import Parser
 from discourseparsing.discourse_segmentation import (Segmenter,
@@ -54,7 +55,7 @@ def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
     for (tags, tokens) in zip(edu_tags, edu_tokens):
         tagged_edus.append(list(zip(tokens, tags)))
 
-    return rst_parser.parse(tagged_edus)
+    return edu_tokens, rst_parser.parse(tagged_edus)
 
 
 def main():
@@ -66,9 +67,11 @@ def main():
                         help='A document to segment and parse.',
                         type=argparse.FileType('r'))
     parser.add_argument('-g', '--segmentation_model',
-                        help='Path to segmentation model.')
+                        help='Path to segmentation model.',
+                        required=True)
     parser.add_argument('-p', '--parsing_model',
-                        help='Path to RST parsing model.')
+                        help='Path to RST parsing model.',
+                        required=True)
     parser.add_argument('-a', '--max_acts',
                         help='Maximum number of actions for...?',
                         type=int, default=1)
@@ -107,15 +110,17 @@ def main():
 
     for input_file in args.input_files:
         doc = input_file.read().strip()
-        logger.debug('Parsing: %s', doc)
+        logger.debug('rst_parse input: %s', doc)
         doc_dict = {"raw_text": doc}
 
-        complete_trees = segment_and_parse(doc_dict, syntax_parser, segmenter,
-                                           parser)
+        edu_tokens, complete_trees = segment_and_parse(doc_dict, syntax_parser,
+                                                       segmenter, parser)
 
-        for tree in complete_trees:
-            print("{}\t{}".format(tree["tree"].pprint(margin=TREE_PRINT_MARGIN),
-                                  tree["score"]))
+        print(json.dumps({"edu_tokens": edu_tokens,
+                          "scored_rst_trees": [{"score": tree["score"],
+                                                "tree": tree["tree"].pprint(margin=TREE_PRINT_MARGIN)}
+                                               for tree in complete_trees]}))
+
 
 if __name__ == '__main__':
     main()

@@ -62,6 +62,18 @@ def _move_rel2par(tree):
         _move_rel2par(tree)
 
 
+def _replace_edu_strings(input_tree):
+    '''
+    replace EDU strings (i.e., the leaves) with indices
+    '''
+    edu_index = 0
+    for subtree in input_tree.subtrees():
+        if isinstance(subtree[0], str):
+            subtree.clear()
+            subtree.append(edu_index)
+            edu_index += 1
+
+
 def reformat_rst_tree(input_tree):
     '''
     This method will reformat an RST tree to look a bit more like a Penn
@@ -84,7 +96,10 @@ def reformat_rst_tree(input_tree):
     # node
     _move_rel2par(input_tree)
 
-    # 4. put everything under a ROOT node
+    # 4. replace EDU strings with indices
+    _replace_edu_strings(input_tree)
+
+    # 5. put everything under a ROOT node
     res = ParentedTree('(ROOT)')
     res.append(input_tree)
 

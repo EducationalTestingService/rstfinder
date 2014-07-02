@@ -23,6 +23,8 @@ class SyntaxParserWrapper():
 
         # TODO replace this with a server and/or a ctypes wrapper
 
+        # TODO should there be some extra preprocessing to deal with fancy quotes, etc.?  The tokenizer doesn't appear to handle it well
+
         # zpar.en expects one sentence per line from stdin
         tmpfile = NamedTemporaryFile('w')
         doc = re.sub(r'\s+', r' ', doc.strip())

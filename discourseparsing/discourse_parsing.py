@@ -300,7 +300,7 @@ class Parser(object):
 
         wnum = 0  # counter for distance features
         res = []
-        for edu in edus:
+        for edu_index, edu in enumerate(edus):
             edu_words = [x[0] for x in edu]
             edu_pos_tags = [x[1] for x in edu]
             edustr = ' '.join(edu_words)
@@ -326,7 +326,7 @@ class Parser(object):
             # make a dictionary for each EDU
             wnum += 1
             new_tree = ParentedTree('(text)')
-            new_tree.append("_!{}_!".format(edustr))
+            new_tree.append(edu_index)
             tmp_item = {'idx': wnum,
                         'nt': "EDU",
                         'head': edu_words,

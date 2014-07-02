@@ -4,7 +4,7 @@ import re
 from nltk.tree import ParentedTree
 
 
-TREE_PRINT_MARGIN = 1000000
+TREE_PRINT_MARGIN = 1000000000
 
 _ptb_paren_mapping = {'(': r'-LRB-',
                       ')': r'-RRB-',

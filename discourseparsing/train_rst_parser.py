@@ -30,12 +30,10 @@ def train_rst_parsing_model(train_examples, model_path, working_path):
     learner_name = 'LogisticRegression'
     param_grid_list = [{'C': [10.0 ** x for x in range(-3, 4)]}]
     #param_grid_list = [{'C': [1.0]}]
-    grid_objective = 'f1_score_macro'
     fixed_parameters = [{'random_state': 123456789, 'penalty': 'l1'}]
 
     # Make the SKLL jsonlines feature file
-    train_dir = working_path
-    train_path = os.path.join(train_dir, 'rst_parsing.jsonlines')
+    train_path = os.path.join(working_path, 'rst_parsing.jsonlines')
     with open(train_path, 'w') as train_file:
         for example in train_examples:
             train_file.write('{}\n'.format(json.dumps(example)))
@@ -43,7 +41,7 @@ def train_rst_parsing_model(train_examples, model_path, working_path):
     # Make the SKLL config file.
     cfg_dict = {"General": {"task": "train",
                             "experiment_name": "rst_parsing"},
-                "Input": {"train_location": train_dir,
+                "Input": {"train_location": working_path,
                           "ids_to_floats": "False",
                           "featuresets": json.dumps([["rst_parsing"]]),
                           "featureset_names": json.dumps(["all_feats"]),
@@ -53,7 +51,7 @@ def train_rst_parsing_model(train_examples, model_path, working_path):
                 "Tuning": {"feature_scaling": "none",
                            "grid_search": "True",
                            "min_feature_count": "1",
-                           "objective": grid_objective,
+                           "objective": "accuracy",  # TODO is this the best metric for tuning? 
                            "param_grids": json.dumps([param_grid_list])},
                 "Output": {"probability": "True",
                            "models": model_path,
