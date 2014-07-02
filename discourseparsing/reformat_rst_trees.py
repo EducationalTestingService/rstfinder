@@ -78,15 +78,12 @@ def reformat_rst_tree(input_tree):
     '''
     This method will reformat an RST tree to look a bit more like a Penn
     Treebank tree.
-
-    Note that this will return a new tree as the result
-    and also modify the original `input_tree`.
     '''
     logging.debug('Reformatting {}'.format(
         input_tree.pprint(margin=TREE_PRINT_MARGIN)))
 
     # 1. rename the top node
-    input_tree.set_label('nucleus:span')
+    input_tree.set_label('ROOT')
 
     # 2. delete all of the span and leaf nodes (they seem to be just for
     # book keeping)
@@ -99,13 +96,8 @@ def reformat_rst_tree(input_tree):
     # 4. replace EDU strings with indices
     _replace_edu_strings(input_tree)
 
-    # 5. put everything under a ROOT node
-    res = ParentedTree('(ROOT)')
-    res.append(input_tree)
-
     logging.debug('Reformatted: {}'.format(
-        res.pprint(margin=TREE_PRINT_MARGIN)))
-    return res
+        input_tree.pprint(margin=TREE_PRINT_MARGIN)))
 
 
 def main():
@@ -124,7 +116,7 @@ def main():
         rst_tree_str = fix_rst_treebank_tree_str(rst_tree_str)
         rst_tree_str = convert_parens_in_rst_tree_str(rst_tree_str)
         t = ParentedTree(rst_tree_str)
-        t = reformat_rst_tree(t)
+        reformat_rst_tree(t)
         print(t.pprint(margin=TREE_PRINT_MARGIN))
 
 
