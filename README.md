@@ -47,8 +47,21 @@ To train an RST parsing model, run:
 train_rst_parser rst_discourse_tb_edus_TRAINING_TRAIN.json mymodel
 ```
 
-To process a raw text document `my_document` with the end-to-end parser (assuming C10.0 was the best according to `tune_segmentation_model`), run:
+To process a raw text document `my_document` with the end-to-end parser (assuming `C = 10.0` was the best hyperparameter setting according to `tune_segmentation_model`), run:
 
 ```
 rst_parse -g segmentationModel.C10.0 -p mymodel my_document
 ```
+
+Evaluation
+=========
+
+To evaluate a model, run:
+
+```
+rst_eval rst_discourse_tb_edus_TRAINING_DEV.json -p mymodel --use_gold_syntax
+```
+
+This will compute precision, recall, and F1 scores for 3 scenarios: spans labeled with nuclearity and relation types, spans labeled only with nuclearity, and unlabeled token spans.  The above version of the command will use gold standard EDUs and syntactic parses.
+
+NOTE: The evaluation script has basic functionality in place, but at the moment it almost certainly does not appropriately handle important edge cases (e.g., same-unit relations, relations at the top of the tree).  These issues need to be addressed before the script can be used in experiments.
