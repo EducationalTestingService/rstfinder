@@ -27,15 +27,6 @@ def extract_parse_actions(tree):
         tree.set_label('ROOT')
     assert tree.label() == 'ROOT'
 
-    # replace the EDU tokens with indices
-    # TODO why?
-    i = 1
-    for subtree in tree.subtrees():
-        if isinstance(subtree[0], str):
-            subtree.clear()
-            subtree.append(str(i))
-            i += 1
-
     stack = []
     cstack = [ParentedTree('(DUMMY0 (DUMMY1 DUMMY3))')]
     actseq = []
