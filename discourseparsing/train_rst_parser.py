@@ -17,7 +17,7 @@ from nltk.tree import ParentedTree
 
 from discourseparsing.discourse_parsing import Parser
 from discourseparsing.extract_actions_from_trees import extract_parse_actions
-from discourseparsing.collapse18 import collapse_rst_labels
+from discourseparsing.collapse_rst_labels import collapse_rst_labels
 from discourseparsing.segment_document import extract_edus_tokens
 
 
