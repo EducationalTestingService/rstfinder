@@ -506,7 +506,9 @@ class Parser(object):
             # Default to a flat tree if there is no complete parse.
             new_tree = ParentedTree("(ROOT)")
             for i in range(len(edus)):
-                new_tree.append(ParentedTree('(text {})'.format(i)))
+                tmp_child = ParentedTree('(text)')
+                tmp_child.append(i)
+                new_tree.append(tmp_child)
             completetrees.append({'tree': new_tree, 'score': 0.0})
 
         if gold_actions is None:
