@@ -1,7 +1,7 @@
 
 import re
 
-from nltk.tree import ParentedTree
+from nltk.tree import ParentedTree, Tree
 
 
 TREE_PRINT_MARGIN = 1000000000
@@ -318,8 +318,14 @@ def collapse_binarized_nodes(t):
 
     Note that this modifies the tree in place.
     '''
-    # TODO write a unit test for this
+    # TODO write a unit test for this method
+    to_process = []
     for subtree in t.subtrees():
+        to_process.append(subtree)
+
+    # Do a reverse of the pre-order traversal implicit
+    # in the subtrees methods, so the leaves are visited first.
+    for subtree in reversed(to_process):
         if subtree.label().endswith('*'):
             parent = subtree.parent()
             assert subtree.label() == parent.label() or subtree.label()[:-1] == parent.label()
@@ -328,3 +334,7 @@ def collapse_binarized_nodes(t):
             while subtree:
                 child = subtree.pop()
                 parent.insert(tmp_index, child)
+
+    # Make sure the output is correct.
+    for subtree in t.subtrees():
+        assert not subtree.label().endswith('*')
