@@ -175,27 +175,56 @@ class Parser(object):
 
     @staticmethod
     def is_valid_action(act, ucnt, sent, stack):
-        # Don't allow too many consecutive unary reduce actions.
-        if act.startswith("U") and ucnt > 2:
-            return False
+        if act.startswith("U"):
+            # Don't allow too many consecutive unary reduce actions.
+            if ucnt > 2:
+                return False
 
-        # Don't allow a reduce action if the stack is empty.
-        # (i.e., contains only the leftwall)
-        if act.startswith("U") and stack[-1]["head"] == "LEFTWALL":
-            return False
+            # Don't allow a reduce action if the stack is empty.
+            # (i.e., contains only the leftwall)
+            if stack[-1]["head"] == "LEFTWALL":
+                return False
+
+            # Don't allow unary reduces on internal nodes for binarized rules.
+            if stack[-1]["nt"].endswith('*'):
+                return False
 
         # Don't allow shift if there is nothing left to shift.
         if act.startswith("S") and not sent:
             return False
 
-        # Don't allow a reduce right or left if there are not
-        # at least two items in the stack to be reduced
-        # (plus the leftwall).
-        if re.search(r'^[RL]', act) and act != "R:ROOT" and len(stack) < 3:
-            return False
+        # Don't allow a binary reduce unless there are at least two items in
+        # the stack to be reduced (plus the leftwall),
+        # with one of them being a nucleus or a partial subtree containing
+        # a nucleus, as indicated by a * suffix).
+        if re.search(r'^[RL]', act) and act != "R:ROOT":
+            # Make sure there are enough items to reduce
+            # (including the left wall).
+            if len(stack) < 3:
+                return False
 
-        # Don't allow R:ROOT unless we have a complete parse
+            # Make sure there is a head.
+            lc_label = stack[-2]['nt']
+            rc_label = stack[-1]['nt']
+            if not (lc_label.startswith('nucleus')
+                    or rc_label.startswith('nucleus')
+                    or lc_label.endswith('*')
+                    or rc_label.endswith('*')):
+                return False
+
+            # Check that partial node labels (ending with *) match the action.
+            act_label = act[2:]
+            if lc_label.endswith('*') \
+                    and act_label != lc_label and act_label != lc_label[:-1]:
+                return False
+            if rc_label.endswith('*') \
+                    and act_label != rc_label and act_label != rc_label[:-1]:
+                return False
+
+        # Don't allow R:ROOT or R:ROOT* unless we will have a complete parse.
         if act == "R:ROOT" and (len(stack) != 2 or sent):
+            return False
+        if act == "R:ROOT*" and (len(stack) != 3 or sent):
             return False
 
         # Default: the action is valid.

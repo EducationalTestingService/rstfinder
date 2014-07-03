@@ -322,6 +322,7 @@ def collapse_binarized_nodes(t):
     for subtree in t.subtrees():
         if subtree.label().endswith('*'):
             parent = subtree.parent()
+            assert subtree.label() == parent.label() or subtree.label()[:-1] == parent.label()
             tmp_index = parent.index(subtree)
             del parent[tmp_index]
             while subtree:
