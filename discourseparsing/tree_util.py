@@ -311,6 +311,7 @@ def find_first_common_ancestor(n1, n2):
     assert res is not None
     return res
 
+
 def collapse_binarized_nodes(t):
     '''
     For each node that is marked as a temporary, binarized node (with a *),
@@ -318,8 +319,14 @@ def collapse_binarized_nodes(t):
 
     Note that this modifies the tree in place.
     '''
-    # TODO write a unit test for this
+    # TODO write a unit test for this method
+    to_process = []
     for subtree in t.subtrees():
+        to_process.append(subtree)
+
+    # Do a reverse of the pre-order traversal implicit
+    # in the subtrees methods, so the leaves are visited first.
+    for subtree in reversed(to_process):
         if subtree.label().endswith('*'):
             parent = subtree.parent()
             assert subtree.label() == parent.label() or subtree.label()[:-1] == parent.label()
@@ -328,3 +335,7 @@ def collapse_binarized_nodes(t):
             while subtree:
                 child = subtree.pop()
                 parent.insert(tmp_index, child)
+
+    # Make sure the output is correct.
+    for subtree in t.subtrees():
+        assert not subtree.label().endswith('*')
