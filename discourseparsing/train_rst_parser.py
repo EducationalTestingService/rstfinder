@@ -114,6 +114,9 @@ def main():
     logger.info('Extracting examples')
     train_data = json.load(args.train_file)
 
+    # TODO remove or comment out the following debugging command
+    # train_data = train_data[:20]
+
     examples = []
 
     for doc_dict in train_data:

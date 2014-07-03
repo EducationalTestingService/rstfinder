@@ -47,8 +47,7 @@ def _merge_constituent_end_shifts(actseq):
 
     res = []
     for act in actseq:
-        if act.type == 'U' and res and (res[-1].type == 'L'
-                                        or res[-1].type == 'R'):
+        if act.type == 'U' and res and res[-1].type == 'B':
             assert '{}*'.format(act.label) == res[-1].label
             tmp_act = res.pop()
             res.append(ShiftReduceAction(type=tmp_act.type, label=act.label))
@@ -67,6 +66,7 @@ def _is_head_of(n1, n2):
             return True
         elif n1parent.index(n1) < n1parent.index(n2):
             return True
+
     return False
 
 
@@ -85,9 +85,9 @@ def _extract_parse_actions_helper(node, stack, cstack, actseq):
     if isinstance(nt[0], str):
         actseq.append(ShiftReduceAction(type='S', label='POS'))
         cstack.append(nt)
-    # Or if we are at the root of the tree, then add reduce_right:ROOT.
+    # Or if we are at the root of the tree, then add binary_reduce:ROOT.
     elif tmp_parent.label() == "ROOT":
-        actseq.append(ShiftReduceAction(type='R', label='ROOT'))
+        actseq.append(ShiftReduceAction(type='B', label='ROOT'))
         chflg = False
     # Otherwise, we have visited all the children of a nonterminal node,
     # and we should add a unary reduce
@@ -96,36 +96,32 @@ def _extract_parse_actions_helper(node, stack, cstack, actseq):
         cstack.pop()
         cstack.append(nt)
 
-    # Check to see if there should be any reduce right or reduce left actions.
+    # Check to see if there should be any binary reduce actions.
     chflg = True
     while chflg and stack:
         chflg = False
-        # If the head of most recently visited node
-        # is the 2nd most recently visited node,
-        # and they have the same parent,
-        # then add a reduce_right.
-        if _is_head_of(cstack[-2], cstack[-1]):
-
+        # If the two most recently visited nodes have the same parent,
+        # then add a binary_reduce action.
+        # Note that this approach will still work if there are multiple
+        # satellite children because the ones nearest to the nucleus will be
+        # reduced first, and eventually all the satellites will be binary
+        # reduced with the nucleus.
+        headR = _is_head_of(cstack[-1], cstack[-2])
+        headL = _is_head_of(cstack[-2], cstack[-1])
+        if headL or headR:
             tmpRc = cstack.pop()
             tmpLc = cstack.pop()
-            cstack.append(tmpLc)
+            if headR:
+                # reduce left (right node becomes head)
+                cstack.append(tmpRc)
+                new_label = tmpRc.parent().label()
+            else:
+                # reduce right (left node becomes head)
+                cstack.append(tmpLc)
+                new_label = tmpLc.parent().label()
 
-            actseq.append(ShiftReduceAction(type='R',
-                                            label='{}*'.format(tmpLc.parent().label())))
-            chflg = True
-
-        # If the most recently visited node
-        # is the head of the 2nd most recently visited node
-        # and they both have the same parent,
-        # then add a reduce_left.
-        if _is_head_of(cstack[-1], cstack[-2]):
-
-            tmpRc = cstack.pop()
-            tmpLc = cstack.pop()
-            cstack.append(tmpRc)
-
-            actseq.append(ShiftReduceAction(type='L',
-                                            label='{}*'.format(tmpRc.parent().label())))
+            actseq.append(ShiftReduceAction(type='B',
+                                            label='{}*'.format(new_label)))
             chflg = True
 
 

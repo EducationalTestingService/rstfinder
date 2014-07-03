@@ -153,7 +153,7 @@ def main():
     eval_data = json.load(args.evaluation_set)
 
     # TODO remove this or comment it out (it's just for debugging)
-    #eval_data = eval_data[:10]
+    # eval_data = eval_data[:20]
 
     # TODO simplify attribute labels in gold trees
 

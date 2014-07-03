@@ -197,7 +197,7 @@ class Parser(object):
         # the stack to be reduced (plus the leftwall),
         # with one of them being a nucleus or a partial subtree containing
         # a nucleus, as indicated by a * suffix).
-        if re.search(r'^[RL]', act) and act != "R:ROOT":
+        if act.startswith("B") and act != "B:ROOT":
             # Make sure there are enough items to reduce
             # (including the left wall).
             if len(stack) < 3:
@@ -221,10 +221,10 @@ class Parser(object):
                     and act_label != rc_label and act_label != rc_label[:-1]:
                 return False
 
-        # Don't allow R:ROOT or R:ROOT* unless we will have a complete parse.
-        if act == "R:ROOT" and (len(stack) != 2 or sent):
+        # Don't allow B:ROOT or B:ROOT* unless we will have a complete parse.
+        if act == "B:ROOT*" and (len(stack) != 3 or sent):
             return False
-        if act == "R:ROOT*" and (len(stack) != 3 or sent):
+        if act == "B:ROOT" and (len(stack) != 2 or sent):
             return False
 
         # Default: the action is valid.
@@ -236,7 +236,7 @@ class Parser(object):
         # with a lexical head coming from the left child
         # (this is a confusing name, but it refers to the direction of
         # the dependency arrow).
-        match = re.search(r'^R:(.+)$', act)
+        match = re.search(r'^B:(.+)$', act)
         if match:
             label = match.groups()[0]
 
@@ -246,49 +246,49 @@ class Parser(object):
             new_tree.append(tmp_lc['tree'])
             new_tree.append(tmp_rc['tree'])
 
-            tmp_item = {"idx": tmp_lc["idx"],
-                        "nt": label,
-                        "tree": new_tree,
-                        "head": tmp_lc["head"],
-                        "hpos": tmp_lc["hpos"],
-                        "lchnt": tmp_lc["lchnt"],
-                        "rchnt": tmp_rc["nt"],
-                        "lchpos": tmp_lc["lchpos"],
-                        "rchpos": tmp_rc.get("pos", ""),
-                        "lchw": tmp_lc["lchw"],
-                        "rchw": tmp_rc["head"],
-                        "nch": tmp_lc["nch"] + 1,
-                        "nlch": tmp_lc["nlch"] + 1,
-                        "nrch": tmp_lc["nrch"]}
-            stack.append(tmp_item)
+            # Reduce right, making the left node the head
+            # because it is the nucleus (or a partial tree containing the
+            # nucleus, indicated by a * suffix) or the leftwall.
+            if tmp_lc['nt'].startswith('nucleus:') \
+                    or tmp_lc['nt'].endswith('*') or act == 'B:ROOT':
+                tmp_item = {"idx": tmp_lc["idx"],
+                            "nt": label,
+                            "tree": new_tree,
+                            "head": tmp_lc["head"],
+                            "hpos": tmp_lc["hpos"],
+                            "lchnt": tmp_lc["lchnt"],
+                            "rchnt": tmp_rc["nt"],
+                            "lchpos": tmp_lc["lchpos"],
+                            "rchpos": tmp_rc.get("pos", ""),
+                            "lchw": tmp_lc["lchw"],
+                            "rchw": tmp_rc["head"],
+                            "nch": tmp_lc["nch"] + 1,
+                            "nlch": tmp_lc["nlch"] + 1,
+                            "nrch": tmp_lc["nrch"]}
+            # Reduce left, making the right node the head
+            # because it is the nucleus (or a partial tree containing the
+            # nucleus, indicated by a * suffix)
+            elif tmp_rc['nt'].startswith('nucleus:') \
+                    or tmp_rc['nt'].endswith('*'):
+                tmp_item = {"idx": tmp_rc["idx"],
+                            "nt": label,
+                            "tree": new_tree,
+                            "head": tmp_rc["head"],
+                            "hpos": tmp_rc["hpos"],
+                            "lchnt": tmp_lc["nt"],
+                            "rchnt": tmp_rc["rchnt"],
+                            "lchpos": tmp_lc.get("pos", ""),
+                            "rchpos": tmp_rc["rchpos"],
+                            "lchw": tmp_lc["head"],
+                            "rchw": tmp_rc["rchw"],
+                            "nch": tmp_rc["nch"] + 1,
+                            "nlch": tmp_rc["nlch"],
+                            "nrch": tmp_rc["nrch"] + 1}
+            else:
+                raise ValueError("Unexpected binary reduce.\n" +
+                                 "act = {}\n tmp_lc = {}\ntmp_rc = {}"
+                                 .format(act, tmp_lc, tmp_rc))
 
-        # The L action is like the R action but with lexical head
-        # coming from left child.
-        match = re.search(r'^L:(.+)$', act)
-        if match:
-            label = match.groups()[0]
-
-            tmp_rc = stack.pop()
-            tmp_lc = stack.pop()
-
-            new_tree = ParentedTree("({})".format(label))
-            new_tree.append(tmp_lc["tree"])
-            new_tree.append(tmp_rc["tree"])
-
-            tmp_item = {"idx": tmp_rc["idx"],
-                        "nt": label,
-                        "tree": new_tree,
-                        "head": tmp_rc["head"],
-                        "hpos": tmp_rc["hpos"],
-                        "lchnt": tmp_lc["nt"],
-                        "rchnt": tmp_rc["rchnt"],
-                        "lchpos": tmp_lc.get("pos", ""),
-                        "rchpos": tmp_rc["rchpos"],
-                        "lchw": tmp_lc["head"],
-                        "rchw": tmp_rc["rchw"],
-                        "nch": tmp_rc["nch"] + 1,
-                        "nlch": tmp_rc["nlch"],
-                        "nrch": tmp_rc["nrch"] + 1}
             stack.append(tmp_item)
 
         # The U action creates a unary chain (e.g., "(NP (NP ...))").
@@ -434,7 +434,7 @@ class Parser(object):
             states = states[:self.max_states]
 
             cur_state = states.pop(0)  # should maybe replace this with a deque
-            logging.debug("cur_state score: {}, num. states: {}".format(cur_state["score"], len(states)))
+            logging.debug("cur_state prevact: {}, score: {}, num. states: {}".format(cur_state["prevact"], cur_state["score"], len(states)))
 
             # check if the current state corresponds to a complete tree
             if len(cur_state["sent"]) == 0 and len(cur_state["stack"]) == 1:
