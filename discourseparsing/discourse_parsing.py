@@ -221,10 +221,8 @@ class Parser(object):
                     and act_label != rc_label and act_label != rc_label[:-1]:
                 return False
 
-        # Don't allow R:ROOT or R:ROOT* unless we will have a complete parse.
+        # Don't allow R:ROOT unless we will have a complete parse.
         if act == "R:ROOT" and (len(stack) != 2 or sent):
-            return False
-        if act == "R:ROOT*" and (len(stack) != 3 or sent):
             return False
 
         # Default: the action is valid.
