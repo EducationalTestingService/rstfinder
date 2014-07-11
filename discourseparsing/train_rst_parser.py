@@ -128,8 +128,7 @@ def main():
 
         collapse_rst_labels(tree)
 
-        actions = ["{}:{}".format(act.type, act.label)
-                   for act in extract_parse_actions(tree)]
+        actions = extract_parse_actions(tree)
         logger.debug('Extracting features for %s with actions %s',
                      doc_edus, actions)
 

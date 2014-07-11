@@ -35,7 +35,6 @@ originally written by Kenji Sagae in perl.
 
 import os
 import logging
-import re
 from collections import namedtuple, Counter
 from operator import itemgetter
 from copy import deepcopy
@@ -47,6 +46,7 @@ import skll
 from discourseparsing.tree_util import collapse_binarized_nodes
 
 
+ShiftReduceAction = namedtuple('ShiftReduceAction', ['type', 'label'])
 ScoredAction = namedtuple('ScoredAction', ['action', 'score'])
 logger = logging.getLogger(__name__)
 
@@ -58,11 +58,25 @@ class Parser(object):
         self.max_states = max_states
         self.n_best = n_best
         self.model = None
+        self.model_action_list = None
 
     def load_model(self, model_path):
         self.model = skll.learner.Learner.from_file(
             os.path.join(model_path,
                          'rst_parsing_all_feats_LogisticRegression.model'))
+
+    def _get_model_actions(self):
+        '''
+        This creates a list of ShiftReduceAction objects for the list of
+        classifier labels.  This is used later when parsing, to decide which
+        action to take based on a list of scores.
+        '''
+        if self.model_action_list is None:
+            self.model_action_list = []
+            for x in self.model.label_list:
+                act = ShiftReduceAction(type=x[0], label=x[2:])
+                self.model_action_list.append(act)
+        return self.model_action_list
 
     @staticmethod
     def mkfeats(prevact, sent, stack):
@@ -104,7 +118,7 @@ class Parser(object):
 
         feats = []
 
-        feats.append("PREV:{}".format(prevact))
+        feats.append("PREV:{}:{}".format(prevact.type, prevact.label))
 
         # features of the 0th item on the stack
         for word in s0['head']:
@@ -162,7 +176,8 @@ class Parser(object):
         # combinations of features
         # TODO re-enable combo features?
         # for i in range(len(feats)):
-        #     feats.append("combo:{}~PREV:{}".format(feats[i], prevact))
+        #     feats.append("combo:{}~PREV:{}:{}"
+        #         .format(feats[i], prevact.type, prevact.label))
         #     feats.append("combo:{}~S0p:{}".format(feats[i],
         #                                           s0['hpos'][1]
         #                                           if len(s0['hpos']) > 1
@@ -175,7 +190,7 @@ class Parser(object):
 
     @staticmethod
     def is_valid_action(act, ucnt, sent, stack):
-        if act.startswith("U"):
+        if act.type == "U":
             # Don't allow too many consecutive unary reduce actions.
             if ucnt > 2:
                 return False
@@ -190,14 +205,14 @@ class Parser(object):
                 return False
 
         # Don't allow shift if there is nothing left to shift.
-        if act.startswith("S") and not sent:
+        if act.type == "S" and not sent:
             return False
 
         # Don't allow a binary reduce unless there are at least two items in
         # the stack to be reduced (plus the leftwall),
         # with one of them being a nucleus or a partial subtree containing
         # a nucleus, as indicated by a * suffix).
-        if act.startswith("B") and act != "B:ROOT":
+        if act.type == "B" and act.label != "ROOT":
             # Make sure there are enough items to reduce
             # (including the left wall).
             if len(stack) < 3:
@@ -213,16 +228,16 @@ class Parser(object):
                 return False
 
             # Check that partial node labels (ending with *) match the action.
-            act_label = act[2:]
             if lc_label.endswith('*') \
-                    and act_label != lc_label and act_label != lc_label[:-1]:
+                    and act.label != lc_label and act.label != lc_label[:-1]:
                 return False
             if rc_label.endswith('*') \
-                    and act_label != rc_label and act_label != rc_label[:-1]:
+                    and act.label != rc_label and act.label != rc_label[:-1]:
                 return False
 
         # Don't allow B:ROOT unless we will have a complete parse.
-        if act == "B:ROOT" and (len(stack) != 2 or sent):
+        if act.type == "B" and act.label == "ROOT" \
+                and (len(stack) != 2 or sent):
             return False
 
         # Default: the action is valid.
@@ -234,9 +249,8 @@ class Parser(object):
         # with a lexical head coming from the left child
         # (this is a confusing name, but it refers to the direction of
         # the dependency arrow).
-        match = re.search(r'^B:(.+)$', act)
-        if match:
-            label = match.groups()[0]
+        if act.type == "B":
+            label = act.label
 
             tmp_rc = stack.pop()
             tmp_lc = stack.pop()
@@ -248,7 +262,8 @@ class Parser(object):
             # because it is the nucleus (or a partial tree containing the
             # nucleus, indicated by a * suffix) or the leftwall.
             if tmp_lc['nt'].startswith('nucleus:') \
-                    or tmp_lc['nt'].endswith('*') or act == 'B:ROOT':
+                    or tmp_lc['nt'].endswith('*') \
+                    or (act.type == 'B' and act.label == 'ROOT'):
                 tmp_item = {"idx": tmp_lc["idx"],
                             "nt": label,
                             "tree": new_tree,
@@ -284,15 +299,14 @@ class Parser(object):
                             "nrch": tmp_rc["nrch"] + 1}
             else:
                 raise ValueError("Unexpected binary reduce.\n" +
-                                 "act = {}\n tmp_lc = {}\ntmp_rc = {}"
-                                 .format(act, tmp_lc, tmp_rc))
+                                 "act = {}:{}\n tmp_lc = {}\ntmp_rc = {}"
+                                 .format(act.type, act.label, tmp_lc, tmp_rc))
 
             stack.append(tmp_item)
 
         # The U action creates a unary chain (e.g., "(NP (NP ...))").
-        match = re.search(r'^U:(.+)$', act)
-        if match:
-            nt = match.groups()[0]
+        if act.type == "U":
+            nt = act.label
 
             tmp_c = stack.pop()
             new_tree = ParentedTree("({})".format(nt))
@@ -315,8 +329,7 @@ class Parser(object):
 
         # The S action gets the next input token
         # and puts it on the stack.
-        match = re.search(r'^S:(.+)$', act)
-        if match:
+        if act.type == "S":
             stack.append(sent.pop(0))
 
     @staticmethod
@@ -330,7 +343,6 @@ class Parser(object):
         for edu_index, edu in enumerate(edus):
             edu_words = [x[0] for x in edu]
             edu_pos_tags = [x[1] for x in edu]
-            edustr = ' '.join(edu_words)
 
             # TODO move the chunk of code immediately below to mkfeats?
             # This adds special tokens for the first two words and last
@@ -353,9 +365,9 @@ class Parser(object):
             # make a dictionary for each EDU
             wnum += 1
             new_tree = ParentedTree('(text)')
-            new_tree.append(edu_index)
+            new_tree.append('{}'.format(edu_index))
             tmp_item = {'idx': wnum,
-                        'nt': "EDU",
+                        'nt': "text",
                         'head': edu_words,
                         'hpos': edu_pos_tags,
                         'tree': new_tree,
@@ -379,13 +391,20 @@ class Parser(object):
                for list_item in data_list]
         return res
 
-    def parse(self, edus, gold_actions=None):
+    def parse(self, edus, gold_actions=None, make_features=True):
         '''
         `edus` is a list of (word, pos) tuples.
-        
-        If `gold_actions` is specified, then the parser will behave as if in 
+
+        If `gold_actions` is specified, then the parser will behave as if in
         training mode.
+
+        If `make_features` and `gold_actions` are specified, then the parser
+        will yield (action, features) tuples instead of trees
+        (e.g., to produce training examples).
+        This will have no effect if `gold_actions` is not provided.
+        Disabling `make features` can be useful for debugging and testing.
         '''
+
         logging.info('RST parsing document...')
 
         states = []
@@ -413,7 +432,7 @@ class Parser(object):
                     'nrch': 0}
         stack.append(tmp_item)
 
-        prevact = "S"
+        prevact = ShiftReduceAction(type="S", label="text")
         ucnt = 0  # number of consecutive unary reduce actions
 
         # insert an initial state on the state list
@@ -432,7 +451,11 @@ class Parser(object):
             states = states[:self.max_states]
 
             cur_state = states.pop(0)  # should maybe replace this with a deque
-            logging.debug("cur_state prevact: {}, score: {}, num. states: {}".format(cur_state["prevact"], cur_state["score"], len(states)))
+            logging.debug("cur_state prevact: {}:{}, score: {}, num. states: {}"
+                          .format(cur_state["prevact"].type,
+                                  cur_state["prevact"].label,
+                                  cur_state["score"],
+                                  len(states)))
 
             # check if the current state corresponds to a complete tree
             if len(cur_state["sent"]) == 0 and len(cur_state["stack"]) == 1:
@@ -471,26 +494,30 @@ class Parser(object):
             scored_acts = []
             if gold_actions is not None:
                 # take the next action from gold_actions
-                action_str = gold_actions.pop(0) if gold_actions else ''
-                if not action_str:
+                act = gold_actions.pop(0) if gold_actions else None
+                if act is None:
                     logger.error('Ran out of gold actions for state %s and ' +
                                  'gold_actions %s', cur_state, gold_actions)
                     break
 
-                action_str = re.sub(r'^S:(.*)$', r'S:POS', action_str)
+                assert act.type != 'S' or act.label == 'text'
 
-                if not (action_str == cur_state["prevact"] and
-                        action_str.startswith('U')):
-                    yield (action_str, feats)
+                if make_features:
+                    if not (act == cur_state["prevact"] and act.type == 'U'):
+                        yield ('{}:{}'.format(act.type, act.label), feats)
 
-                scored_acts.append(ScoredAction(action_str, 1))
+                scored_acts.append(ScoredAction(act, 0.0))  # logprob
             else:
                 vectorizer = self.model.feat_vectorizer
                 examples = skll.data.ExamplesTuple(None, None,
                                                    vectorizer.transform(Counter(feats)),
                                                    vectorizer)
                 scores = [np.log(x) for x in self.model.predict(examples)[0]]
-                scored_acts = sorted(zip(self.model.label_list, scores),
+
+                # Convert the string labels from the classifier back into
+                # ShiftReduceAction objects and sort them by their scores
+                scored_acts = sorted(zip(self._get_model_actions(),
+                                         scores),
                                      key=itemgetter(1),
                                      reverse=True)
                 #print('\n'.join(['{} {:.4g}'.format(x.action, x.score) for x in scored_acts]), file=sys.stderr)
@@ -516,7 +543,7 @@ class Parser(object):
 
                 # If the action is a unary reduce, increment the count.
                 # Otherwise, reset it.
-                ucnt = ucnt + 1 if action.startswith("U") else 0
+                ucnt = ucnt + 1 if action.type == "U" else 0
 
                 self.process_action(action, sent, stack)
 
@@ -538,6 +565,6 @@ class Parser(object):
                 new_tree.append(tmp_child)
             completetrees.append({'tree': new_tree, 'score': 0.0})
 
-        if gold_actions is None:
+        if gold_actions is None or not make_features:
             for t in completetrees:
                 yield t

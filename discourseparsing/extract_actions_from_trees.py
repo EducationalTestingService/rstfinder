@@ -12,11 +12,10 @@ be space-separated.
 '''
 
 import argparse
+
 from nltk.tree import ParentedTree
-from collections import namedtuple
 
-
-ShiftReduceAction = namedtuple('ShiftReduceAction', ['type', 'label'])
+from discourseparsing.discourse_parsing import ShiftReduceAction
 
 
 def extract_parse_actions(tree):
@@ -83,7 +82,7 @@ def _extract_parse_actions_helper(node, stack, cstack, actseq):
     # If the current node is a preterminal, add a shift action.
     tmp_parent = cstack[-1].parent()
     if isinstance(nt[0], str):
-        actseq.append(ShiftReduceAction(type='S', label='POS'))
+        actseq.append(ShiftReduceAction(type='S', label='text'))
         cstack.append(nt)
     # Or if we are at the root of the tree, then add binary_reduce:ROOT.
     elif tmp_parent.label() == "ROOT":
