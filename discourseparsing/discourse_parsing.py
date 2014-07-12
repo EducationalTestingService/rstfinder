@@ -46,8 +46,8 @@ import skll
 from discourseparsing.tree_util import collapse_binarized_nodes
 
 
-ShiftReduceAction = namedtuple('ShiftReduceAction', ['type', 'label'])
-ScoredAction = namedtuple('ScoredAction', ['action', 'score'])
+ShiftReduceAction = namedtuple("ShiftReduceAction", ["type", "label"])
+ScoredAction = namedtuple("ScoredAction", ["action", "score"])
 logger = logging.getLogger(__name__)
 
 
@@ -94,19 +94,19 @@ class Parser(object):
         # np3 = ["RW"]
 
         s0 = stack[-1]
-        s1 = {'nt': "TOP", 'head': ["LeftWall"], 'hpos': ["LW"], 'tree': []}
-        s2 = {'nt': "TOP", 'head': ["LeftWall"], 'hpos': ["LW"], 'tree': []}
-        s3 = {'nt': "TOP", 'head': ["LeftWall"], 'hpos': ["LW"], 'tree': []}
+        s1 = {"nt": "TOP", "head": ["LeftWall"], "hpos": ["LW"], "tree": []}
+        s2 = {"nt": "TOP", "head": ["LeftWall"], "hpos": ["LW"], "tree": []}
+        s3 = {"nt": "TOP", "head": ["LeftWall"], "hpos": ["LW"], "tree": []}
 
         if len(sent) > 0:
-            nw1 = sent[0]['head']
-            np1 = sent[0]['hpos']
+            nw1 = sent[0]["head"]
+            np1 = sent[0]["hpos"]
         if len(sent) > 1:
-            nw2 = sent[1]['head']
-            np2 = sent[1]['hpos']
+            nw2 = sent[1]["head"]
+            np2 = sent[1]["hpos"]
         # if len(sent) > 2:
-        #     nw3 = sent[2]['head']
-        #     np3 = sent[2]['hpos']
+        #     nw3 = sent[2]["head"]
+        #     np3 = sent[2]["hpos"]
 
         stack_len = len(stack)
         if stack_len > 1:
@@ -121,38 +121,38 @@ class Parser(object):
         feats.append("PREV:{}:{}".format(prevact.type, prevact.label))
 
         # features of the 0th item on the stack
-        for word in s0['head']:
+        for word in s0["head"]:
             feats.append("S0w:{}".format(word))
-        for pos_tag in s0['hpos']:
+        for pos_tag in s0["hpos"]:
             feats.append("S0p:{}".format(pos_tag))
-        feats.append("S0nt:{}".format(s0['nt']))
-        feats.append("S0lnt:{}".format(s0['lchnt']))
-        feats.append("S0rnt:{}".format(s0['rchnt']))
-        feats.append("S0nch:{}".format(s0['nch']))
-        feats.append("S0nlch:{}".format(s0['nlch']))
-        feats.append("S0nrch:{}".format(s0['nrch']))
+        feats.append("S0nt:{}".format(s0["nt"]))
+        feats.append("S0lnt:{}".format(s0["lchnt"]))
+        feats.append("S0rnt:{}".format(s0["rchnt"]))
+        feats.append("S0nch:{}".format(s0["nch"]))
+        feats.append("S0nlch:{}".format(s0["nlch"]))
+        feats.append("S0nrch:{}".format(s0["nrch"]))
 
         # features of the 1st item on the stack
-        for word in s1['head']:
+        for word in s1["head"]:
             feats.append("S1w:{}".format(word))
-        for pos_tag in s1['hpos']:
+        for pos_tag in s1["hpos"]:
             feats.append("S1p:{}".format(pos_tag))
-        feats.append("S1nt:{}".format(s1['nt']))
-        feats.append("S1lnt:{}".format(s1.get('lchnt', '')))
-        feats.append("S1rnt:{}".format(s1.get('rchnt', '')))
-        feats.append("S1nch:{}".format(s1.get('nch', '')))
-        feats.append("S1nlch:{}".format(s1.get('nlch', '')))
-        feats.append("S1nrch:{}".format(s1.get('nrch', '')))
+        feats.append("S1nt:{}".format(s1["nt"]))
+        feats.append("S1lnt:{}".format(s1.get("lchnt", "")))
+        feats.append("S1rnt:{}".format(s1.get("rchnt", "")))
+        feats.append("S1nch:{}".format(s1.get("nch", "")))
+        feats.append("S1nlch:{}".format(s1.get("nlch", "")))
+        feats.append("S1nrch:{}".format(s1.get("nrch", "")))
 
         # features of the 2nd item on the stack
-        for word in s2['head']:
+        for word in s2["head"]:
             feats.append("S2w:{}".format(word))
-        for pos_tag in s2['hpos']:
+        for pos_tag in s2["hpos"]:
             feats.append("S2p:{}".format(pos_tag))
-        feats.append("S2nt:{}".format(s2['nt']))
+        feats.append("S2nt:{}".format(s2["nt"]))
 
         # features of the 3rd item on the stack
-        feats.append("S3nt:{}".format(s3['nt']))
+        feats.append("S3nt:{}".format(s3["nt"]))
 
         # features for the next items on the input queue
         for word in nw1:
@@ -165,7 +165,7 @@ class Parser(object):
             feats.append("np2:{}".format(pos_tag))
 
         # distance feature
-        dist = s0.get("idx", 0) - s1.get("idx", 0)
+        dist = s0.get("head_idx", 0) - s1.get("head_idx", 0)
         feats.append("dist:{}".format(dist))
 
         # TODO distance from the beginning/end of the document
@@ -213,8 +213,8 @@ class Parser(object):
                 return False
 
             # Make sure there is a head.
-            lc_label = stack[-2]['nt']
-            rc_label = stack[-1]['nt']
+            lc_label = stack[-2]["nt"]
+            rc_label = stack[-1]["nt"]
             if not (lc_label.startswith('nucleus')
                     or rc_label.startswith('nucleus')
                     or lc_label.endswith('*')
@@ -249,16 +249,16 @@ class Parser(object):
             tmp_rc = stack.pop()
             tmp_lc = stack.pop()
             new_tree = ParentedTree("({})".format(label))
-            new_tree.append(tmp_lc['tree'])
-            new_tree.append(tmp_rc['tree'])
+            new_tree.append(tmp_lc["tree"])
+            new_tree.append(tmp_rc["tree"])
 
             # Reduce right, making the left node the head
             # because it is the nucleus (or a partial tree containing the
             # nucleus, indicated by a * suffix) or the leftwall.
-            if tmp_lc['nt'].startswith('nucleus:') \
-                    or tmp_lc['nt'].endswith('*') \
+            if tmp_lc["nt"].startswith('nucleus:') \
+                    or tmp_lc["nt"].endswith('*') \
                     or (act.type == 'B' and act.label == 'ROOT'):
-                tmp_item = {"idx": tmp_lc["idx"],
+                tmp_item = {"head_idx": tmp_lc["head_idx"],
                             "nt": label,
                             "tree": new_tree,
                             "head": tmp_lc["head"],
@@ -275,9 +275,9 @@ class Parser(object):
             # Reduce left, making the right node the head
             # because it is the nucleus (or a partial tree containing the
             # nucleus, indicated by a * suffix)
-            elif tmp_rc['nt'].startswith('nucleus:') \
-                    or tmp_rc['nt'].endswith('*'):
-                tmp_item = {"idx": tmp_rc["idx"],
+            elif tmp_rc["nt"].startswith('nucleus:') \
+                    or tmp_rc["nt"].endswith('*'):
+                tmp_item = {"head_idx": tmp_rc["head_idx"],
                             "nt": label,
                             "tree": new_tree,
                             "head": tmp_rc["head"],
@@ -305,7 +305,7 @@ class Parser(object):
             tmp_c = stack.pop()
             new_tree = ParentedTree("({})".format(nt))
             new_tree.append(tmp_c["tree"])
-            tmp_item = {"idx": tmp_c["idx"],
+            tmp_item = {"head_idx": tmp_c["head_idx"],
                         "nt": nt,
                         "tree": new_tree,
                         "head": tmp_c["head"],
@@ -359,7 +359,7 @@ class Parser(object):
             # make a dictionary for each EDU
             new_tree = ParentedTree('(text)')
             new_tree.append('{}'.format(edu_index))
-            tmp_item = {"idx": wnum,
+            tmp_item = {"head_idx": wnum,
                         "nt": "text",
                         "head": edu_words,
                         "hpos": edu_pos_tags,
@@ -379,7 +379,7 @@ class Parser(object):
 
     @staticmethod
     def deep_copy_stack_or_queue(data_list):
-        res = [dict((key, val.copy(deep=True)) if key == 'tree'
+        res = [dict((key, val.copy(deep=True)) if key == "tree"
                     else (key, deepcopy(val))
                     for key, val in list_item.items())
                for list_item in data_list]
@@ -410,7 +410,7 @@ class Parser(object):
         stack = []
 
         # TODO make stack items namedtuples
-        tmp_item = {"idx": -1,
+        tmp_item = {"head_idx": -1,
                     "nt": "LEFTWALL",
                     "tree": ParentedTree("(LEFTWALL)"),
                     "head": ["LEFTWALL"],
@@ -441,7 +441,7 @@ class Parser(object):
 
         # loop while there are states to process
         while states:
-            states.sort(key=itemgetter('score'), reverse=True)
+            states.sort(key=itemgetter("score"), reverse=True)
             states = states[:self.max_states]
 
             cur_state = states.pop(0)  # should maybe replace this with a deque
@@ -462,8 +462,8 @@ class Parser(object):
                 # collapse binary branching * rules in the output
                 collapse_binarized_nodes(tree)
 
-                completetrees.append({'tree': tree,
-                                      'score': cur_state["score"]})
+                completetrees.append({"tree": tree,
+                                      "score": cur_state["score"]})
                 logging.debug('complete tree found')
 
                 # stop if we have found enough trees
@@ -494,7 +494,7 @@ class Parser(object):
                                  'gold_actions %s', cur_state, gold_actions)
                     break
 
-                assert act.type != 'S' or act.label == 'text'
+                assert act.type != 'S' or act.label == "text"
 
                 if make_features:
                     if not (act == cur_state["prevact"] and act.type == 'U'):
@@ -559,7 +559,7 @@ class Parser(object):
                 tmp_child = ParentedTree('(text)')
                 tmp_child.append(i)
                 new_tree.append(tmp_child)
-            completetrees.append({'tree': new_tree, 'score': 0.0})
+            completetrees.append({"tree": new_tree, "score": 0.0})
 
         if gold_actions is None or not make_features:
             for t in completetrees:
