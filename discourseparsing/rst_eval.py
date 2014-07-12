@@ -84,17 +84,63 @@ def compute_rst_eval_results(pred_edu_tokens_lists, pred_trees,
     span_precision, span_recall, span_f1 = compute_p_r_f1(gold_tuples, pred_tuples)
 
     # Create a list of all the eval statistics.
-    res = [("labeled_precision", labeled_precision),
-           ("labeled_recall", labeled_recall),
-           ("labeled_f1", labeled_f1),
-           ("nuc_precision", nuc_precision),
-           ("nuc_recall", nuc_recall),
-           ("nuc_f1", nuc_f1),
-           ("span_precision", span_precision),
-           ("span_recall", span_recall),
-           ("span_f1", span_f1)]
+    res = {"labeled_precision": labeled_precision,
+           "labeled_recall": labeled_recall,
+           "labeled_f1": labeled_f1,
+           "nuc_precision": nuc_precision,
+           "nuc_recall": nuc_recall,
+           "nuc_f1": nuc_f1,
+           "span_precision": span_precision,
+           "span_recall": span_recall,
+           "span_f1": span_f1}
 
     return res
+
+
+def predict_and_evaluate_rst_trees(syntax_parser, segmenter,
+                                   rst_parser, eval_data,
+                                   use_gold_syntax=True):
+    print("*** THE EVALUATION CODE IS UNDER DEVELOPMENT AND WILL PROBABLY NOT GIVE THE CORRECT RESULTS YET. ***")
+
+    pred_edu_tokens_lists = []
+    pred_trees = []
+    gold_edu_tokens_lists = []
+    gold_trees = []
+
+    for doc_dict in eval_data:
+        logging.info('processing {}...'.format(doc_dict['path_basename']))
+        gold_edu_tokens_lists.append(extract_edus_tokens(doc_dict['edu_start_indices'],
+                                                   doc_dict['tokens']))
+
+        # Collapse the RST labels to use the coarse relations that the parser
+        # produces.
+        gold_tree = ParentedTree(doc_dict['rst_tree'])
+        collapse_rst_labels(gold_tree)
+        gold_trees.append(gold_tree)
+
+        # TODO when not using gold syntax, should the script still use gold standard tokens?
+
+        # remove gold standard trees or EDU boundaries if evaluating
+        # using automatic preprocessing
+        if not use_gold_syntax:
+            # TODO will merging the EDU strings here to make the raw_text variable produce the appropriate eval result when not using gold standard trees?
+            doc_dict['raw_text'] = ' '.join(doc_dict['edu_strings'])
+            del doc_dict['syntax_trees']
+            del doc_dict['token_tree_positions']
+            del doc_dict['tokens']
+            del doc_dict['pos_tags']
+        if segmenter is not None:
+            del doc_dict['edu_start_indices']
+
+        # predict the RST tree
+        tokens, trees = segment_and_parse(doc_dict, syntax_parser,
+                                          segmenter, rst_parser)
+        pred_trees.append(next(trees)['tree'])
+        pred_edu_tokens_lists.append(tokens)
+
+    results = compute_rst_eval_results(pred_edu_tokens_lists, pred_trees,
+                                       gold_edu_tokens_lists, gold_trees)
+    return results
 
 
 def main():
@@ -129,8 +175,6 @@ def main():
     args = parser.parse_args()
     assert args.use_gold_syntax or args.segmentation_model
 
-    print("*** THIS EVAL SCRIPT IS UNDER DEVELOPMENT AND WILL PROBABLY NOT GIVE THE CORRECT RESULTS YET. ***")
-
     # Convert verbose flag to actually logging level
     log_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
     log_level = log_levels[min(args.verbose, 2)]
@@ -143,7 +187,7 @@ def main():
     # read the models
     logger.info('Loading models')
     syntax_parser = SyntaxParserWrapper(args.zpar_directory)
-    segmenter = Segmenter(args.segmentation_model)
+    segmenter = Segmenter(args.segmentation_model) if args.segmentation_model else None
 
     rst_parser = Parser(max_acts=args.max_acts,
                         max_states=args.max_states,
@@ -153,49 +197,12 @@ def main():
     eval_data = json.load(args.evaluation_set)
 
     # TODO remove this or comment it out (it's just for debugging)
-    #eval_data = eval_data[:10]
+    # eval_data = eval_data[:20]
 
-    # TODO simplify attribute labels in gold trees
-
-    pred_edu_tokens_lists = []
-    pred_trees = []
-    gold_edu_tokens_lists = []
-    gold_trees = []
-
-    for doc_dict in eval_data:
-        logging.info('processing {}...'.format(doc_dict['path_basename']))
-        gold_edu_tokens_lists.append(extract_edus_tokens(doc_dict['edu_start_indices'],
-                                                   doc_dict['tokens']))
-
-        # Collapse the RST labels to use the coarse relations that the parser
-        # produces.
-        gold_tree = ParentedTree(doc_dict['rst_tree'])
-        collapse_rst_labels(gold_tree)
-        gold_trees.append(gold_tree)
-
-        # TODO when not using gold syntax, should the script still use gold standard tokens?
-
-        # remove gold standard trees or EDU boundaries if evaluating
-        # using automatic preprocessing
-        if not args.use_gold_syntax:
-            # TODO will merging the EDU strings here to make the raw_text variable produce the appropriate eval result when not using gold standard trees?
-            doc_dict['raw_text'] = ' '.join(doc_dict['edu_strings'])
-            del doc_dict['syntax_trees']
-            del doc_dict['token_tree_positions']
-            del doc_dict['tokens']
-            del doc_dict['pos_tags']
-        if args.segmentation_model:
-            del doc_dict['edu_start_indices']
-
-        # predict the RST tree
-        tokens, trees = segment_and_parse(doc_dict, syntax_parser,
-                                          segmenter, rst_parser)
-        pred_trees.append(next(trees)['tree'])
-        pred_edu_tokens_lists.append(tokens)
-
-    results = compute_rst_eval_results(pred_edu_tokens_lists, pred_trees,
-                                       gold_edu_tokens_lists, gold_trees)
-    print(json.dumps(results))
+    results = predict_and_evaluate_rst_trees(syntax_parser, segmenter,
+                                             rst_parser, eval_data,
+                                             use_gold_syntax=args.use_gold_syntax)
+    print(json.dumps(sorted(results.items())))
 
 
 if __name__ == '__main__':

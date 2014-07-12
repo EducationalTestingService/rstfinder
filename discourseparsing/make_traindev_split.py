@@ -26,7 +26,8 @@ def main():
     random.seed(1234567890)
     random.shuffle(data)
 
-    split_point = round(float(len(data)) / 3.0)
+    # reserve 40 docs for development (the test set has only 38)
+    split_point = 40
     train_data = data[split_point:]
     dev_data = data[:split_point]
 

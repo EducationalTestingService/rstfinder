@@ -35,7 +35,7 @@ extract_segmentation_features rst_discourse_tb_edus_TRAINING_DEV.json rst_discou
 To train (with the training set) and tune (with the development set) a discourse segmentation model, run:
 
 ```
-tune_segmentation_model rst_discourse_tb_edus_features_TRAINING_TRAIN.tsv rst_discourse_tb_edus_features_TRAINING_DEV.tsv segmentationModel
+tune_segmentation_model rst_discourse_tb_edus_features_TRAINING_TRAIN.tsv rst_discourse_tb_edus_features_TRAINING_DEV.tsv segmentation_model
 ```
 
 Parsing
@@ -44,22 +44,22 @@ Parsing
 To train an RST parsing model, run:
 
 ```
-train_rst_parser rst_discourse_tb_edus_TRAINING_TRAIN.json mymodel
+tune_rst_parser rst_discourse_tb_edus_TRAINING_TRAIN.json rst_discourse_tb_edus_TRAINING_DEV.json rst_parsing_model
 ```
 
-To process a raw text document `my_document` with the end-to-end parser (assuming `C = 10.0` was the best hyperparameter setting according to `tune_segmentation_model`), run:
+To process a raw text document `my_document` with the end-to-end parser (assuming `C = 1.0` was the best hyperparameter setting according to `tune_segmentation_model`), run:
 
 ```
-rst_parse -g segmentationModel.C10.0 -p mymodel my_document
+rst_parse -g segmentation_model.C1.0 -p rst_parsing_model.C1.0 my_document
 ```
 
 Evaluation
 ==========
 
-To evaluate a model, run:
+To evaluate an existing model, run:
 
 ```
-rst_eval rst_discourse_tb_edus_TRAINING_DEV.json -p mymodel --use_gold_syntax
+rst_eval rst_discourse_tb_edus_TRAINING_DEV.json -p rst_parsing_modelC1.0 --use_gold_syntax
 ```
 
 This will compute precision, recall, and F1 scores for 3 scenarios: spans labeled with nuclearity and relation types, spans labeled only with nuclearity, and unlabeled token spans.  The above version of the command will use gold standard EDUs and syntactic parses.

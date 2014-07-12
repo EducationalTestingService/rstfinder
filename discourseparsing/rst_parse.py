@@ -46,16 +46,10 @@ def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
     if 'edu_start_indices' not in doc_dict:
         segmenter.segment_document(doc_dict)
 
-    edu_tags = extract_edus_tokens(doc_dict['edu_start_indices'],
-                                   doc_dict['pos_tags'])
     edu_tokens = extract_edus_tokens(doc_dict['edu_start_indices'],
                                      doc_dict['tokens'])
 
-    tagged_edus = []
-    for (tags, tokens) in zip(edu_tags, edu_tokens):
-        tagged_edus.append(list(zip(tokens, tags)))
-
-    return edu_tokens, rst_parser.parse(tagged_edus)
+    return edu_tokens, rst_parser.parse(doc_dict)
 
 
 def main():

@@ -1,7 +1,7 @@
 
 import re
 
-from nltk.tree import ParentedTree, Tree
+from nltk.tree import ParentedTree
 
 
 TREE_PRINT_MARGIN = 1000000000
@@ -310,6 +310,7 @@ def find_first_common_ancestor(n1, n2):
 
     assert res is not None
     return res
+
 
 def collapse_binarized_nodes(t):
     '''
