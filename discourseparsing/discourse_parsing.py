@@ -2,7 +2,7 @@
 '''
 License
 -------
-Copyright (c) 2014, Kenji Sagae
+Copyright (c) 2014, Educational Testing Service and Kenji Sagae
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -183,10 +183,15 @@ class Parser(object):
 
         # TODO features for the head words of the EDUS
 
+        # TODO parse tree nonterminal features?
+
         # combinations of features with the previous action
-        for i in range(len(feats)):
-            feats.append("combo:{}~PREV:{}:{}"
-                         .format(feats[i], prevact.type, prevact.label))
+        # for i in range(len(feats)):
+        #     feat = feats[i]
+        #     # Do not include duplicates.
+        #     if not feat.startswith('PREV:'):
+        #         feats.append("combo:{}~PREV:{}:{}"
+        #                      .format(feats[i], prevact.type, prevact.label))
         return feats
 
     @staticmethod

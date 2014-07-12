@@ -21,17 +21,17 @@ def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
 
     if 'syntax_trees' not in doc_dict:
         # #TODO remove this debugging stuff for skipping syntax parsing
-        import os
-        from nltk.tree import ParentedTree
-        if os.path.exists('tmp_trees'):
-            with open('tmp_trees') as f:
-                trees = [ParentedTree(line.strip()) for line in f]
-        else:
-            trees = syntax_parser.parse_document(doc_dict['raw_text'])
-            with open('tmp_trees', 'w') as f:
-                for t in trees:
-                    print(t.pprint(TREE_PRINT_MARGIN), file=f)
-        # trees = syntax_parser.parse_document(doc_dict['raw_text'])
+        # import os
+        # from nltk.tree import ParentedTree
+        # if os.path.exists('tmp_trees'):
+        #     with open('tmp_trees') as f:
+        #         trees = [ParentedTree(line.strip()) for line in f]
+        # else:
+        #     trees = syntax_parser.parse_document(doc_dict['raw_text'])
+        #     with open('tmp_trees', 'w') as f:
+        #         for t in trees:
+        #             print(t.pprint(TREE_PRINT_MARGIN), file=f)
+        trees = syntax_parser.parse_document(doc_dict['raw_text'])
         doc_dict['syntax_trees'] = [t.pprint(margin=TREE_PRINT_MARGIN)
                                     for t in trees]
         preterminals = [extract_preterminals(t) for t in trees]
