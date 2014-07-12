@@ -165,7 +165,7 @@ class Parser(object):
             feats.append("np2:{}".format(pos_tag))
 
         # distance feature
-        dist = s0.get('idx', 0) - s1.get('idx', 0)
+        dist = s0.get("idx", 0) - s1.get("idx", 0)
         feats.append("dist:{}".format(dist))
 
         # TODO distance from the beginning/end of the document
@@ -357,23 +357,23 @@ class Parser(object):
             edu_pos_tags.insert(0, '{}:::-1'.format(edu_pos_tags[-1]))
 
             # make a dictionary for each EDU
-            wnum += 1
             new_tree = ParentedTree('(text)')
             new_tree.append('{}'.format(edu_index))
-            tmp_item = {'idx': wnum,
-                        'nt': "text",
-                        'head': edu_words,
-                        'hpos': edu_pos_tags,
-                        'tree': new_tree,
-                        'lchnt': "NONE",
-                        'rchnt': "NONE",
-                        'lchpos': "NONE",
-                        'rchpos': "NONE",
-                        'lchw': "NONE",
-                        'rchw': "NONE",
-                        'nch': 0,
-                        'nlch': 0,
-                        'nrch': 0}
+            tmp_item = {"idx": wnum,
+                        "nt": "text",
+                        "head": edu_words,
+                        "hpos": edu_pos_tags,
+                        "tree": new_tree,
+                        "lchnt": "NONE",
+                        "rchnt": "NONE",
+                        "lchpos": "NONE",
+                        "rchpos": "NONE",
+                        "lchw": "NONE",
+                        "rchw": "NONE",
+                        "nch": 0,
+                        "nlch": 0,
+                        "nrch": 0}
+            wnum += 1
             res.append(tmp_item)
         return res
 
@@ -410,20 +410,20 @@ class Parser(object):
         stack = []
 
         # TODO make stack items namedtuples
-        tmp_item = {'idx': 0,
-                    'nt': "LEFTWALL",
-                    'tree': ParentedTree('(LEFTWALL)'),
-                    'head': ["LEFTWALL"],
-                    'hpos': ["LW"],
-                    'lchnt': "NONE",
-                    'rchnt': "NONE",
-                    'lchpos': "NONE",
-                    'rchpos': "NONE",
-                    'lchw': "NONE",
-                    'rchw': "NONE",
-                    'nch': 0,
-                    'nlch': 0,
-                    'nrch': 0}
+        tmp_item = {"idx": -1,
+                    "nt": "LEFTWALL",
+                    "tree": ParentedTree("(LEFTWALL)"),
+                    "head": ["LEFTWALL"],
+                    "hpos": ["LW"],
+                    "lchnt": "NONE",
+                    "rchnt": "NONE",
+                    "lchpos": "NONE",
+                    "rchpos": "NONE",
+                    "lchw": "NONE",
+                    "rchw": "NONE",
+                    "nch": 0,
+                    "nlch": 0,
+                    "nrch": 0}
         stack.append(tmp_item)
 
         prevact = ShiftReduceAction(type="S", label="text")
