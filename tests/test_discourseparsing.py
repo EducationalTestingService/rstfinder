@@ -44,15 +44,7 @@ def test_reconstruct_training_examples():
         tree_orig = ParentedTree(doc_dict['rst_tree'])
         actions = extract_parse_actions(tree_orig)
 
-        edu_tags = extract_edus_tokens(doc_dict['edu_start_indices'],
-                                       doc_dict['pos_tags'])
-        edu_tokens = extract_edus_tokens(doc_dict['edu_start_indices'],
-                                         doc_dict['tokens'])
-        tagged_edus = []
-        for (tags, tokens) in zip(edu_tags, edu_tokens):
-            tagged_edus.append(list(zip(tokens, tags)))
-
-        tree2 = next(rst_parser.parse(tagged_edus,
+        tree2 = next(rst_parser.parse(doc_dict,
                                       gold_actions=actions,
                                       make_features=False))['tree']
 

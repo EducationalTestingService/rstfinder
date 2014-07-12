@@ -72,15 +72,6 @@ def train_rst_parsing_model(train_examples, model_path, working_path):
     run_configuration(cfg_path)
 
 
-def extract_tagged_doc_edus(doc_dict):
-    edu_start_indices = doc_dict['edu_start_indices']
-    res = [list(zip(edu_words, edu_tags))
-           for edu_words, edu_tags
-           in zip(extract_edus_tokens(edu_start_indices, doc_dict['tokens']),
-                  extract_edus_tokens(edu_start_indices, doc_dict['pos_tags']))]
-    return res
-
-
 def main():
     import argparse
     parser = argparse.ArgumentParser(
@@ -123,17 +114,13 @@ def main():
         path_basename = doc_dict['path_basename']
         logging.info('Extracting examples for {}'.format(path_basename))
 
-        doc_edus = extract_tagged_doc_edus(doc_dict)
         tree = ParentedTree(doc_dict['rst_tree'])
 
         collapse_rst_labels(tree)
-
         actions = extract_parse_actions(tree)
-        logger.debug('Extracting features for %s with actions %s',
-                     doc_edus, actions)
 
         for i, (action_str, feats) in \
-                enumerate(parser.parse(doc_edus, gold_actions=actions)):
+                enumerate(parser.parse(doc_dict, gold_actions=actions)):
             example_id = "{}_{}".format(path_basename, i)
             example = {"x": Counter(feats), "y": action_str, "id": example_id}
             examples.append(example)

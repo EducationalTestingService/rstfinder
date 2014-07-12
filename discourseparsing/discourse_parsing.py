@@ -44,7 +44,7 @@ import numpy as np
 import skll
 
 from discourseparsing.tree_util import collapse_binarized_nodes
-
+from discourseparsing.discourse_segmentation import extract_tagged_doc_edus
 
 ShiftReduceAction = namedtuple("ShiftReduceAction", ["type", "label"])
 ScoredAction = namedtuple("ScoredAction", ["action", "score"])
@@ -79,7 +79,7 @@ class Parser(object):
         return self.model_action_list
 
     @staticmethod
-    def mkfeats(prevact, sent, stack):
+    def mkfeats(prevact, sent, stack, doc_dict):
         '''
         get features of the parser state represented
         by the current stack and queue
@@ -94,9 +94,12 @@ class Parser(object):
         # np3 = ["RW"]
 
         s0 = stack[-1]
-        s1 = {"nt": "TOP", "head": ["LeftWall"], "hpos": ["LW"], "tree": []}
-        s2 = {"nt": "TOP", "head": ["LeftWall"], "hpos": ["LW"], "tree": []}
-        s3 = {"nt": "TOP", "head": ["LeftWall"], "hpos": ["LW"], "tree": []}
+        s1 = {"nt": "TOP", "head": ["LeftWall"], "hpos": ["LW"], "tree": [],
+              "start_idx": -1, "end_idx": -1}
+        s2 = {"nt": "TOP", "head": ["LeftWall"], "hpos": ["LW"], "tree": [],
+              "start_idx": -1, "end_idx": -1}
+        s3 = {"nt": "TOP", "head": ["LeftWall"], "hpos": ["LW"], "tree": [],
+              "start_idx": -1, "end_idx": -1}
 
         if len(sent) > 0:
             nw1 = sent[0]["head"]
@@ -164,15 +167,37 @@ class Parser(object):
         for pos_tag in np2:
             feats.append("np2:{}".format(pos_tag))
 
-        # distance feature
+        # EDU head distance feature (in EDUs, not tokens)
         dist = s0.get("head_idx", 0) - s1.get("head_idx", 0)
         feats.append("dist:{}".format(dist))
 
-        # TODO distance from the beginning/end of the document
+        # distance from the beginning/end of the document
+        s0_start_idx = s0["start_idx"]
+        if s0_start_idx > -1:
+            feats.append("S0startdist:{}".format(s0_start_idx))
+            feats.append("S0enddist:{}".format(
+                len(doc_dict["edu_start_indices"]) - s0["end_idx"]))
+        s1_start_idx = s1["start_idx"]
+        if s1_start_idx > -1:
+            feats.append("S1startdist:{}".format(s1_start_idx))
+            feats.append("S1enddist:{}".format(
+                len(doc_dict["edu_start_indices"]) - s1["end_idx"]))
+        s2_start_idx = s2["start_idx"]
+        if s2_start_idx > -1:
+            feats.append("S2startdist:{}".format(s2_start_idx))
+            feats.append("S2enddist:{}".format(
+                len(doc_dict["edu_start_indices"]) - s2["end_idx"]))
 
-        # TODO length of the EDUs in tokens
+        # whether the EDUS are in the same sentence
+        s1_end_idx = s1["end_idx"]
+        # edu_start_indices is a list of (sentence #, token #, EDU #) tuples.
+        # Also, EDUs don't cross sentence boundaries.
+        start_indices = doc_dict['edu_start_indices']
+        if s0_start_idx > -1 and s1_end_idx > -1 and \
+                start_indices[s0_start_idx][0] == start_indices[s1_end_idx][0]:
+            feats.append("s0s1_same_sentence")
 
-        # TODO feature for whether the EDUS are in the same sentence
+        # TODO length of the stack items in tokens?
 
         # TODO features for the head words of the EDUS
 
@@ -185,24 +210,24 @@ class Parser(object):
     @staticmethod
     def is_valid_action(act, ucnt, sent, stack):
         if act.type == "U":
-            # Don't allow too many consecutive unary reduce actions.
+            # Do not allow too many consecutive unary reduce actions.
             if ucnt > 2:
                 return False
 
-            # Don't allow a reduce action if the stack is empty.
+            # Do not allow a reduce action if the stack is empty.
             # (i.e., contains only the leftwall)
             if stack[-1]["head"] == "LEFTWALL":
                 return False
 
-            # Don't allow unary reduces on internal nodes for binarized rules.
+            # Do not allow unary reduces on internal nodes for binarized rules.
             if stack[-1]["nt"].endswith('*'):
                 return False
 
-        # Don't allow shift if there is nothing left to shift.
+        # Do not allow shift if there is nothing left to shift.
         if act.type == "S" and not sent:
             return False
 
-        # Don't allow a binary reduce unless there are at least two items in
+        # Do not allow a binary reduce unless there are at least two items in
         # the stack to be reduced (plus the leftwall),
         # with one of them being a nucleus or a partial subtree containing
         # a nucleus, as indicated by a * suffix).
@@ -229,7 +254,7 @@ class Parser(object):
                     and act.label != rc_label and act.label != rc_label[:-1]:
                 return False
 
-        # Don't allow B:ROOT unless we will have a complete parse.
+        # Do not allow B:ROOT unless we will have a complete parse.
         if act.type == "B" and act.label == "ROOT" \
                 and (len(stack) != 2 or sent):
             return False
@@ -244,11 +269,9 @@ class Parser(object):
         # (this is a confusing name, but it refers to the direction of
         # the dependency arrow).
         if act.type == "B":
-            label = act.label
-
             tmp_rc = stack.pop()
             tmp_lc = stack.pop()
-            new_tree = ParentedTree("({})".format(label))
+            new_tree = ParentedTree("({})".format(act.label))
             new_tree.append(tmp_lc["tree"])
             new_tree.append(tmp_rc["tree"])
 
@@ -259,7 +282,9 @@ class Parser(object):
                     or tmp_lc["nt"].endswith('*') \
                     or (act.type == 'B' and act.label == 'ROOT'):
                 tmp_item = {"head_idx": tmp_lc["head_idx"],
-                            "nt": label,
+                            "start_idx": tmp_lc["start_idx"],
+                            "end_idx": tmp_rc["end_idx"],
+                            "nt": act.label,
                             "tree": new_tree,
                             "head": tmp_lc["head"],
                             "hpos": tmp_lc["hpos"],
@@ -278,7 +303,9 @@ class Parser(object):
             elif tmp_rc["nt"].startswith('nucleus:') \
                     or tmp_rc["nt"].endswith('*'):
                 tmp_item = {"head_idx": tmp_rc["head_idx"],
-                            "nt": label,
+                            "start_idx": tmp_lc["start_idx"],
+                            "end_idx": tmp_rc["end_idx"],
+                            "nt": act.label,
                             "tree": new_tree,
                             "head": tmp_rc["head"],
                             "hpos": tmp_rc["hpos"],
@@ -300,13 +327,13 @@ class Parser(object):
 
         # The U action creates a unary chain (e.g., "(NP (NP ...))").
         if act.type == "U":
-            nt = act.label
-
             tmp_c = stack.pop()
-            new_tree = ParentedTree("({})".format(nt))
+            new_tree = ParentedTree("({})".format(act.label))
             new_tree.append(tmp_c["tree"])
             tmp_item = {"head_idx": tmp_c["head_idx"],
-                        "nt": nt,
+                        "start_idx": tmp_c["start_idx"],
+                        "end_idx": tmp_c["end_idx"],
+                        "nt": act.label,
                         "tree": new_tree,
                         "head": tmp_c["head"],
                         "hpos": tmp_c["hpos"],
@@ -360,6 +387,8 @@ class Parser(object):
             new_tree = ParentedTree('(text)')
             new_tree.append('{}'.format(edu_index))
             tmp_item = {"head_idx": wnum,
+                        "start_idx": wnum,
+                        "end_idx": wnum,
                         "nt": "text",
                         "head": edu_words,
                         "hpos": edu_pos_tags,
@@ -385,9 +414,10 @@ class Parser(object):
                for list_item in data_list]
         return res
 
-    def parse(self, edus, gold_actions=None, make_features=True):
+    def parse(self, doc_dict, gold_actions=None, make_features=True):
         '''
-        `edus` is a list of (word, pos) tuples.
+        `doc_dict` is a dictionary with EDU segments, parse trees, etc.
+        See `convert_rst_discourse_tb.py`.
 
         If `gold_actions` is specified, then the parser will behave as if in
         training mode.
@@ -403,14 +433,16 @@ class Parser(object):
 
         states = []
         completetrees = []
+        tagged_edus = extract_tagged_doc_edus(doc_dict)
 
-        sent = self.initialize_edu_data(edus)
+        sent = self.initialize_edu_data(tagged_edus)
 
         # initialize the stack
         stack = []
 
-        # TODO make stack items namedtuples
         tmp_item = {"head_idx": -1,
+                    "start_idx": -1,
+                    "end_idx": -1,
                     "nt": "LEFTWALL",
                     "tree": ParentedTree("(LEFTWALL)"),
                     "head": ["LEFTWALL"],
@@ -430,7 +462,6 @@ class Parser(object):
         ucnt = 0  # number of consecutive unary reduce actions
 
         # insert an initial state on the state list
-        # TODO make state items namedtuples
         tmp_state = {"prevact": prevact,
                      "ucnt": 0,
                      "score": 0.0,  # log probability
@@ -480,7 +511,7 @@ class Parser(object):
             ucnt = cur_state["ucnt"]
 
             # extract features
-            feats = self.mkfeats(prevact, sent, stack)
+            feats = self.mkfeats(prevact, sent, stack, doc_dict)
 
             # Compute the possible actions given this state.
             # During training, print them out.
@@ -555,7 +586,7 @@ class Parser(object):
         if not completetrees:
             # Default to a flat tree if there is no complete parse.
             new_tree = ParentedTree("(ROOT)")
-            for i in range(len(edus)):
+            for i in range(len(tagged_edus)):
                 tmp_child = ParentedTree('(text)')
                 tmp_child.append(i)
                 new_tree.append(tmp_child)

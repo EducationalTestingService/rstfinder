@@ -161,3 +161,12 @@ def extract_edus_tokens(edu_start_indices, tokens_doc):
                                      prev_sent_index, prev_tok_index,
                                      sent_index, tok_index))
     return res
+
+
+def extract_tagged_doc_edus(doc_dict):
+    edu_start_indices = doc_dict['edu_start_indices']
+    res = [list(zip(edu_words, edu_tags))
+           for edu_words, edu_tags
+           in zip(extract_edus_tokens(edu_start_indices, doc_dict['tokens']),
+                  extract_edus_tokens(edu_start_indices, doc_dict['pos_tags']))]
+    return res
