@@ -165,27 +165,21 @@ class Parser(object):
             feats.append("np2:{}".format(pos_tag))
 
         # distance feature
-        # TODO do these thresholds for distance features need to be adjusted?
         dist = s0.get('idx', 0) - s1.get('idx', 0)
-        if dist > 10:
-            dist = 10
-        if dist > 7 and dist != 10:
-            dist = 7
         feats.append("dist:{}".format(dist))
 
-        # combinations of features
-        # TODO re-enable combo features?
-        # for i in range(len(feats)):
-        #     feats.append("combo:{}~PREV:{}:{}"
-        #         .format(feats[i], prevact.type, prevact.label))
-        #     feats.append("combo:{}~S0p:{}".format(feats[i],
-        #                                           s0['hpos'][1]
-        #                                           if len(s0['hpos']) > 1
-        #                                           else ""))
-        #     feats.append("combo:{}~np1:{}".format(feats[i],
-        #                                           np1[1]
-        #                                           if len(np1) > 1
-        #                                           else ""))
+        # TODO distance from the beginning/end of the document
+
+        # TODO length of the EDUs in tokens
+
+        # TODO feature for whether the EDUS are in the same sentence
+
+        # TODO features for the head words of the EDUS
+
+        # combinations of features with the previous action
+        for i in range(len(feats)):
+            feats.append("combo:{}~PREV:{}:{}"
+                         .format(feats[i], prevact.type, prevact.label))
         return feats
 
     @staticmethod
@@ -533,9 +527,11 @@ class Parser(object):
             scored_acts = scored_acts[:self.max_acts]
 
             while scored_acts:
-                # Make deep copies of the input queue and stack.
-                sent = self.deep_copy_stack_or_queue(cur_state["sent"])
-                stack = self.deep_copy_stack_or_queue(cur_state["stack"])
+                if self.max_acts > 1:
+                    # Make deep copies of the input queue and stack.
+                    # This is not necessary if we are doing greedy parsing.
+                    sent = self.deep_copy_stack_or_queue(cur_state["sent"])
+                    stack = self.deep_copy_stack_or_queue(cur_state["stack"])
                 prevact = cur_state["prevact"]
                 ucnt = cur_state["ucnt"]
 
