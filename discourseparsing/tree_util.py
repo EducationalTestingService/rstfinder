@@ -1,7 +1,7 @@
 
 import re
 
-from nltk.tree import ParentedTree
+from nltk.tree import ParentedTree, Tree
 
 
 TREE_PRINT_MARGIN = 1000000000
