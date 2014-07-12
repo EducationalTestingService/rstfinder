@@ -171,33 +171,15 @@ class Parser(object):
         dist = s0.get("head_idx", 0) - s1.get("head_idx", 0)
         feats.append("dist:{}".format(dist))
 
-        # distance from the beginning/end of the document
-        s0_start_idx = s0["start_idx"]
-        if s0_start_idx > -1:
-            feats.append("S0startdist:{}".format(s0_start_idx))
-            feats.append("S0enddist:{}".format(
-                len(doc_dict["edu_start_indices"]) - s0["end_idx"]))
-        s1_start_idx = s1["start_idx"]
-        if s1_start_idx > -1:
-            feats.append("S1startdist:{}".format(s1_start_idx))
-            feats.append("S1enddist:{}".format(
-                len(doc_dict["edu_start_indices"]) - s1["end_idx"]))
-        s2_start_idx = s2["start_idx"]
-        if s2_start_idx > -1:
-            feats.append("S2startdist:{}".format(s2_start_idx))
-            feats.append("S2enddist:{}".format(
-                len(doc_dict["edu_start_indices"]) - s2["end_idx"]))
-
         # whether the EDUS are in the same sentence
-        s1_end_idx = s1["end_idx"]
-        # edu_start_indices is a list of (sentence #, token #, EDU #) tuples.
-        # Also, EDUs don't cross sentence boundaries.
+        # (edu_start_indices is a list of (sentence #, token #, EDU #) tuples.
+        # Also, EDUs don't cross sentence boundaries.)
         start_indices = doc_dict['edu_start_indices']
+        s0_start_idx = s0["start_idx"]
+        s1_end_idx = s1["end_idx"]
         if s0_start_idx > -1 and s1_end_idx > -1 and \
                 start_indices[s0_start_idx][0] == start_indices[s1_end_idx][0]:
             feats.append("s0s1_same_sentence")
-
-        # TODO length of the stack items in tokens?
 
         # TODO features for the head words of the EDUS
 
