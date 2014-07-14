@@ -218,10 +218,14 @@ class Parser(object):
         # the stack to be reduced (plus the leftwall),
         # with one of them being a nucleus or a partial subtree containing
         # a nucleus, as indicated by a * suffix).
-        if act.type == "B" and act.label != "ROOT":
+        if act.type == "B":
+            # Do not allow B:ROOT unless we will have a complete parse.
+            if act.label == "ROOT" and (len(stack) != 2 or sent):
+                return False
+
             # Make sure there are enough items to reduce
             # (including the left wall).
-            if len(stack) < 3:
+            if act.label != "ROOT" and len(stack) < 3:
                 return False
 
             # Make sure there is a head.
@@ -240,11 +244,6 @@ class Parser(object):
             if rc_label.endswith('*') \
                     and act.label != rc_label and act.label != rc_label[:-1]:
                 return False
-
-        # Do not allow B:ROOT unless we will have a complete parse.
-        if act.type == "B" and act.label == "ROOT" \
-                and (len(stack) != 2 or sent):
-            return False
 
         # Default: the action is valid.
         return True
