@@ -124,11 +124,9 @@ class Parser(object):
         for pos_tag in s0["hpos"]:
             feats.append("S0p:{}".format(pos_tag))
         feats.append("S0nt:{}".format(s0["nt"]))
-        feats.append("S0lnt:{}".format(s0["lchnt"]))
-        feats.append("S0rnt:{}".format(s0["rchnt"]))
-        feats.append("S0nch:{}".format(s0["nch"]))
-        feats.append("S0nlch:{}".format(s0["nlch"]))
-        feats.append("S0nrch:{}".format(s0["nrch"]))
+        if len(s0["tree"]) > 0 and isinstance(s0["tree"][0], ParentedTree):
+            feats.append("S0lnt:{}".format(s0["tree"][0].label()))
+            feats.append("S0rnt:{}".format(s0["tree"][-1].label()))
 
         # features of the 1st item on the stack
         for word in s1["head"]:
@@ -136,11 +134,9 @@ class Parser(object):
         for pos_tag in s1["hpos"]:
             feats.append("S1p:{}".format(pos_tag))
         feats.append("S1nt:{}".format(s1["nt"]))
-        feats.append("S1lnt:{}".format(s1.get("lchnt", "")))
-        feats.append("S1rnt:{}".format(s1.get("rchnt", "")))
-        feats.append("S1nch:{}".format(s1.get("nch", "")))
-        feats.append("S1nlch:{}".format(s1.get("nlch", "")))
-        feats.append("S1nrch:{}".format(s1.get("nrch", "")))
+        if len(s1["tree"]) > 0  and isinstance(s1["tree"][0], ParentedTree):
+            feats.append("S1lnt:{}".format(s1["tree"][0].label()))
+            feats.append("S1rnt:{}".format(s1["tree"][-1].label()))
 
         # features of the 2nd item on the stack
         for word in s2["head"]:
@@ -153,7 +149,9 @@ class Parser(object):
         feats.append("S3nt:{}".format(s3["nt"]))
 
         # combinations of stack item labels
-        feats.append("S0nt:{}:S1nt:{}".format(s0["nt"], s1["nt"]))
+        feats.append("S0nt:{}^S1nt:{}".format(s0["nt"], s1["nt"]))
+        # feats.append("S0nt:{}^S2nt:{}".format(s0["nt"], s2["nt"]))
+        # feats.append("S1nt:{}^S2nt:{}".format(s1["nt"], s2["nt"]))
 
         # features for the next items on the input queue
         for word in nw0:
@@ -188,7 +186,7 @@ class Parser(object):
         #     feat = feats[i]
         #     # Do not include duplicates.
         #     if not feat.startswith('PREV:'):
-        #         feats.append("combo:{}~PREV:{}:{}"
+        #         feats.append("combo:{}^PREV:{}:{}"
         #                      .format(feats[i], prevact.type, prevact.label))
         return feats
 
@@ -271,16 +269,7 @@ class Parser(object):
                             "nt": act.label,
                             "tree": new_tree,
                             "head": tmp_lc["head"],
-                            "hpos": tmp_lc["hpos"],
-                            "lchnt": tmp_lc["lchnt"],
-                            "rchnt": tmp_rc["nt"],
-                            "lchpos": tmp_lc["lchpos"],
-                            "rchpos": tmp_rc.get("pos", ""),
-                            "lchw": tmp_lc["lchw"],
-                            "rchw": tmp_rc["head"],
-                            "nch": tmp_lc["nch"] + 1,  # TODO should this be +2?
-                            "nlch": tmp_lc["nlch"] + 1,
-                            "nrch": tmp_lc["nrch"]}
+                            "hpos": tmp_lc["hpos"]}
             # Reduce left, making the right node the head
             # because it is the nucleus (or a partial tree containing the
             # nucleus, indicated by a * suffix)
@@ -292,16 +281,7 @@ class Parser(object):
                             "nt": act.label,
                             "tree": new_tree,
                             "head": tmp_rc["head"],
-                            "hpos": tmp_rc["hpos"],
-                            "lchnt": tmp_lc["nt"],
-                            "rchnt": tmp_rc["rchnt"],
-                            "lchpos": tmp_lc.get("pos", ""),
-                            "rchpos": tmp_rc["rchpos"],
-                            "lchw": tmp_lc["head"],
-                            "rchw": tmp_rc["rchw"],
-                            "nch": tmp_rc["nch"] + 1,
-                            "nlch": tmp_rc["nlch"],
-                            "nrch": tmp_rc["nrch"] + 1}
+                            "hpos": tmp_rc["hpos"]}
             else:
                 raise ValueError("Unexpected binary reduce.\n" +
                                  "act = {}:{}\n tmp_lc = {}\ntmp_rc = {}"
@@ -320,16 +300,7 @@ class Parser(object):
                         "nt": act.label,
                         "tree": new_tree,
                         "head": tmp_c["head"],
-                        "hpos": tmp_c["hpos"],
-                        "lchnt": tmp_c["lchnt"],
-                        "rchnt": tmp_c["rchnt"],
-                        "lchpos": tmp_c["lchpos"],
-                        "rchpos": tmp_c["rchpos"],
-                        "lchw": tmp_c["lchw"],
-                        "rchw": tmp_c["rchw"],
-                        "nch": tmp_c["nch"],
-                        "nlch": tmp_c["nlch"],
-                        "nrch": tmp_c["nrch"]}
+                        "hpos": tmp_c["hpos"]}
             stack.append(tmp_item)
 
         # The S action gets the next input token
@@ -377,16 +348,7 @@ class Parser(object):
                         "nt": "text",
                         "head": edu_words,
                         "hpos": edu_pos_tags,
-                        "tree": new_tree,
-                        "lchnt": "NONE",
-                        "rchnt": "NONE",
-                        "lchpos": "NONE",
-                        "rchpos": "NONE",
-                        "lchw": "NONE",
-                        "rchw": "NONE",
-                        "nch": 0,
-                        "nlch": 0,
-                        "nrch": 0}
+                        "tree": new_tree}
             wnum += 1
             res.append(tmp_item)
         return res
@@ -431,16 +393,7 @@ class Parser(object):
                     "nt": "LEFTWALL",
                     "tree": ParentedTree("(LEFTWALL)"),
                     "head": ["LEFTWALL"],
-                    "hpos": ["LW"],
-                    "lchnt": "NONE",
-                    "rchnt": "NONE",
-                    "lchpos": "NONE",
-                    "rchpos": "NONE",
-                    "lchw": "NONE",
-                    "rchw": "NONE",
-                    "nch": 0,
-                    "nlch": 0,
-                    "nrch": 0}
+                    "hpos": ["LW"]}
         stack.append(tmp_item)
 
         prevact = ShiftReduceAction(type="S", label="text")
