@@ -85,13 +85,11 @@ class Parser(object):
         by the current stack and queue
         '''
 
+        nw0 = ["RightWall"]
         nw1 = ["RightWall"]
-        nw2 = ["RightWall"]
-        # nw3 = ["RightWall"]
 
+        np0 = ["RW"]
         np1 = ["RW"]
-        np2 = ["RW"]
-        # np3 = ["RW"]
 
         s0 = stack[-1]
         s1 = {"nt": "TOP", "head": ["LeftWall"], "hpos": ["LW"], "tree": [],
@@ -102,14 +100,11 @@ class Parser(object):
               "start_idx": -1, "end_idx": -1}
 
         if len(sent) > 0:
-            nw1 = sent[0]["head"]
-            np1 = sent[0]["hpos"]
+            nw0 = sent[0]["head"]
+            np0 = sent[0]["hpos"]
         if len(sent) > 1:
-            nw2 = sent[1]["head"]
-            np2 = sent[1]["hpos"]
-        # if len(sent) > 2:
-        #     nw3 = sent[2]["head"]
-        #     np3 = sent[2]["hpos"]
+            nw1 = sent[1]["head"]
+            np1 = sent[1]["hpos"]
 
         stack_len = len(stack)
         if stack_len > 1:
@@ -157,15 +152,18 @@ class Parser(object):
         # features of the 3rd item on the stack
         feats.append("S3nt:{}".format(s3["nt"]))
 
+        # combinations of stack item labels
+        feats.append("S0nt:{}:S1nt:{}".format(s0["nt"], s1["nt"]))
+
         # features for the next items on the input queue
+        for word in nw0:
+            feats.append("nw0:{}".format(word))
+        for pos_tag in np0:
+            feats.append("np0:{}".format(pos_tag))
         for word in nw1:
             feats.append("nw1:{}".format(word))
         for pos_tag in np1:
             feats.append("np1:{}".format(pos_tag))
-        for word in nw2:
-            feats.append("nw2:{}".format(word))
-        for pos_tag in np2:
-            feats.append("np2:{}".format(pos_tag))
 
         # EDU head distance feature (in EDUs, not tokens)
         dist = s0.get("head_idx", 0) - s1.get("head_idx", 0)
@@ -280,7 +278,7 @@ class Parser(object):
                             "rchpos": tmp_rc.get("pos", ""),
                             "lchw": tmp_lc["lchw"],
                             "rchw": tmp_rc["head"],
-                            "nch": tmp_lc["nch"] + 1,
+                            "nch": tmp_lc["nch"] + 1,  # TODO should this be +2?
                             "nlch": tmp_lc["nlch"] + 1,
                             "nrch": tmp_lc["nrch"]}
             # Reduce left, making the right node the head
@@ -348,7 +346,8 @@ class Parser(object):
         wnum = 0  # counter for distance features
         res = []
         for edu_index, edu in enumerate(edus):
-            edu_words = [x[0] for x in edu]
+            # lowercase all words
+            edu_words = [x[0].lower() for x in edu]
             edu_pos_tags = [x[1] for x in edu]
 
             # TODO move the chunk of code immediately below to mkfeats?
