@@ -23,25 +23,21 @@ from discourseparsing.collapse_rst_labels import collapse_rst_labels
 from discourseparsing.rst_eval import predict_and_evaluate_rst_trees
 
 
-def train_rst_parsing_model(train_examples, model_path, working_path,
-                            parameter_settings):
+def train_rst_parsing_model(working_path, model_path, parameter_settings):
     '''
     parameter_settings is a dict of scikit-learn hyperparameter settings
     '''
-    if not os.path.exists(working_path):
-        os.makedirs(working_path)
+
+    C_value = parameter_settings['C']
+    working_subdir = os.path.join(working_path, 'C{}'.format(C_value))
+    if not os.path.exists(working_subdir):
+        os.makedirs(working_subdir)
     if not os.path.exists(model_path):
         os.makedirs(model_path)
 
     learner_name = 'LogisticRegression'
     fixed_parameters = [{'random_state': 123456789, 'penalty': 'l1',
-                         'C': parameter_settings['C']}]
-
-    # Make the SKLL jsonlines feature file
-    train_path = os.path.join(working_path, 'rst_parsing.jsonlines')
-    with open(train_path, 'w') as train_file:
-        for example in train_examples:
-            train_file.write('{}\n'.format(json.dumps(example)))
+                         'C': C_value}]
 
     # Make the SKLL config file.
     cfg_dict = {"General": {"task": "train",
@@ -58,11 +54,11 @@ def train_rst_parsing_model(train_examples, model_path, working_path,
                            "min_feature_count": "1"},
                 "Output": {"probability": "True",
                            "models": model_path,
-                           "log": working_path}
+                           "log": working_subdir}
                }
 
     # write config file
-    cfg_path = os.path.join(working_path, 'rst_parsing.cfg')
+    cfg_path = os.path.join(working_subdir, 'rst_parsing.cfg')
     cfg = ConfigParser()
     for section_name, section_dict in list(cfg_dict.items()):
         cfg.add_section(section_name)
@@ -75,15 +71,13 @@ def train_rst_parsing_model(train_examples, model_path, working_path,
     run_configuration(cfg_path)
 
 
-def train_and_eval_model(train_examples, eval_data, working_path,
-                         model_path, C):
+def train_and_eval_model(working_path, model_path, eval_data, C):
     parameter_settings = {'C': C}
-    logging.info('Training model')
+    logging.info('Training model with C = {}'.format(C))
     model_path = '{}.C{}'.format(model_path, C)
-    working_path = os.path.join(working_path, 'C{}'.format(C))
-    train_rst_parsing_model(train_examples, model_path,
-                            working_path=working_path,
-                            parameter_settings=parameter_settings)
+
+    logging.info('Evaluating model with C = {}'.format(C))
+    train_rst_parsing_model(working_path, model_path, parameter_settings)
     rst_parser = Parser(1, 1, 1)
     rst_parser.load_model(model_path)
     results = predict_and_evaluate_rst_trees(None, None,
@@ -100,23 +94,28 @@ def main():
                         help='Path to JSON training file.',
                         type=argparse.FileType('r'))
     parser.add_argument('eval_file',
-                        help='Path to JSON dev or test file for tuning/evaluation.',
+                        help='Path to JSON dev or test file for ' +
+                        'tuning/evaluation.',
                         type=argparse.FileType('r'))
     parser.add_argument('model_path',
                         help='Prefix for the path to where the model should be '
                         'stored.  A suffix with the C value will be added.')
     parser.add_argument('-w', '--working_path',
-                        help='Path to where intermediate files should be stored (defaults to "working" in the current directory)',
-                        default='working')  # TODO is there a better default location?  e.g., /tmp?
+                        help='Path to where intermediate files should be ' +
+                        'stored', default='working')
     parser.add_argument('-C', '--C_values',
                         help='comma-separated list of model complexity ' +
                         'parameter settings to evaluate.',
-                        default=','.join([str(10.0 ** x) for x in range(-2, 3)]))
+                        default=','.join([str(10.0 ** x)
+                                          for x in range(-2, 3)]))
     parser.add_argument('-v', '--verbose',
                         help='Print more status information. For every ' +
                         'additional time this flag is specified, ' +
                         'output gets more verbose.',
                         default=0, action='count')
+    parser.add_argument('-s', '--single_process', action='store_true',
+                        help='Run in a single process for all hyperparameter ' +
+                        'grid points, to simplify debugging.')
     args = parser.parse_args()
 
     parser = Parser(1, 1, 1)
@@ -137,7 +136,7 @@ def main():
     # TODO remove or comment out the following debugging command
     # train_data = train_data[:20]
 
-    examples = []
+    train_examples = []
 
     for doc_dict in train_data:
         path_basename = doc_dict['path_basename']
@@ -150,7 +149,7 @@ def main():
                 enumerate(parser.parse(doc_dict, gold_actions=actions)):
             example_id = "{}_{}".format(path_basename, i)
             example = {"x": Counter(feats), "y": action_str, "id": example_id}
-            examples.append(example)
+            train_examples.append(example)
             # print("{} {}".format(action_str, " ".join(feats)))
 
     # train and evaluate a model for each value of C
@@ -160,17 +159,24 @@ def main():
     # train and evaluate models with different C values in parallel
     C_values = [float(x) for x in args.C_values.split(',')]
     partial_train_and_eval_model = partial(train_and_eval_model,
-                                           examples, eval_data,
-                                           args.working_path,
-                                           args.model_path)
-    n_workers = len(C_values)
-    #n_workers = 1
-    with ProcessPoolExecutor(max_workers=n_workers) as executor:
-        all_results = executor.map(partial_train_and_eval_model, C_values)
+                                           args.working_path, args.model_path,
+                                           eval_data)
 
-    # all_results = []
-    # for C_value in C_values:
-    #     all_results.append(partial_train_and_eval_model(C_value))
+    # Make the SKLL jsonlines feature file
+    if not os.path.exists(args.working_path):
+        os.makedirs(args.working_path)
+    train_path = os.path.join(args.working_path, 'rst_parsing.jsonlines')
+    with open(train_path, 'w') as train_file:
+        for example in train_examples:
+            train_file.write('{}\n'.format(json.dumps(example)))
+
+    if args.single_process:
+        all_results = [partial_train_and_eval_model(C_value)
+                       for C_value in C_values]
+    else:
+        n_workers = len(C_values)
+        with ProcessPoolExecutor(max_workers=n_workers) as executor:
+            all_results = executor.map(partial_train_and_eval_model, C_values)
 
     for C_value, results in zip(C_values, all_results):
         results["C"] = C_value
