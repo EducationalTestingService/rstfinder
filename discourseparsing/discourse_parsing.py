@@ -52,6 +52,10 @@ logger = logging.getLogger(__name__)
 
 
 class Parser(object):
+    leftwall_w = 'LEFTWALL'
+    leftwall_p = 'LEFTWALL'
+    rightwall_w = 'RIGHTWALL'
+    rightwall_p = 'RIGHTWALL'
 
     def __init__(self, max_acts, max_states, n_best):
         self.max_acts = max_acts
@@ -79,33 +83,53 @@ class Parser(object):
         return self.model_action_list
 
     @staticmethod
+    def _add_word_and_pos_feats(feats, prefix, words, pos_tags):
+        '''
+        This is for adding word and POS features for the head EDU of a subtree.
+        It also adds specially marked features for the first 2 and last 1 token.
+        `feats` is the existing list of features.
+        The prefix indicates where the tokens are from (S0, S1, S2, Q0, Q1).
+        '''
+
+        # Do not add any word or POS features for the LEFTWALL or RIGHTWALL.
+        # That information should be available in the nonterminal features.
+        if pos_tags == [Parser.leftwall_p] or pos_tags == [Parser.rightwall_p]:
+            assert words == [Parser.leftwall_w] or words == [Parser.leftwall_w]
+            return
+
+        feats.append('{}w:{}:::0'.format(prefix, words[0]))
+        feats.append('{}p:{}:::0'.format(prefix, pos_tags[0]))
+        feats.append('{}w:{}:::-1'.format(prefix, words[-1]))
+        feats.append('{}p:{}:::-1'.format(prefix, pos_tags[-1]))
+        feats.append('{}w:{}:::1'.format(prefix, (words[1]
+                                                  if len(words) > 1
+                                                  else "")))
+        feats.append('{}p:{}:::1'.format(prefix, (pos_tags[1]
+                                                  if len(pos_tags) > 1
+                                                  else "")))
+
+        for word in words:
+            feats.append("{}w:{}".format(prefix, word))
+        for pos_tag in pos_tags:
+            feats.append("{}p:{}".format(prefix, pos_tag))
+
+    @staticmethod
     def mkfeats(prevact, sent, stack, doc_dict):
         '''
         get features of the parser state represented
         by the current stack and queue
         '''
 
-        nw0 = ["RightWall"]
-        nw1 = ["RightWall"]
+        feats = []
 
-        np0 = ["RW"]
-        np1 = ["RW"]
-
+        # initialize some local variables for top stack and next queue items
         s0 = stack[-1]
-        s1 = {"nt": "TOP", "head": ["LeftWall"], "hpos": ["LW"], "tree": [],
-              "start_idx": -1, "end_idx": -1}
-        s2 = {"nt": "TOP", "head": ["LeftWall"], "hpos": ["LW"], "tree": [],
-              "start_idx": -1, "end_idx": -1}
-        s3 = {"nt": "TOP", "head": ["LeftWall"], "hpos": ["LW"], "tree": [],
-              "start_idx": -1, "end_idx": -1}
-
-        if len(sent) > 0:
-            nw0 = sent[0]["head"]
-            np0 = sent[0]["hpos"]
-        if len(sent) > 1:
-            nw1 = sent[1]["head"]
-            np1 = sent[1]["hpos"]
-
+        s1 = {"nt": "TOP", "head": [Parser.leftwall_w], "hpos": [Parser.leftwall_p],
+              "tree": [], "start_idx": -1, "end_idx": -1}
+        s2 = {"nt": "TOP", "head": [Parser.leftwall_w], "hpos": [Parser.leftwall_p],
+              "tree": [], "start_idx": -1, "end_idx": -1}
+        s3 = {"nt": "TOP", "head": [Parser.leftwall_w], "hpos": [Parser.leftwall_p],
+              "tree": [], "start_idx": -1, "end_idx": -1}
         stack_len = len(stack)
         if stack_len > 1:
             s1 = stack[stack_len - 2]
@@ -114,54 +138,45 @@ class Parser(object):
         if stack_len > 3:
             s3 = stack[stack_len - 4]
 
-        feats = []
+        q0w = [Parser.rightwall_w]
+        q0p = [Parser.rightwall_p]
+        q1w = [Parser.rightwall_w]
+        q1p = [Parser.rightwall_p]
+        if len(sent) > 0:
+            q0w = sent[0]["head"]
+            q0p = sent[0]["hpos"]
+        if len(sent) > 1:
+            q1w = sent[1]["head"]
+            q1p = sent[1]["hpos"]
 
+        # previous action feature
         feats.append("PREV:{}:{}".format(prevact.type, prevact.label))
 
-        # features of the 0th item on the stack
-        for word in s0["head"]:
-            feats.append("S0w:{}".format(word))
-        for pos_tag in s0["hpos"]:
-            feats.append("S0p:{}".format(pos_tag))
+        # stack nonterminal symbol features
         feats.append("S0nt:{}".format(s0["nt"]))
         if len(s0["tree"]) > 0 and isinstance(s0["tree"][0], ParentedTree):
             feats.append("S0lnt:{}".format(s0["tree"][0].label()))
             feats.append("S0rnt:{}".format(s0["tree"][-1].label()))
 
-        # features of the 1st item on the stack
-        for word in s1["head"]:
-            feats.append("S1w:{}".format(word))
-        for pos_tag in s1["hpos"]:
-            feats.append("S1p:{}".format(pos_tag))
         feats.append("S1nt:{}".format(s1["nt"]))
         if len(s1["tree"]) > 0  and isinstance(s1["tree"][0], ParentedTree):
             feats.append("S1lnt:{}".format(s1["tree"][0].label()))
             feats.append("S1rnt:{}".format(s1["tree"][-1].label()))
 
-        # features of the 2nd item on the stack
-        for word in s2["head"]:
-            feats.append("S2w:{}".format(word))
-        for pos_tag in s2["hpos"]:
-            feats.append("S2p:{}".format(pos_tag))
         feats.append("S2nt:{}".format(s2["nt"]))
-
-        # features of the 3rd item on the stack
         feats.append("S3nt:{}".format(s3["nt"]))
 
-        # combinations of stack item labels
         feats.append("S0nt:{}^S1nt:{}".format(s0["nt"], s1["nt"]))
         # feats.append("S0nt:{}^S2nt:{}".format(s0["nt"], s2["nt"]))
         # feats.append("S1nt:{}^S2nt:{}".format(s1["nt"], s2["nt"]))
 
-        # features for the next items on the input queue
-        for word in nw0:
-            feats.append("nw0:{}".format(word))
-        for pos_tag in np0:
-            feats.append("np0:{}".format(pos_tag))
-        for word in nw1:
-            feats.append("nw1:{}".format(word))
-        for pos_tag in np1:
-            feats.append("np1:{}".format(pos_tag))
+        # features for the words and POS tags of the heads of the first and
+        # last tokens of the heads of the top stack and next input queue items
+        Parser._add_word_and_pos_feats(feats, 'S0', s0['head'], s0['hpos'])
+        Parser._add_word_and_pos_feats(feats, 'S1', s1['head'], s1['hpos'])
+        Parser._add_word_and_pos_feats(feats, 'S2', s2['head'], s2['hpos'])
+        Parser._add_word_and_pos_feats(feats, 'Q0', q0w, q0p)
+        Parser._add_word_and_pos_feats(feats, 'Q1', q1w, q1p)
 
         # EDU head distance feature (in EDUs, not tokens)
         dist = s0.get("head_idx", 0) - s1.get("head_idx", 0)
@@ -199,7 +214,7 @@ class Parser(object):
 
             # Do not allow a reduce action if the stack is empty.
             # (i.e., contains only the leftwall)
-            if stack[-1]["head"] == "LEFTWALL":
+            if stack[-1]["head"] == Parser.leftwall_w:
                 return False
 
             # Do not allow unary reduces on internal nodes for binarized rules.
@@ -321,24 +336,6 @@ class Parser(object):
             edu_words = [x[0].lower() for x in edu]
             edu_pos_tags = [x[1] for x in edu]
 
-            # TODO move the chunk of code immediately below to mkfeats?
-            # This adds special tokens for the first two words and last
-            # word. These are used when computing features later. It would
-            # probably be better to do this in the feature extraction code
-            # rather than here.
-            # The ":::N" part is just a special marker to distinguish these
-            # from regular word tokens.
-            edu_words.insert(0, '{}:::1'.format(edu_words[1]
-                                                if len(edu_words) > 1
-                                                else ""))
-            edu_words.insert(0, '{}:::0'.format(edu_words[1]))
-            edu_words.insert(0, '{}:::-1'.format(edu_words[-1]))
-            edu_pos_tags.insert(0, '{}:::1'.format(edu_pos_tags[1]
-                                                   if len(edu_pos_tags) > 1
-                                                   else ""))
-            edu_pos_tags.insert(0, '{}:::0'.format(edu_pos_tags[1]))
-            edu_pos_tags.insert(0, '{}:::-1'.format(edu_pos_tags[-1]))
-
             # make a dictionary for each EDU
             new_tree = ParentedTree('(text)')
             new_tree.append('{}'.format(edu_index))
@@ -390,10 +387,10 @@ class Parser(object):
         tmp_item = {"head_idx": -1,
                     "start_idx": -1,
                     "end_idx": -1,
-                    "nt": "LEFTWALL",
-                    "tree": ParentedTree("(LEFTWALL)"),
-                    "head": ["LEFTWALL"],
-                    "hpos": ["LW"]}
+                    "nt": Parser.leftwall_w,
+                    "tree": ParentedTree("({})".format(Parser.leftwall_w)),
+                    "head": [Parser.leftwall_w],
+                    "hpos": [Parser.leftwall_p]}
         stack.append(tmp_item)
 
         prevact = ShiftReduceAction(type="S", label="text")
@@ -425,7 +422,7 @@ class Parser(object):
                 tree = cur_state["stack"][0]["tree"]
 
                 # remove the dummy LEFTWALL node
-                assert tree[0].label() == 'LEFTWALL'
+                assert tree[0].label() == Parser.leftwall_p
                 del tree[0]
 
                 # collapse binary branching * rules in the output
