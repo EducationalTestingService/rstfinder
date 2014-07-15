@@ -94,7 +94,7 @@ class Parser(object):
         # Do not add any word or POS features for the LEFTWALL or RIGHTWALL.
         # That information should be available in the nonterminal features.
         if pos_tags == [Parser.leftwall_p] or pos_tags == [Parser.rightwall_p]:
-            assert words == [Parser.leftwall_w] or words == [Parser.leftwall_w]
+            assert words == [Parser.leftwall_w] or words == [Parser.rightwall_w]
             return
 
         feats.append('{}w:{}:::0'.format(prefix, words[0]))
