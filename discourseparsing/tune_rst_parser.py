@@ -106,8 +106,8 @@ def main():
     parser.add_argument('-C', '--C_values',
                         help='comma-separated list of model complexity ' +
                         'parameter settings to evaluate.',
-                        default=','.join([str(10.0 ** x)
-                                          for x in range(-2, 3)]))
+                        default=','.join([str(2.0 ** x)
+                                          for x in range(-4, 5)]))
     parser.add_argument('-v', '--verbose',
                         help='Print more status information. For every ' +
                         'additional time this flag is specified, ' +
