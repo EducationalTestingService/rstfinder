@@ -319,6 +319,9 @@ def collapse_binarized_nodes(t):
 
     Note that this modifies the tree in place.
     '''
+
+    assert isinstance(t, ParentedTree)
+
     # TODO write a unit test for this method
     to_process = []
     for subtree in t.subtrees():

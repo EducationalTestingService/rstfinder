@@ -37,9 +37,8 @@ import os
 import logging
 from collections import namedtuple, Counter
 from operator import itemgetter
-from copy import deepcopy
 
-from nltk.tree import ParentedTree
+from nltk.tree import Tree, ParentedTree
 import numpy as np
 import skll
 
@@ -154,12 +153,12 @@ class Parser(object):
 
         # stack nonterminal symbol features
         feats.append("S0nt:{}".format(s0["nt"]))
-        if len(s0["tree"]) > 0 and isinstance(s0["tree"][0], ParentedTree):
+        if len(s0["tree"]) > 0 and isinstance(s0["tree"][0], Tree):
             feats.append("S0lnt:{}".format(s0["tree"][0].label()))
             feats.append("S0rnt:{}".format(s0["tree"][-1].label()))
 
         feats.append("S1nt:{}".format(s1["nt"]))
-        if len(s1["tree"]) > 0  and isinstance(s1["tree"][0], ParentedTree):
+        if len(s1["tree"]) > 0  and isinstance(s1["tree"][0], Tree):
             feats.append("S1lnt:{}".format(s1["tree"][0].label()))
             feats.append("S1rnt:{}".format(s1["tree"][-1].label()))
 
@@ -167,8 +166,6 @@ class Parser(object):
         feats.append("S3nt:{}".format(s3["nt"]))
 
         feats.append("S0nt:{}^S1nt:{}".format(s0["nt"], s1["nt"]))
-        # feats.append("S0nt:{}^S2nt:{}".format(s0["nt"], s2["nt"]))
-        # feats.append("S1nt:{}^S2nt:{}".format(s1["nt"], s2["nt"]))
 
         # features for the words and POS tags of the heads of the first and
         # last tokens of the heads of the top stack and next input queue items
@@ -268,7 +265,7 @@ class Parser(object):
         if act.type == "B":
             tmp_rc = stack.pop()
             tmp_lc = stack.pop()
-            new_tree = ParentedTree("({})".format(act.label))
+            new_tree = Tree("({})".format(act.label))
             new_tree.append(tmp_lc["tree"])
             new_tree.append(tmp_rc["tree"])
 
@@ -307,7 +304,7 @@ class Parser(object):
         # The U action creates a unary chain (e.g., "(NP (NP ...))").
         if act.type == "U":
             tmp_c = stack.pop()
-            new_tree = ParentedTree("({})".format(act.label))
+            new_tree = Tree("({})".format(act.label))
             new_tree.append(tmp_c["tree"])
             tmp_item = {"head_idx": tmp_c["head_idx"],
                         "start_idx": tmp_c["start_idx"],
@@ -337,7 +334,7 @@ class Parser(object):
             edu_pos_tags = [x[1] for x in edu]
 
             # make a dictionary for each EDU
-            new_tree = ParentedTree('(text)')
+            new_tree = Tree('(text)')
             new_tree.append('{}'.format(edu_index))
             tmp_item = {"head_idx": wnum,
                         "start_idx": wnum,
@@ -348,14 +345,6 @@ class Parser(object):
                         "tree": new_tree}
             wnum += 1
             res.append(tmp_item)
-        return res
-
-    @staticmethod
-    def deep_copy_stack_or_queue(data_list):
-        res = [dict((key, val.copy(deep=True)) if key == "tree"
-                    else (key, deepcopy(val))
-                    for key, val in list_item.items())
-               for list_item in data_list]
         return res
 
     def parse(self, doc_dict, gold_actions=None, make_features=True):
@@ -388,7 +377,7 @@ class Parser(object):
                     "start_idx": -1,
                     "end_idx": -1,
                     "nt": Parser.leftwall_w,
-                    "tree": ParentedTree("({})".format(Parser.leftwall_w)),
+                    "tree": Tree("({})".format(Parser.leftwall_w)),
                     "head": [Parser.leftwall_w],
                     "hpos": [Parser.leftwall_p]}
         stack.append(tmp_item)
@@ -426,9 +415,10 @@ class Parser(object):
                 del tree[0]
 
                 # collapse binary branching * rules in the output
-                collapse_binarized_nodes(tree)
+                output_tree = ParentedTree(tree.pprint())
+                collapse_binarized_nodes(output_tree)
 
-                completetrees.append({"tree": tree,
+                completetrees.append({"tree": output_tree,
                                       "score": cur_state["score"]})
                 logging.debug('complete tree found')
 
@@ -487,6 +477,9 @@ class Parser(object):
             if gold_actions is None:
                 scored_acts = [x for x in scored_acts
                                if self.is_valid_action(x[0], ucnt, sent, stack)]
+            else:
+                for x in scored_acts:
+                    assert self.is_valid_action(x[0], ucnt, sent, stack)
 
             # Don't exceed the maximum number of actions
             # to consider for a parser state.
@@ -494,10 +487,14 @@ class Parser(object):
 
             while scored_acts:
                 if self.max_acts > 1:
-                    # Make deep copies of the input queue and stack.
+                    # Make copies of the input queue and stack.
                     # This is not necessary if we are doing greedy parsing.
-                    sent = self.deep_copy_stack_or_queue(cur_state["sent"])
-                    stack = self.deep_copy_stack_or_queue(cur_state["stack"])
+                    # Note that we do not need to make deep copies because
+                    # the reduce actions do not modify the subtrees.  They
+                    # only create new trees that have them as children.
+                    # This ends up making something like a parse forest.
+                    sent = list(cur_state["sent"])
+                    stack = list(cur_state["stack"])
                 prevact = cur_state["prevact"]
                 ucnt = cur_state["ucnt"]
 
@@ -520,9 +517,9 @@ class Parser(object):
 
         if not completetrees:
             # Default to a flat tree if there is no complete parse.
-            new_tree = ParentedTree("(ROOT)")
+            new_tree = Tree("(ROOT)")
             for i in range(len(tagged_edus)):
-                tmp_child = ParentedTree('(text)')
+                tmp_child = Tree('(text)')
                 tmp_child.append(i)
                 new_tree.append(tmp_child)
             completetrees.append({"tree": new_tree, "score": 0.0})
