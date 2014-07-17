@@ -14,7 +14,9 @@ from configparser import ConfigParser
 from concurrent.futures import ProcessPoolExecutor
 from functools import partial
 
+import numpy as np
 from skll.experiments import run_configuration
+from skll.learner import Learner
 from nltk.tree import ParentedTree
 
 from discourseparsing.discourse_parsing import Parser
@@ -69,6 +71,31 @@ def train_rst_parsing_model(working_path, model_path, parameter_settings):
 
     # run SKLL
     run_configuration(cfg_path)
+
+    # make the model smaller/faster
+    minimize_model(model_path, 'rst_parsing_all_feats_LogisticRegression.model')
+
+
+def minimize_model(model_path, model_name):
+    '''
+    This function minimizes the model by removing information about features
+    that get weights of 0.
+    '''
+
+    model = Learner.from_file(os.path.join(model_path, model_name))
+    # Take out coefficients for features that are 0 for all classes.
+    nonzero_feat_mask = ~np.all(model.model.coef_ == 0, axis=0)
+    model.model.coef_ = model.model.coef_[:, nonzero_feat_mask]
+    # Remove the extra words from the feat vectorizer.
+    model.feat_vectorizer.restrict(nonzero_feat_mask)
+    # Refit the feature selector to expect the correct size matrices.
+    model.feat_selector.fit(np.ones((1, model.model.coef_.shape[1])))
+    # Make the feature vectorizer return dense matrices (which is a bit faster).
+    model.feat_vectorizer.set_params(sparse=False)
+    # Delete the raw_coef_ attribute that sklearn *only* uses when training.
+    model.model.raw_coef_ = None
+    # Save the minimized model.
+    model.save(os.path.join(model_path, model_name))
 
 
 def train_and_eval_model(working_path, model_path, eval_data, C):
