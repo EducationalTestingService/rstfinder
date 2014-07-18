@@ -100,8 +100,6 @@ def compute_rst_eval_results(pred_edu_tokens_lists, pred_trees,
 def predict_and_evaluate_rst_trees(syntax_parser, segmenter,
                                    rst_parser, eval_data,
                                    use_gold_syntax=True):
-    print("*** THE EVALUATION CODE IS UNDER DEVELOPMENT AND WILL PROBABLY NOT GIVE THE CORRECT RESULTS YET. ***")
-
     pred_edu_tokens_lists = []
     pred_trees = []
     gold_edu_tokens_lists = []
