@@ -34,6 +34,7 @@ originally written by Kenji Sagae in perl.
 '''
 
 import os
+import re
 import logging
 from collections import namedtuple, Counter
 from operator import itemgetter
@@ -42,8 +43,10 @@ from nltk.tree import Tree, ParentedTree
 import numpy as np
 import skll
 
-from discourseparsing.tree_util import collapse_binarized_nodes
+from discourseparsing.tree_util import (collapse_binarized_nodes,
+                                        HeadedParentedTree)
 from discourseparsing.discourse_segmentation import extract_tagged_doc_edus
+
 
 ShiftReduceAction = namedtuple("ShiftReduceAction", ["type", "label"])
 ScoredAction = namedtuple("ScoredAction", ["action", "score"])
@@ -96,6 +99,7 @@ class Parser(object):
             assert words == [Parser.leftwall_w] or words == [Parser.rightwall_w]
             return
 
+        # first 2 and last 1
         feats.append('{}w:{}:::0'.format(prefix, words[0]))
         feats.append('{}p:{}:::0'.format(prefix, pos_tags[0]))
         feats.append('{}w:{}:::-1'.format(prefix, words[-1]))
@@ -107,10 +111,57 @@ class Parser(object):
                                                   if len(pos_tags) > 1
                                                   else "")))
 
+        # first bigram
+        # feats.append('{}w2:{}:{}'.format(prefix,
+        #                                  words[0], (words[1]
+        #                                             if len(words) > 1
+        #                                             else "")))
+        # feats.append('{}p2:{}:{}'.format(prefix,
+        #                                  words[0], (pos_tags[1]
+        #                                             if len(pos_tags) > 1
+        #                                             else "")))
+
         for word in words:
             feats.append("{}w:{}".format(prefix, word))
         for pos_tag in pos_tags:
             feats.append("{}p:{}".format(prefix, pos_tag))
+
+    @staticmethod
+    def _find_edu_head_node(rst_node, doc_dict):
+        '''
+        Find the EDU head node, which is the node whose head is
+        "the word with the highest occurrence as a lexical head"
+        (Soricut & Marco, 2003, Sec 4.1).
+
+        There can be ties, which the paper doesn't mention.
+        This code just finds the leftmost, using np.argmin on tree depths.
+        '''
+
+        # return None for the left wall
+        head_idx = rst_node["head_idx"]
+        if head_idx == -1:
+            return None
+
+        head_words = rst_node["head"]
+
+        edu_start_indices = doc_dict['edu_start_indices'][head_idx]
+        tree_idx, start_tok_idx, _ = edu_start_indices
+        tree = HeadedParentedTree(doc_dict['syntax_trees'][tree_idx])
+        end_tok_idx = start_tok_idx + len(head_words)
+        preterminals = [x for x in tree.subtrees()
+                        if isinstance(x[0], str)][start_tok_idx:end_tok_idx]
+        # filter out punctuation
+        maximal_nodes = [node.find_maximal_head_node() for node in preterminals
+                         if re.search(r'[A-Za-z]', node.label())]
+        if len(maximal_nodes) == 0:
+            logging.warning("EDU head only contained punctuation: {}"
+                            .format(preterminals))
+            return None
+        depths = [len(node.treeposition()) for node in maximal_nodes]
+        mindepth_idx = np.argmin(depths)
+        res = maximal_nodes[mindepth_idx]
+
+        return res
 
     @staticmethod
     def mkfeats(prevact, sent, stack, doc_dict):
@@ -124,11 +175,11 @@ class Parser(object):
         # initialize some local variables for top stack and next queue items
         s0 = stack[-1]
         s1 = {"nt": "TOP", "head": [Parser.leftwall_w], "hpos": [Parser.leftwall_p],
-              "tree": [], "start_idx": -1, "end_idx": -1}
+              "tree": [], "start_idx": -1, "end_idx": -1, "head_idx": -1}
         s2 = {"nt": "TOP", "head": [Parser.leftwall_w], "hpos": [Parser.leftwall_p],
-              "tree": [], "start_idx": -1, "end_idx": -1}
+              "tree": [], "start_idx": -1, "end_idx": -1, "head_idx": -1}
         s3 = {"nt": "TOP", "head": [Parser.leftwall_w], "hpos": [Parser.leftwall_p],
-              "tree": [], "start_idx": -1, "end_idx": -1}
+              "tree": [], "start_idx": -1, "end_idx": -1, "head_idx": -1}
         stack_len = len(stack)
         if stack_len > 1:
             s1 = stack[stack_len - 2]
@@ -175,8 +226,9 @@ class Parser(object):
         Parser._add_word_and_pos_feats(feats, 'Q0', q0w, q0p)
         Parser._add_word_and_pos_feats(feats, 'Q1', q1w, q1p)
 
-        # EDU head distance feature (in EDUs, not tokens)
-        dist = s0.get("head_idx", 0) - s1.get("head_idx", 0)
+        # EDU head distance feature
+        # (this is in EDUs, not tokens, and -1 is for the left wall)
+        dist = s0.get("head_idx") - s1.get("head_idx")
         feats.append("dist:{}".format(dist))
 
         # whether the EDUS are in the same sentence
@@ -187,7 +239,26 @@ class Parser(object):
         s1_end_idx = s1["end_idx"]
         if s0_start_idx > -1 and s1_end_idx > -1 and \
                 start_indices[s0_start_idx][0] == start_indices[s1_end_idx][0]:
-            feats.append("s0s1_same_sentence")
+            feats.append("S0S1_same_sentence")
+
+        # features of EDU heads
+        head_node_s0 = Parser._find_edu_head_node(s0, doc_dict)
+        head_node_s1 = Parser._find_edu_head_node(s1, doc_dict)
+        head_node_q0 = Parser._find_edu_head_node(sent[0], doc_dict) \
+            if sent else None
+        if head_node_s0:
+            feats.append('S0headnt:{}'.format(head_node_s0.label()))
+            feats.append('S0headw:{}'.format(head_node_s0.head_word()))
+            feats.append('S0headp:{}'.format(head_node_s0.head_pos()))
+            #logging.info('\nHEAD EDU: {}\nFEATS: {}\nTREE: {}\n'.format(' '.join(s0['head']), str(feats[-3:]), doc_dict['syntax_trees'][doc_dict['edu_start_indices'][s0['head_idx']][0]] if s0['head_idx'] > -1 else ""))
+        if head_node_s1:
+            feats.append('S1headnt:{}'.format(head_node_s1.label()))
+            feats.append('S1headw:{}'.format(head_node_s1.head_word()))
+            feats.append('S1headp:{}'.format(head_node_s1.head_pos()))
+        if head_node_q0:
+            feats.append('Q0headnt:{}'.format(head_node_q0.label()))
+            feats.append('Q0headw:{}'.format(head_node_q0.head_word()))
+            feats.append('Q0headp:{}'.format(head_node_q0.head_pos()))
 
         # TODO features for the head words of the EDUS
 
