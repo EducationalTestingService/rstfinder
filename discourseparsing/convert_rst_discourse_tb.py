@@ -28,7 +28,6 @@ import json
 import os.path
 import logging
 import re
-import sys
 from glob import glob
 
 from nltk.tree import ParentedTree
@@ -43,6 +42,7 @@ from discourseparsing.reformat_rst_trees import (reformat_rst_tree,
                                                  fix_rst_treebank_tree_str,
                                                  convert_parens_in_rst_tree_str)
 from discourseparsing.tree_util import convert_paren_tokens_to_ptb_format
+from discourseparsing.discourse_segmentation import extract_edus_tokens
 
 
 # file mapping from the RSTDTB documentation
@@ -69,8 +69,21 @@ def main():
                         default='.')
     args = parser.parse_args()
 
+    logging.basicConfig(format=('%(asctime)s - %(name)s - %(levelname)s - ' +
+                                '%(message)s'), level=logging.INFO)
+
+    logging.info(" Warnings related to minor issues that are difficult to" +
+                 " resolve will be logged for the following files: " +
+                 " file1.edus, file5.edus, wsj_0678.out.edus," +
+                 " wsj_1323.out.edus, and wsj_2343.out.edus." +
+                 " Multiple warnings 'not enough syntax trees'" +
+                 " will be produced because the RSTDTB has footers that are" +
+                 " not in the PTB (e.g., indicating where a story is" +
+                 " written). Also, there are some loose match warnings" +
+                 " because of differences in formatting between treebanks.")
+
     for dataset in ['TRAINING', 'TEST']:
-        print(dataset, file=sys.stderr)
+        logging.info(dataset)
 
         outputs = []
 
@@ -84,7 +97,7 @@ def main():
             edu_start_indices = []
 
             path_basename = os.path.basename(path)
-            print('{} {}'.format(path_index, path_basename), file=sys.stderr)
+            logging.info('{} {}'.format(path_index, path_basename))
             ptb_id = (file_mapping[path_basename] if
                       path_basename in file_mapping else
                       path_basename)[:-9]
@@ -122,13 +135,12 @@ def main():
             preterminals = [extract_preterminals(t) for t in trees]
 
             while edu_index < len(edus) - 1:
-                # print("{} {} {} {}".format(edu_index, tree_index, tok_index, edu), file=sys.stderr)
                 # if we are out of tokens for the sentence we are working
                 # with, move to the next sentence.
                 if tok_index >= len(tokens):
                     tree_index += 1
                     if tree_index >= len(trees):
-                        logging.warning('There are not enough syntax trees for {}. The remaining EDUs will be automatically tagged.'.format(path_basename))
+                        logging.warning('Not enough syntax trees for {}. This is probably because the RSTDB contains a footer that is not in the PTB.  The remaining EDUs will be automatically tagged.'.format(path_basename))
                         unparsed_edus = ' '.join(edus[edu_index + 1:])
                         unparsed_edus = re.sub(r'---', '--', unparsed_edus)  # the tokenizer splits '---' into '--' '-'.  this is a hack to get around that
                         for tagged_sent in [nltk.pos_tag(convert_paren_tokens_to_ptb_format(TreebankWordTokenizer().tokenize(x)))
@@ -175,6 +187,9 @@ def main():
                     elif path_basename == 'file3.edus':
                         edu = edu.replace('about $to $', 'about $2 to $4')
                     elif path_basename == 'file5.edus':
+                        # There is a PTB error in wsj_2172.mrg:
+                        # The word "analysts" is missing from the parse.
+                        # It's gone without a trace :-/
                         edu = edu.replace('panic among analysts',
                                           'panic among')
                         edu = edu.replace('his bid Oct. 17', 'his bid Oct. 5')
@@ -186,6 +201,8 @@ def main():
                                           'received $8 million in fees')
                         edu = edu.replace('`` in light', '"in light')
                         edu = edu.replace('3.00 a share', '2 a share')
+                        edu = edu.replace(" the Deal.", " the Deal.'")
+                        edu = edu.replace("' Why doesn't", "Why doesn't")
                     elif path_basename == 'wsj_1331.out.edus':
                         edu = edu.replace('`S', "'S")
                     elif path_basename == 'wsj_1373.out.edus':
@@ -197,6 +214,9 @@ def main():
                     elif path_basename == 'wsj_2317.out.edus':
                         edu = edu.replace('. The lower', 'The lower')
                         edu = edu.replace('$4 million', '$4 million.')
+                    elif path_basename == 'wsj_1376.out.edus':
+                        edu = edu.replace('Elizabeth.', 'Elizabeth.\'"')
+                        edu = edu.replace('\'" In', 'In')
                     elif path_basename == 'wsj_1105.out.edus':
                         # PTB error: a sentence starts with an end quote.
                         # For simplicity, we'll just make the
@@ -221,7 +241,31 @@ def main():
                         # PTB error: a sentence starts with an end quote.
                         edu = edu.replace('lenders."', 'lenders.')
                         edu = edu.replace('Mr. P', '"Mr. P')
+                    elif path_basename == 'wsj_1128.out.edus':
+                        # PTB error: a sentence ends with an start quote.
+                        edu = edu.replace('it down.', 'it down."')
+                        edu = edu.replace('"It\'s a real"', "It's a real")
+                    elif path_basename == 'wsj_1323.out.edu':
+                        # PTB error (or at least a very unusual edge case):
+                        # "--" ends a sentence.
+                        edu = edu.replace('-- damn!', 'damn!')
+                    elif path_basename == 'wsj_2303.out.edus':
+                        # PTB error: a sentence ends with an start quote.
+                        edu = edu.replace('Simpson in an interview.',
+                                          'Simpson in an interview."')
+                        edu = edu.replace('"Hooker\'s', 'Hooker\'s')
+                    # wsj_2343.out.edus also has an error that can't be easily
+                    # fixed: and EDU spans 2 sentences, ("to analyze what...").
 
+                    if edu_start_indices \
+                            and tree_index - edu_start_indices[-1][0] > 1:
+                        logging.warning(("ERROR WITH {}. SKIPPED A TREE." +
+                                         " tree_index = {}," +
+                                         " edu_start_indices[-1][0] = {}," +
+                                         " edu index = {}")
+                                        .format(path_basename, tree_index,
+                                                edu_start_indices[-1][0],
+                                                edu_index))
 
                     edu_start_indices.append((tree_index, tok_index,
                                               edu_index))
@@ -231,8 +275,8 @@ def main():
                     edu = edu[len(tok):].strip()
                 elif (re.search(r'[^a-zA-Z0-9]', edu[0])
                       and edu[1:].startswith(tok)):
-                    print("loose match: {} {}".format(tok, edu),
-                          file=sys.stderr)
+                    logging.warning(("loose match: tok = {}, " +
+                                     "remainder of EDU: {}").format(tok, edu))
                     edu = edu[len(tok) + 1:].strip()
                 else:
                     m_tok = re.search(r'^[^a-zA-Z ]+$', tok)
@@ -243,8 +287,7 @@ def main():
                                          '{}\n\n').format(path_index, tok, edu,
                                                           edus[edu_index],
                                                           tree.leaves()))
-                    print("loose match: {} ==> {}".format(tok, edu),
-                          file=sys.stderr)
+                    logging.warning("loose match: {} ==> {}".format(tok, edu))
                     edu = m_edu.groups()[0].strip()
 
                 tok_index += 1
@@ -263,6 +306,28 @@ def main():
                                    for preterminals_sentence in preterminals],
                       "edu_start_indices": edu_start_indices,
                       "rst_tree": rst_tree.pprint(margin=TREE_PRINT_MARGIN)}
+
+            assert len(edu_start_indices) == len(edus)
+            # check that the EDUs match up
+            edu_tokens = extract_edus_tokens(edu_start_indices, tokens_doc)
+            for edu_index, (edu, edu_token_list) \
+                    in enumerate(zip(edus, edu_tokens)):
+                edu_nospace = re.sub(r'\s+', '', edu).lower()
+                edu_tokens_nospace = ''.join(edu_token_list).lower()
+                distance = nltk.metrics.distance.edit_distance(
+                    edu_nospace, edu_tokens_nospace)
+                if distance > 4:
+                    logging.warning(("EDIT DISTANCE > 3 IN {}: " +
+                                     "edu string = {}, edu tokens = {}, " +
+                                     "edu idx = {}")
+                                    .format(path_basename, edu,
+                                            edu_token_list, edu_index))
+                if not re.search(r'[A-Za-z0-9]', edu_tokens_nospace):
+                    logging.warning(("PUNCTUATION-ONLY EDU IN {}: " +
+                                     "edu tokens = {}, edu idx = {}")
+                                    .format(path_basename, edu_token_list,
+                                            edu_index))
+
             outputs.append(output)
 
         with open(os.path.join(args.output_dir, ('rst_discourse_tb_edus_' +
