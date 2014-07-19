@@ -8,7 +8,7 @@ and creates JSON files for the training and test sets.
 The JSON files contain lists with one dictionary per document.
 Each of these dictionaries has the following keys:
 - ptb_id: The Penn Treebank ID (e.g., wsj0764)
-- path_basename: the basename of the RST Discourse Treebank (e.g., file1.out)
+- path_basename: the basename of the RST Discourse Treebank (e.g., file1.edus)
 - tokens: a list of lists of tokens in the document, as extracted from the
           PTB parse trees.
 - edu_strings: the character strings from the RSTDTB for each elementary
@@ -75,7 +75,7 @@ def main():
     logging.info(" Warnings related to minor issues that are difficult to" +
                  " resolve will be logged for the following files: " +
                  " file1.edus, file5.edus, wsj_0678.out.edus," +
-                 " wsj_1323.out.edus, and wsj_2343.out.edus." +
+                 " and wsj_2343.out.edus." +
                  " Multiple warnings 'not enough syntax trees'" +
                  " will be produced because the RSTDTB has footers that are" +
                  " not in the PTB (e.g., indicating where a story is" +
@@ -167,9 +167,12 @@ def main():
                     edu = edu.replace('. . .', '...')
 
                     # annoying edge cases
-                    if (path_basename == 'wsj_0660.out.edus'
-                            or path_basename == 'wsj_1368.out.edus'
-                            or path_basename == "wsj_1371.out.edus"):
+                    if path_basename == 'file1.edus':
+                        edu = edu.replace('founded by',
+                                          'founded by his grandfather.')
+                    elif (path_basename == 'wsj_0660.out.edus'
+                          or path_basename == 'wsj_1368.out.edus'
+                          or path_basename == "wsj_1371.out.edus"):
                         edu = edu.replace('S.p. A.', 'S.p.A.')
                     elif path_basename == 'wsj_1329.out.edus':
                         edu = edu.replace('G.m.b. H.', 'G.m.b.H.')
@@ -245,10 +248,11 @@ def main():
                         # PTB error: a sentence ends with an start quote.
                         edu = edu.replace('it down.', 'it down."')
                         edu = edu.replace('"It\'s a real"', "It's a real")
-                    elif path_basename == 'wsj_1323.out.edu':
+                    elif path_basename == 'wsj_1323.out.edus':
                         # PTB error (or at least a very unusual edge case):
                         # "--" ends a sentence.
                         edu = edu.replace('-- damn!', 'damn!')
+                        edu = edu.replace('from the hook', 'from the hook --')
                     elif path_basename == 'wsj_2303.out.edus':
                         # PTB error: a sentence ends with an start quote.
                         edu = edu.replace('Simpson in an interview.',

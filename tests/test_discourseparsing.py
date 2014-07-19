@@ -6,7 +6,6 @@ import logging
 from nltk.tree import ParentedTree
 
 from discourseparsing.extract_actions_from_trees import extract_parse_actions
-from discourseparsing.discourse_segmentation import extract_edus_tokens
 from discourseparsing.discourse_parsing import Parser
 
 
