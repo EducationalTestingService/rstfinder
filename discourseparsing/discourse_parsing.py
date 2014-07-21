@@ -146,7 +146,7 @@ class Parser(object):
 
         edu_start_indices = doc_dict['edu_start_indices'][head_idx]
         tree_idx, start_tok_idx, _ = edu_start_indices
-        tree = HeadedParentedTree(doc_dict['syntax_trees'][tree_idx])
+        tree = doc_dict['syntax_trees_objs'][tree_idx]
         end_tok_idx = start_tok_idx + len(head_words)
         preterminals = [x for x in tree.subtrees()
                         if isinstance(x[0], str)][start_tok_idx:end_tok_idx]
@@ -440,6 +440,15 @@ class Parser(object):
         tagged_edus = extract_tagged_doc_edus(doc_dict)
 
         sent = self.initialize_edu_data(tagged_edus)
+
+        # precompute syntax tree objects so this only needs to be done once
+        if 'syntax_trees_objs' not in doc_dict \
+                or len(doc_dict['syntax_trees_objs']) \
+                != len(doc_dict['syntax_trees']):
+            doc_dict['syntax_trees_objs'] = []
+            for tree_str in doc_dict['syntax_trees']:
+                doc_dict['syntax_trees_objs'].append(
+                    HeadedParentedTree(tree_str))
 
         # initialize the stack
         stack = []
