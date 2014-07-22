@@ -4,14 +4,24 @@ import re
 import argparse
 import subprocess
 import shlex
+import os
 
 from sklearn.metrics import f1_score, precision_score, recall_score
 
+from discourseparsing.make_segmentation_crfpp_template import make_segmentation_crfpp_template
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('train_path', help='The path to the training set .tsv file for CRF++')
-    parser.add_argument('dev_path', help='The path to the development set .tsv file for CRF++')
-    parser.add_argument('model_path_prefix', help='The path prefix for where the models should be stored.  Multiple files will be saved, for different hyperparameter settings.')
+    parser.add_argument('train_path',
+                        help='The path to the training set .tsv file for CRF++')
+    parser.add_argument('dev_path',
+                        help='The path to the development set .tsv file for CRF++')
+    parser.add_argument('model_path_prefix',
+                        help='The path prefix for where the models should be stored.  Multiple files will be saved, for different hyperparameter settings.')
+    parser.add_argument('--template_path',
+                        help='path to the CRF++ template for segmentation (this will be created if the file does not exist)',
+                        default='segmentation_crfpp_template.txt')
     args = parser.parse_args()
 
     best_f1 = -1
@@ -20,11 +30,21 @@ def main():
     best_C = None
     best_model_path = None
 
+    if not os.path.exists(args.template_path):
+        make_segmentation_crfpp_template(args.template_path)
+
     for C in [0.001, 0.01, 0.1, 1.0, 10.0, 100.0, 1000.0]:
         model_path = "{}.C{}".format(args.model_path_prefix, C)
-        subprocess.call(shlex.split('crf_learn segmentation_crfpp_template.txt {} {} -c {}'.format(args.train_path, model_path, C)))
-        crf_test_output = subprocess.check_output(shlex.split('crf_test -m {} {}'.format(model_path, args.dev_path))).decode('utf-8')
-        output_split = [re.split(r'\t', x)[-2:] for x in re.split(r'\n+', crf_test_output) if x.strip()]
+        subprocess.call(shlex.split(
+            'crf_learn {} {} {} -c {}'.format(args.template_path,
+                                              args.train_path,
+                                              model_path,
+                                              C)))
+        crf_test_output = subprocess.check_output(shlex.split(
+            'crf_test -m {} {}'.format(model_path, args.dev_path))).decode('utf-8')
+        output_split = [re.split(r'\t', x)[-2:]
+                        for x in re.split(r'\n+', crf_test_output)
+                        if x.strip()]
         gold = [1 if x[0] == 'B-EDU' else 0 for x in output_split]
         pred = [1 if x[1] == 'B-EDU' else 0 for x in output_split]
 
