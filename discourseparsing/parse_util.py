@@ -14,12 +14,13 @@ import nltk.data
 from nltk.tree import ParentedTree
 
 from discourseparsing.tree_util import (convert_parens_to_ptb_format,
-                                       TREE_PRINT_MARGIN)
+                                        TREE_PRINT_MARGIN)
 
 class SyntaxParserWrapper():
-    def __init__(self, zpar_directory='zpar', zpar_model_directory=None,
-                 hostname=None, port=None):
+    def __init__(self, zpar_directory='zpar',
+                 zpar_model_directory='zpar/english', hostname=None, port=None):
         self.zpar_directory = zpar_directory
+        self.zpar_model_directory = zpar_model_directory
         self.tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
         self._zpar_proxy = None
         self._zpar_ref = None
@@ -29,7 +30,8 @@ class SyntaxParserWrapper():
 
             # if no hostname was specified, then try the local machine
             hostname = 'localhost' if not hostname else hostname
-            logging.info('Trying to connect to zpar server at {}:{} ...'.format(hostname, port))
+            logging.info('Trying to connect to zpar server at {}:{} ...'
+                         .format(hostname, port))
 
             # try to see if a server actually exists
             connected, server_proxy = self._get_rpc(hostname, port)
@@ -43,7 +45,8 @@ class SyntaxParserWrapper():
 
             logging.info('Trying to locate zpar shared library ...')
 
-            # get the path to the zpar shared library via the environment variable
+            # get the path to the zpar shared library via the environment
+            # variable
             zpar_library_dir = os.getenv('ZPAR_LIBRARY_DIR', '')
             zpar_library_path = os.path.join(zpar_library_dir, 'zpar.so')
 
@@ -51,17 +54,21 @@ class SyntaxParserWrapper():
                 # Create a zpar wrapper data structure
                 self._zpar_ref = c.cdll.LoadLibrary(zpar_library_path)
             except OSError:
-                logging.warning('Could not find zpar shared library. Did you set ZPAR_LIBRARY_DIR correctly?')
+                logging.warning('Could not find zpar shared library. ' +
+                                'Did you set ZPAR_LIBRARY_DIR correctly?')
                 logging.warning('Falling back to subprocess mode.')
             else:
                 self._initialize_zpar()
 
-    # try to get the zpar server proxy, if one exists
-    def _get_rpc(self, hostname, port):
+    @staticmethod
+    def _get_rpc(hostname, port):
+        '''
+        tries to get the zpar server proxy, if one exists
+        '''
 
-        proxy = xmlrpc.client.ServerProxy('http://{}:{}'.format(hostname, port),
-                                                         use_builtin_types=True,
-                                                         allow_none=True)
+        proxy = xmlrpc.client.ServerProxy(
+            'http://{}:{}'.format(hostname, port),
+            use_builtin_types=True, allow_none=True)
         try:
             proxy._()
         except xmlrpc.client.Fault:
@@ -82,9 +89,9 @@ class SyntaxParserWrapper():
         parse_sentence.restype = c.c_char_p
         parse_sentence.argtypes = [c.c_char_p]
 
-        zpar_model_directory = os.path.join(self.zpar_directory, 'english')
-        if load_parser(zpar_model_directory.encode('utf-8')):
-            sys.stderr.write('Cannot find parser model at {}\n'.format(zpar_model_directory))
+        if load_parser(self.zpar_model_directory.encode('utf-8')):
+            sys.stderr.write('Cannot find parser model at {}\n'
+                             .format(self.zpar_model_directory))
             self._zpar_ref.unload_models()
             sys.exit(1)
 
@@ -105,15 +112,14 @@ class SyntaxParserWrapper():
 
         zpar_command = '{} {} -oc {}'.format(
             os.path.join(self.zpar_directory, 'dist', 'zpar.en'),
-            os.path.join(self.zpar_directory, "english"),
-            tmpfile.name)
+            self.zpar_model_directory, tmpfile.name)
         zpar_output = subprocess.check_output(
             shlex.split(zpar_command)).decode('utf-8')
 
         tmpfile.close()
 
         # zpar.en outputs constituent trees, 1 per line, with the "-oc" option
-        # the first 3 and last 2 lines are stuff that should be on stderr
+        # the first 3 and last 1 lines are stuff that should be on stderr
         res = [ParentedTree(s) for s
                in zpar_output.strip().split('\n')[3:-1]]
         logging.debug('syntax parsing results: {}'.format(
@@ -133,7 +139,8 @@ class SyntaxParserWrapper():
                 sys.exit(1)
             else:
                 res.append(ParentedTree(parsed_sent))
-                logging.debug('syntax parsing results: {}'.format([t.pprint(margin=TREE_PRINT_MARGIN) for t in res]))
+                logging.debug('syntax parsing results: {}'.format(
+                    [t.pprint(margin=TREE_PRINT_MARGIN) for t in res]))
 
         return res
 
@@ -141,9 +148,11 @@ class SyntaxParserWrapper():
         sentences = self.tokenize_document(doc)
         res = []
         for sentence in sentences:
-            parsed_sent = self._zpar_ref.parse_sentence(sentence.encode("utf-8"))
+            parsed_sent = self._zpar_ref.parse_sentence(
+                sentence.encode("utf-8"))
             res.append(ParentedTree(parsed_sent.decode('utf-8')))
-        logging.debug('syntax parsing results: {}'.format([t.pprint(margin=TREE_PRINT_MARGIN) for t in res]))
+        logging.debug('syntax parsing results: {}'.format(
+            [t.pprint(margin=TREE_PRINT_MARGIN) for t in res]))
 
         return res
 

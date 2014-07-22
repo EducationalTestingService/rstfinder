@@ -14,7 +14,8 @@ import argparse
 from discourseparsing.discourse_segmentation import (Segmenter,
                                                      extract_edus_tokens)
 from discourseparsing.tree_util import (extract_preterminals,
-                                        extract_converted_terminals)
+                                        extract_converted_terminals,
+                                        TREE_PRINT_MARGIN)
 from discourseparsing.parse_util import SyntaxParserWrapper
 
 
@@ -41,7 +42,7 @@ def main():
                 for preterminals_sentence in preterminals]
 
     doc_dict = {"tokens": tokens_doc,
-                "syntax_trees": [t.pprint() for t in trees],
+                "syntax_trees": [t.pprint(TREE_PRINT_MARGIN) for t in trees],
                 "token_tree_positions": token_tree_positions,
                 "pos_tags": pos_tags}
 
