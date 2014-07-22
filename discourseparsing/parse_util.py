@@ -7,9 +7,9 @@ import os
 from tempfile import NamedTemporaryFile
 
 import nltk.data
+from nltk.tree import ParentedTree
 
-from discourseparsing.tree_util import (ParentedTree,
-                                        convert_parens_to_ptb_format,
+from discourseparsing.tree_util import (convert_parens_to_ptb_format,
                                         TREE_PRINT_MARGIN)
 
 
