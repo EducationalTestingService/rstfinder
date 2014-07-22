@@ -62,9 +62,10 @@ def _collapse_rst_label(label):
         relation = "TEMPORAL"
     elif re.search(r'^(topic-.*)', relation_lc):
         relation = "TOPICCHANGE"
-    #relation = res.lower()
-    # elif re.search(r'^(span|same\-unit|textualorganization)', relation_lc):
-    #    res = label
+    elif re.search(r'^(span|same\-unit|textualorganization)$', relation_lc):
+        pass
+    else:
+        raise ValueError('unknown relation type in label: {}'.format(label))
 
     # TODO make this all upper case (to resemble PTB nonterminals)
     res = "{}:{}".format(direction, relation).lower()
