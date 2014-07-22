@@ -204,6 +204,20 @@ class HeadedParentedTree(ParentedTree):
 
         return self._head
 
+    def find_maximal_head_node(self):
+        '''
+        Finds the topmost node that has this node as its head.
+        Returns itself if the parent has a different head
+        '''
+        res = self
+        parent = res.parent()
+        while parent is not None and parent.head() == res:
+            res = parent
+            parent = res.parent()
+
+        return res
+
+
     def head_preterminal(self):
         res = self
         while not isinstance(res[0], str):
