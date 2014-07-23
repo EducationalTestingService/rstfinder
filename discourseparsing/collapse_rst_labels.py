@@ -49,6 +49,8 @@ def _collapse_rst_label(label):
     elif re.search(r'^(problem\-solution|question\-answer|statement\-response|topic\-comment|comment\-topic|rhetorical\-question)', relation_lc):
         relation = "TOPICCOMMENT"
     elif re.search(r'^(evaluation|interpretation|conclusion|comment)', relation_lc):
+        # note that this check for "comment" needs to come after the one
+        # above that looks for "comment-topic"
         relation = "EVALUATION"
     elif re.search(r'^(evidence|explanation.*|reason)', relation_lc):
         relation = "EXPLANATION"
