@@ -60,6 +60,12 @@ class SyntaxParserWrapper():
             else:
                 self._initialize_zpar()
 
+    def __del__(self):
+        if self._zpar_ref:
+            unload_models = self._zpar_ref.unload_models
+            unload_models.restype = None
+            unload_models()
+
     @staticmethod
     def _get_rpc(hostname, port):
         '''
