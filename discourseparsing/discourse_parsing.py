@@ -175,51 +175,44 @@ class Parser(object):
         # initialize some local variables for top stack and next queue items
         s0 = stack[-1]
         s1 = {"nt": "TOP", "head": [Parser.leftwall_w],
-              "hpos": [Parser.leftwall_p], "tree": [], "start_idx": -1,
+              "hpos": [Parser.leftwall_p], "tree": None, "start_idx": -1,
               "end_idx": -1, "head_idx": -1}
         s2 = {"nt": "TOP", "head": [Parser.leftwall_w],
-              "hpos": [Parser.leftwall_p], "tree": [], "start_idx": -1,
-              "end_idx": -1, "head_idx": -1}
-        s3 = {"nt": "TOP", "head": [Parser.leftwall_w],
-              "hpos": [Parser.leftwall_p], "tree": [], "start_idx": -1,
+              "hpos": [Parser.leftwall_p], "tree": None, "start_idx": -1,
               "end_idx": -1, "head_idx": -1}
         stack_len = len(stack)
         if stack_len > 1:
             s1 = stack[stack_len - 2]
         if stack_len > 2:
             s2 = stack[stack_len - 3]
-        if stack_len > 3:
-            s3 = stack[stack_len - 4]
 
         q0w = [Parser.rightwall_w]
         q0p = [Parser.rightwall_p]
-        q1w = [Parser.rightwall_w]
-        q1p = [Parser.rightwall_p]
         if len(queue) > 0:
             q0w = queue[0]["head"]
             q0p = queue[0]["hpos"]
-        if len(queue) > 1:
-            q1w = queue[1]["head"]
-            q1p = queue[1]["hpos"]
 
         # previous action feature
         feats.append("PREV:{}:{}".format(prevact.type, prevact.label))
 
         # stack nonterminal symbol features
         feats.append("S0nt:{}".format(s0["nt"]))
-        if len(s0["tree"]) > 0 and isinstance(s0["tree"][0], Tree):
-            feats.append("S0lnt:{}".format(s0["tree"][0].label()))
-            feats.append("S0rnt:{}".format(s0["tree"][-1].label()))
+        if s0["tree"] and s0["tree"].label() != "text":
+            for child in s0["tree"]:
+                feats.append("S0childnt:{}".format(child.label()))
 
         feats.append("S1nt:{}".format(s1["nt"]))
-        if len(s1["tree"]) > 0  and isinstance(s1["tree"][0], Tree):
-            feats.append("S1lnt:{}".format(s1["tree"][0].label()))
-            feats.append("S1rnt:{}".format(s1["tree"][-1].label()))
+        if s1["tree"] and s1["tree"].label() != "text":
+            for child in s1["tree"]:
+                feats.append("S1childnt:{}".format(child.label()))
 
         feats.append("S2nt:{}".format(s2["nt"]))
-        feats.append("S3nt:{}".format(s3["nt"]))
+        if s2["tree"] and s2["tree"].label() != "text":
+            for child in s2["tree"]:
+                feats.append("S2childnt:{}".format(child.label()))
 
         feats.append("S0nt:{}^S1nt:{}".format(s0["nt"], s1["nt"]))
+        feats.append("S1nt:{}^S2nt:{}".format(s1["nt"], s2["nt"]))
 
         # features for the words and POS tags of the heads of the first and
         # last tokens of the heads of the top stack and next input queue items
@@ -227,12 +220,21 @@ class Parser(object):
         Parser._add_word_and_pos_feats(feats, 'S1', s1['head'], s1['hpos'])
         Parser._add_word_and_pos_feats(feats, 'S2', s2['head'], s2['hpos'])
         Parser._add_word_and_pos_feats(feats, 'Q0', q0w, q0p)
-        Parser._add_word_and_pos_feats(feats, 'Q1', q1w, q1p)
+        #TODO Q1?
 
         # EDU head distance feature
         # (this is in EDUs, not tokens, and -1 is for the left wall)
-        dist = s0.get("head_idx") - s1.get("head_idx")
-        feats.append("dist:{}".format(dist))
+        distS0S1 = s0.get("head_idx") - s1.get("head_idx")
+        distS1S2 = s1.get("head_idx") - s2.get("head_idx")
+        if len(queue) > 0:
+            distQ0S0 = queue[0].get("head_idx") - s0.get("head_idx")
+        for i in range(1, 5):
+            if distS0S1 > i:
+                feats.append("distS0S1>{}".format(i))
+            if distS1S2 > i:
+                feats.append("distS1S2>{}".format(i))
+            if len(queue) > 0 and distQ0S0 > i:
+                feats.append("distQ0S0>{}".format(i))
 
         # whether the EDUS are in the same sentence
         # (edu_start_indices is a list of (sentence #, token #, EDU #) tuples.
@@ -240,9 +242,13 @@ class Parser(object):
         start_indices = doc_dict['edu_start_indices']
         s0_idx = s0["head_idx"]
         s1_idx = s1["head_idx"]
+        s2_idx = s2["head_idx"]
         if s0_idx > -1 and s1_idx > -1 and \
                 start_indices[s0_idx][0] == start_indices[s1_idx][0]:
             feats.append("S0S1_same_sentence")
+        if s1_idx > -1 and s2_idx > -1 and \
+                start_indices[s1_idx][0] == start_indices[s2_idx][0]:
+            feats.append("S1S2_same_sentence")
         if queue and s0_idx > -1 and \
                 (start_indices[queue[0]["head_idx"]][0]
                  == start_indices[s0_idx][0]):
@@ -251,6 +257,7 @@ class Parser(object):
         # features of EDU heads
         head_node_s0 = Parser._find_edu_head_node(s0, doc_dict)
         head_node_s1 = Parser._find_edu_head_node(s1, doc_dict)
+        head_node_s2 = Parser._find_edu_head_node(s2, doc_dict)
         head_node_q0 = Parser._find_edu_head_node(queue[0], doc_dict) \
             if queue else None
         if head_node_s0:
@@ -261,6 +268,10 @@ class Parser(object):
             feats.append('S1headnt:{}'.format(head_node_s1.label()))
             feats.append('S1headw:{}'.format(head_node_s1.head_word()))
             feats.append('S1headp:{}'.format(head_node_s1.head_pos()))
+        if head_node_s2:
+            feats.append('S2headnt:{}'.format(head_node_s2.label()))
+            feats.append('S2headw:{}'.format(head_node_s2.head_word()))
+            feats.append('S2headp:{}'.format(head_node_s2.head_pos()))
         if head_node_q0:
             feats.append('Q0headnt:{}'.format(head_node_q0.label()))
             feats.append('Q0headw:{}'.format(head_node_q0.head_word()))
