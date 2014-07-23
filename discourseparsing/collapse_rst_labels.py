@@ -46,6 +46,8 @@ def _collapse_rst_label(label):
         relation = "ELABORATION"
     elif re.search(r'^(purpose|enablement)', relation_lc):
         relation = "ENABLEMENT"
+    elif re.search(r'^(problem\-solution|question\-answer|statement\-response|topic\-comment|comment\-topic|rhetorical\-question)', relation_lc):
+        relation = "TOPICCOMMENT"
     elif re.search(r'^(evaluation|interpretation|conclusion|comment)', relation_lc):
         relation = "EVALUATION"
     elif re.search(r'^(evidence|explanation.*|reason)', relation_lc):
@@ -54,8 +56,6 @@ def _collapse_rst_label(label):
         relation = "JOINT"
     elif re.search(r'^(manner|means)', relation_lc):
         relation = "MANNERMEANS"
-    elif re.search(r'^(problem\-solution|question\-answer|statement\-response|topic\-comment|comment\-topic|rhetorical\-question)', relation_lc):
-        relation = "TOPICCOMMENT"
     elif re.search(r'^(summary|restatement)', relation_lc):
         relation = "SUMMARY"
     elif re.search(r'^(temporal\-.*|sequence|inverted\-sequence)', relation_lc):
