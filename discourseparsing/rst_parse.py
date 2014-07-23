@@ -3,6 +3,8 @@
 import logging
 import json
 
+import cchardet
+
 from discourseparsing.discourse_parsing import Parser
 from discourseparsing.discourse_segmentation import (Segmenter,
                                                      extract_edus_tokens)
@@ -20,17 +22,6 @@ def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
     '''
 
     if 'syntax_trees' not in doc_dict:
-        # #TODO remove this debugging stuff for skipping syntax parsing
-        # import os
-        # from nltk.tree import ParentedTree
-        # if os.path.exists('tmp_trees'):
-        #     with open('tmp_trees') as f:
-        #         trees = [ParentedTree(line.strip()) for line in f]
-        # else:
-        #     trees = syntax_parser.parse_document(doc_dict['raw_text'])
-        #     with open('tmp_trees', 'w') as f:
-        #         for t in trees:
-        #             print(t.pprint(TREE_PRINT_MARGIN), file=f)
         trees = syntax_parser.parse_document(doc_dict['raw_text'])
         doc_dict['syntax_trees'] = [t.pprint(margin=TREE_PRINT_MARGIN)
                                     for t in trees]
@@ -56,10 +47,9 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('input_files',
+    parser.add_argument('input_paths',
                         nargs='+',
-                        help='A document to segment and parse.',
-                        type=argparse.FileType('r'))
+                        help='A document to segment and parse.')
     parser.add_argument('-g', '--segmentation_model',
                         help='Path to segmentation model.',
                         required=True)
@@ -75,7 +65,10 @@ def main():
                         help='Maximum number of states to retain for \
                               best-first search',
                         type=int, default=1)
-    parser.add_argument('-z', '--zpar_directory', default='zpar')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-z', '--zpar_directory', default='zpar')
+    group.add_argument('-zp', '--zpar_port', type=int)
+    parser.add_argument('-zh', '--zpar_hostname', default=None)
     parser.add_argument('-v', '--verbose',
                         help='Print more status information. For every ' +
                         'additional time this flag is specified, ' +
@@ -94,7 +87,9 @@ def main():
 
     # read the models
     logger.info('Loading models')
-    syntax_parser = SyntaxParserWrapper(args.zpar_directory)
+    syntax_parser = SyntaxParserWrapper(zpar_directory=args.zpar_directory,
+                                        port=args.zpar_port,
+                                        hostname=args.zpar_hostname)
     segmenter = Segmenter(args.segmentation_model)
 
     parser = Parser(max_acts=args.max_acts,
@@ -102,18 +97,27 @@ def main():
                     n_best=args.n_best)
     parser.load_model(args.parsing_model)
 
-    for input_file in args.input_files:
-        doc = input_file.read().strip()
+    for input_path in args.input_paths:
+        logger.info('rst_parse input file: %s', input_path)
+        with open(input_path, 'rb') as input_file:
+            doc = input_file.read()
+            chardet_output = cchardet.detect(doc)
+            encoding = chardet_output['encoding']
+            encoding_confidence = chardet_output['confidence']
+            logging.debug('decoding as {} with {} confidence'
+                          .format(encoding, encoding_confidence))
+            doc = doc.decode(encoding).strip()
+
         logger.debug('rst_parse input: %s', doc)
         doc_dict = {"raw_text": doc}
 
         edu_tokens, complete_trees = segment_and_parse(doc_dict, syntax_parser,
                                                        segmenter, parser)
 
-        print(json.dumps({"edu_tokens": edu_tokens,
-                          "scored_rst_trees": [{"score": tree["score"],
-                                                "tree": tree["tree"].pprint(margin=TREE_PRINT_MARGIN)}
-                                               for tree in complete_trees]}))
+        print(json.dumps({"edu_tokens": edu_tokens, \
+            "scored_rst_trees": [{"score": tree["score"], "tree": tree["tree"] \
+                                  .pprint(margin=TREE_PRINT_MARGIN)}
+                                 for tree in complete_trees]}))
 
 
 if __name__ == '__main__':
