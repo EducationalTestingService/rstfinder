@@ -4,7 +4,7 @@ Setup
 
 This repository is pip-installable.  To make it work properly, I recommend running `pip install -e .` to set it up.  This will make a local, editable copy in your python environment.
 
-Additionally, the code expects by default for a directory `zpar` to be in the current working directory.  This should contain the ZPar distribution (version 0.6), along with the English models in a subdirectory `english`.  This `zpar` directory can be a symbolic link.
+Additionally, the syntactic parsing code must be set up to use ZPar.  The simplest but least efficient way is to put the ZPar distribution (version 0.6) in a subdirectory `zpar` (or symbolic link) in the current working directory, along with the English models in a subdirectory `zpar/english`.  For efficiency, a better method is to use the `python-zpar` wrapper, which is currently available at `https://bitbucket.org/desilinguist/python-zpar`.  To set this up, run make and then either a) set an environment variable `ZPAR_LIBRARY_DIR` equal to the directory where `zpar.so` is created (e.g., `/Users/USER1/python-zpar/dist`) to run ZPar as part of the discourse parser, or b) start a separate server using python-zpar's `zpar_server.py`.
 
 Input Preparation
 =================
