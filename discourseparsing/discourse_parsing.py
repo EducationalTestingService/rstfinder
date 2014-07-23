@@ -335,10 +335,8 @@ class Parser(object):
 
     @staticmethod
     def process_action(act, queue, stack):
-        # The R action reduces the stack, creating a non-terminal node
-        # with a lexical head coming from the left child
-        # (this is a confusing name, but it refers to the direction of
-        # the dependency arrow).
+        # The B action reduces 2 stack items, creating a non-terminal node,
+        # with the head determined by nuclearity.
         if act.type == "B":
             tmp_rc = stack.pop()
             tmp_lc = stack.pop()
@@ -346,35 +344,40 @@ class Parser(object):
             new_tree.append(tmp_lc["tree"])
             new_tree.append(tmp_rc["tree"])
 
-            # Reduce right, making the left node the head
-            # because it is the nucleus (or a partial tree containing the
-            # nucleus, indicated by a * suffix) or the leftwall.
-            if tmp_lc["nt"].startswith('nucleus:') \
-                    or tmp_lc["nt"].endswith('*') \
-                    or (act.type == 'B' and act.label == 'ROOT'):
-                tmp_item = {"head_idx": tmp_lc["head_idx"],
-                            "start_idx": tmp_lc["start_idx"],
-                            "end_idx": tmp_rc["end_idx"],
-                            "nt": act.label,
-                            "tree": new_tree,
-                            "head": tmp_lc["head"],
-                            "hpos": tmp_lc["hpos"]}
-            # Reduce left, making the right node the head
-            # because it is the nucleus (or a partial tree containing the
-            # nucleus, indicated by a * suffix)
-            elif tmp_rc["nt"].startswith('nucleus:') \
-                    or tmp_rc["nt"].endswith('*'):
-                tmp_item = {"head_idx": tmp_rc["head_idx"],
-                            "start_idx": tmp_lc["start_idx"],
-                            "end_idx": tmp_rc["end_idx"],
-                            "nt": act.label,
-                            "tree": new_tree,
-                            "head": tmp_rc["head"],
-                            "hpos": tmp_rc["hpos"]}
+            left_is_nucleus = (tmp_lc["nt"].startswith('nucleus:')
+                               or tmp_lc["nt"].endswith('*')
+                               or (act.type == 'B' and act.label == 'ROOT'))
+            right_is_nucleus = (tmp_rc['nt'].startswith("nucleus")
+                                or tmp_rc["nt"].endswith('*'))
+
+            # The commented code below concatenates head tokens when there are
+            # multiple nuclei, rather than just taking the leftmost.
+            # if left_is_nucleus and right_is_nucleus:
+            #     new_head = tmp_lc["head"] + tmp_rc["head"]
+            #     new_hpos = tmp_lc["hpos"] + tmp_rc["hpos"]
+            #     # choose the left somewhat arbitrarily here
+            #     new_head_idx = tmp_lc["head_idx"]
+            # elif left_is_nucleus:
+            if left_is_nucleus:
+                new_head = tmp_lc["head"]
+                new_hpos = tmp_lc["hpos"]
+                new_head_idx = tmp_lc["head_idx"]
+            elif right_is_nucleus:
+                new_head = tmp_rc["head"]
+                new_hpos = tmp_rc["hpos"]
+                new_head_idx = tmp_rc["head_idx"]
             else:
                 raise ValueError("Unexpected binary reduce.\n" +
                                  "act = {}:{}\n tmp_lc = {}\ntmp_rc = {}"
                                  .format(act.type, act.label, tmp_lc, tmp_rc))
+
+            tmp_item = {"head_idx": new_head_idx,
+                        "start_idx": tmp_lc["start_idx"],
+                        "end_idx": tmp_rc["end_idx"],
+                        "nt": act.label,
+                        "tree": new_tree,
+                        "head": new_head,
+                        "hpos": new_hpos}
 
             stack.append(tmp_item)
 

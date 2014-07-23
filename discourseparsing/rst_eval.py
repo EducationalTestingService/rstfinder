@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 
+from collections import Counter
+import itertools
 import json
 import logging
+from operator import itemgetter
 
 from nltk.tree import ParentedTree
 
@@ -64,10 +67,18 @@ def compute_rst_eval_results(pred_edu_tokens_lists, pred_trees,
     labeled_precision, labeled_recall, labeled_f1 \
         = compute_p_r_f1(gold_tuples, pred_tuples)
 
-    # logging.info('false positives: {}'.format(
-    #     sorted(pred_tuples - gold_tuples)))
-    # logging.info('false negatives: {}'.format(
-    #     sorted(gold_tuples - pred_tuples)))
+    logging.info('false positives: {}'.format(
+        sorted(Counter([x[1] for x in pred_tuples - gold_tuples]).items(),
+               key=itemgetter(1))))
+    logging.info('false negatives: {}'.format(
+        sorted(Counter([x[1] for x in gold_tuples - pred_tuples]).items(),
+               key=itemgetter(1))))
+    # confusions = [(x[1], y[1]) for x, y in
+    #               itertools.product(gold_tuples, pred_tuples)
+    #               if x[0] == y[0] and x[2:3] == y[2:3] and x[1] != y[1]]
+    # logging.info('confusions (x, y): {}'.format(
+    #     sorted(Counter(confusions).items(),
+    #            key=itemgetter(1))))
 
     # Compute p/r/f1 for spans + nuclearity.
     gold_tuples = {(tup[0], tup[1].split(':')[0], tup[2], tup[3])
