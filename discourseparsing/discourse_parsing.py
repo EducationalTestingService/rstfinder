@@ -266,10 +266,6 @@ class Parser(object):
             feats.append('Q0headw:{}'.format(head_node_q0.head_word()))
             feats.append('Q0headp:{}'.format(head_node_q0.head_pos()))
 
-        # TODO features for the head words of the EDUS
-
-        # TODO parse tree nonterminal features?
-
         # combinations of features with the previous action
         # for i in range(len(feats)):
         #     feat = feats[i]
@@ -564,7 +560,7 @@ class Parser(object):
             if gold_actions is None:
                 scored_acts = [x for x in scored_acts
                                if self.is_valid_action(x[0], ucnt, queue,
-                               stack)]
+                                                       stack)]
             else:
                 for x in scored_acts:
                     assert self.is_valid_action(x[0], ucnt, queue, stack)
