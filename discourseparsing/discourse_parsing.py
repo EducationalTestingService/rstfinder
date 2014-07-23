@@ -164,7 +164,7 @@ class Parser(object):
         return res
 
     @staticmethod
-    def mkfeats(prevact, sent, stack, doc_dict):
+    def mkfeats(prevact, queue, stack, doc_dict):
         '''
         get features of the parser state represented
         by the current stack and queue
@@ -174,12 +174,15 @@ class Parser(object):
 
         # initialize some local variables for top stack and next queue items
         s0 = stack[-1]
-        s1 = {"nt": "TOP", "head": [Parser.leftwall_w], "hpos": [Parser.leftwall_p],
-              "tree": [], "start_idx": -1, "end_idx": -1, "head_idx": -1}
-        s2 = {"nt": "TOP", "head": [Parser.leftwall_w], "hpos": [Parser.leftwall_p],
-              "tree": [], "start_idx": -1, "end_idx": -1, "head_idx": -1}
-        s3 = {"nt": "TOP", "head": [Parser.leftwall_w], "hpos": [Parser.leftwall_p],
-              "tree": [], "start_idx": -1, "end_idx": -1, "head_idx": -1}
+        s1 = {"nt": "TOP", "head": [Parser.leftwall_w],
+              "hpos": [Parser.leftwall_p], "tree": [], "start_idx": -1,
+              "end_idx": -1, "head_idx": -1}
+        s2 = {"nt": "TOP", "head": [Parser.leftwall_w],
+              "hpos": [Parser.leftwall_p], "tree": [], "start_idx": -1,
+              "end_idx": -1, "head_idx": -1}
+        s3 = {"nt": "TOP", "head": [Parser.leftwall_w],
+              "hpos": [Parser.leftwall_p], "tree": [], "start_idx": -1,
+              "end_idx": -1, "head_idx": -1}
         stack_len = len(stack)
         if stack_len > 1:
             s1 = stack[stack_len - 2]
@@ -192,12 +195,12 @@ class Parser(object):
         q0p = [Parser.rightwall_p]
         q1w = [Parser.rightwall_w]
         q1p = [Parser.rightwall_p]
-        if len(sent) > 0:
-            q0w = sent[0]["head"]
-            q0p = sent[0]["hpos"]
-        if len(sent) > 1:
-            q1w = sent[1]["head"]
-            q1p = sent[1]["hpos"]
+        if len(queue) > 0:
+            q0w = queue[0]["head"]
+            q0p = queue[0]["hpos"]
+        if len(queue) > 1:
+            q1w = queue[1]["head"]
+            q1p = queue[1]["hpos"]
 
         # previous action feature
         feats.append("PREV:{}:{}".format(prevact.type, prevact.label))
@@ -235,22 +238,25 @@ class Parser(object):
         # (edu_start_indices is a list of (sentence #, token #, EDU #) tuples.
         # Also, EDUs don't cross sentence boundaries.)
         start_indices = doc_dict['edu_start_indices']
-        s0_start_idx = s0["start_idx"]
-        s1_end_idx = s1["end_idx"]
-        if s0_start_idx > -1 and s1_end_idx > -1 and \
-                start_indices[s0_start_idx][0] == start_indices[s1_end_idx][0]:
+        s0_idx = s0["head_idx"]
+        s1_idx = s1["head_idx"]
+        if s0_idx > -1 and s1_idx > -1 and \
+                start_indices[s0_idx][0] == start_indices[s1_idx][0]:
             feats.append("S0S1_same_sentence")
+        if queue and s0_idx > -1 and \
+                (start_indices[queue[0]["head_idx"]][0]
+                 == start_indices[s0_idx][0]):
+            feats.append("Q0S0_same_sentence")
 
         # features of EDU heads
         head_node_s0 = Parser._find_edu_head_node(s0, doc_dict)
         head_node_s1 = Parser._find_edu_head_node(s1, doc_dict)
-        head_node_q0 = Parser._find_edu_head_node(sent[0], doc_dict) \
-            if sent else None
+        head_node_q0 = Parser._find_edu_head_node(queue[0], doc_dict) \
+            if queue else None
         if head_node_s0:
             feats.append('S0headnt:{}'.format(head_node_s0.label()))
             feats.append('S0headw:{}'.format(head_node_s0.head_word()))
             feats.append('S0headp:{}'.format(head_node_s0.head_pos()))
-            #logging.info('\nHEAD EDU: {}\nFEATS: {}\nTREE: {}\n'.format(' '.join(s0['head']), str(feats[-3:]), doc_dict['syntax_trees'][doc_dict['edu_start_indices'][s0['head_idx']][0]] if s0['head_idx'] > -1 else ""))
         if head_node_s1:
             feats.append('S1headnt:{}'.format(head_node_s1.label()))
             feats.append('S1headw:{}'.format(head_node_s1.head_word()))
@@ -274,7 +280,7 @@ class Parser(object):
         return feats
 
     @staticmethod
-    def is_valid_action(act, ucnt, sent, stack):
+    def is_valid_action(act, ucnt, queue, stack):
         if act.type == "U":
             # Do not allow too many consecutive unary reduce actions.
             if ucnt > 2:
@@ -290,7 +296,7 @@ class Parser(object):
                 return False
 
         # Do not allow shift if there is nothing left to shift.
-        if act.type == "S" and not sent:
+        if act.type == "S" and not queue:
             return False
 
         # Do not allow a binary reduce unless there are at least two items in
@@ -299,7 +305,7 @@ class Parser(object):
         # a nucleus, as indicated by a * suffix).
         if act.type == "B":
             # Do not allow B:ROOT unless we will have a complete parse.
-            if act.label == "ROOT" and (len(stack) != 2 or sent):
+            if act.label == "ROOT" and (len(stack) != 2 or queue):
                 return False
 
             # Make sure there are enough items to reduce
@@ -328,7 +334,7 @@ class Parser(object):
         return True
 
     @staticmethod
-    def process_action(act, sent, stack):
+    def process_action(act, queue, stack):
         # The R action reduces the stack, creating a non-terminal node
         # with a lexical head coming from the left child
         # (this is a confusing name, but it refers to the direction of
@@ -389,7 +395,7 @@ class Parser(object):
         # The S action gets the next input token
         # and puts it on the stack.
         if act.type == "S":
-            stack.append(sent.pop(0))
+            stack.append(queue.pop(0))
 
     @staticmethod
     def initialize_edu_data(edus):
@@ -439,7 +445,7 @@ class Parser(object):
         completetrees = []
         tagged_edus = extract_tagged_doc_edus(doc_dict)
 
-        sent = self.initialize_edu_data(tagged_edus)
+        queue = self.initialize_edu_data(tagged_edus)
 
         # precompute syntax tree objects so this only needs to be done once
         if 'syntax_trees_objs' not in doc_dict \
@@ -471,7 +477,7 @@ class Parser(object):
                      "score": 0.0,  # log probability
                      "nsteps": 0,
                      "stack": stack,
-                     "sent": sent}
+                     "queue": queue}
         states.append(tmp_state)
 
         # loop while there are states to process
@@ -487,7 +493,7 @@ class Parser(object):
                                   len(states)))
 
             # check if the current state corresponds to a complete tree
-            if len(cur_state["sent"]) == 0 and len(cur_state["stack"]) == 1:
+            if len(cur_state["queue"]) == 0 and len(cur_state["stack"]) == 1:
                 tree = cur_state["stack"][0]["tree"]
 
                 # remove the dummy LEFTWALL node
@@ -511,12 +517,12 @@ class Parser(object):
                 continue
 
             stack = cur_state["stack"]
-            sent = cur_state["sent"]
+            queue = cur_state["queue"]
             prevact = cur_state["prevact"]
             ucnt = cur_state["ucnt"]
 
             # extract features
-            feats = self.mkfeats(prevact, sent, stack, doc_dict)
+            feats = self.mkfeats(prevact, queue, stack, doc_dict)
 
             # Compute the possible actions given this state.
             # During training, print them out.
@@ -539,9 +545,9 @@ class Parser(object):
                 scored_acts.append(ScoredAction(act, 0.0))  # logprob
             else:
                 vectorizer = self.model.feat_vectorizer
-                examples = skll.data.ExamplesTuple(None, None,
-                                                   vectorizer.transform(Counter(feats)),
-                                                   vectorizer)
+                examples = skll.data.ExamplesTuple(
+                    None, None, vectorizer.transform(Counter(feats)),
+                    vectorizer)
                 scores = [np.log(x) for x in self.model.predict(examples)[0]]
 
                 # Convert the string labels from the classifier back into
@@ -550,16 +556,15 @@ class Parser(object):
                                          scores),
                                      key=itemgetter(1),
                                      reverse=True)
-                #print('\n'.join(['{} {:.4g}'.format(x.action, x.score) for x in scored_acts]), file=sys.stderr)
-                #print('\n', file=sys.stderr)
 
             # If parsing, verify the validity of the actions.
             if gold_actions is None:
                 scored_acts = [x for x in scored_acts
-                               if self.is_valid_action(x[0], ucnt, sent, stack)]
+                               if self.is_valid_action(x[0], ucnt, queue,
+                               stack)]
             else:
                 for x in scored_acts:
-                    assert self.is_valid_action(x[0], ucnt, sent, stack)
+                    assert self.is_valid_action(x[0], ucnt, queue, stack)
 
             # Don't exceed the maximum number of actions
             # to consider for a parser state.
@@ -573,7 +578,7 @@ class Parser(object):
                     # the reduce actions do not modify the subtrees.  They
                     # only create new trees that have them as children.
                     # This ends up making something like a parse forest.
-                    sent = list(cur_state["sent"])
+                    queue = list(cur_state["queue"])
                     stack = list(cur_state["stack"])
                 prevact = cur_state["prevact"]
                 ucnt = cur_state["ucnt"]
@@ -584,7 +589,7 @@ class Parser(object):
                 # Otherwise, reset it.
                 ucnt = ucnt + 1 if action.type == "U" else 0
 
-                self.process_action(action, sent, stack)
+                self.process_action(action, queue, stack)
 
                 # Add the newly created state
                 tmp_state = {"prevact": action,
@@ -592,7 +597,7 @@ class Parser(object):
                              "score": cur_state["score"] + score,
                              "nsteps": cur_state["nsteps"] + 1,
                              "stack": stack,
-                             "sent": sent}
+                             "queue": queue}
                 states.append(tmp_state)
 
         if not completetrees:
