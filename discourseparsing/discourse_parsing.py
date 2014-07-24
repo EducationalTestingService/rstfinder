@@ -35,6 +35,7 @@ originally written by Kenji Sagae in perl.
 
 import os
 import re
+import itertools
 import logging
 from collections import namedtuple, Counter
 from operator import itemgetter
@@ -171,6 +172,26 @@ class Parser(object):
         return res
 
     @staticmethod
+    def syntactically_dominates(node1, node2):
+        '''
+        This returns True if the two nodes are in the same tree and node1 is
+        an ancestor of node2.
+        '''
+        if node1 is None or node2 is None or node1.root() != node2.root():
+            return False
+        tp1 = node1.treeposition()
+        tp2 = node2.treeposition()
+
+        # Return False if node 1 is deeper in the tree.
+        if len(tp1) >= len(tp2):
+            return False
+
+        # The treeposition (i.e., sequence of child indices from the root)
+        # of node1 should be a prefix of the treeposition of node2
+        res = (tp1 == tp2[:len(tp1)])
+        return res
+
+    @staticmethod
     def mkfeats(prevact, queue, stack, doc_dict):
         '''
         get features of the parser state represented
@@ -227,7 +248,6 @@ class Parser(object):
         Parser._add_word_and_pos_feats(feats, 'S1', s1['head'], s1['hpos'])
         Parser._add_word_and_pos_feats(feats, 'S2', s2['head'], s2['hpos'])
         Parser._add_word_and_pos_feats(feats, 'Q0', q0w, q0p)
-        #TODO Q1?
 
         # EDU head distance feature
         # (this is in EDUs, not tokens, and -1 is for the left wall)
@@ -284,13 +304,18 @@ class Parser(object):
             feats.append('Q0headw:{}'.format(head_node_q0.head_word()))
             feats.append('Q0headp:{}'.format(head_node_q0.head_pos()))
 
-        # combinations of features with the previous action
-        # for i in range(len(feats)):
-        #     feat = feats[i]
-        #     # Do not include duplicates.
-        #     if not feat.startswith('PREV:'):
-        #         feats.append("combo:{}^PREV:{}:{}"
-        #                      .format(feats[i], prevact.type, prevact.label))
+        # syntactic dominance features between contiguous stack/queue items:
+        # Q0S0, S0S1, and S1S2.  (This is similar to Feng & Hirst, ACL 2014,
+        # and also vaguely similar to Soricut & Marcu, 2003.)
+        label_node_tuples = [('Q0', head_node_q0), ('S0', head_node_s0),
+                             ('S1', head_node_s1), ('S2', head_node_s2)]
+        for (nlabel1, node1), (nlabel2, node2) \
+                in zip(label_node_tuples, label_node_tuples[1:]):
+            if Parser.syntactically_dominates(node1, node2):
+                feats.append("syn_dominates_{}{}".format(nlabel1, nlabel2))
+            if Parser.syntactically_dominates(node2, node1):
+                feats.append("syn_dominates_{}{}".format(nlabel2, nlabel1))
+
         return feats
 
     @staticmethod
