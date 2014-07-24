@@ -1,3 +1,6 @@
 numpy>=1.8
-nltk>=2.0
+nltk>=3.0
 scikit-learn>=0.14
+scipy>=0.14
+cchardet>=0.3.5
+skll>=0.26.0
