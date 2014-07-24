@@ -54,6 +54,13 @@ logger = logging.getLogger(__name__)
 
 
 class Parser(object):
+    '''
+    This parser follows an arc-standard parsing strategy, where reduce actions
+    operate on the top 2 stack items (see e.g., Nivre. 2004. Incrementality in
+    Deterministic Dependency Parsing. Proc. of the Workshop on Incremental
+    Parsing.)
+    '''
+
     leftwall_w = 'LEFTWALL'
     leftwall_p = 'LEFTWALL'
     rightwall_w = 'RIGHTWALL'
