@@ -147,7 +147,7 @@ class Parser(object):
 
         # return None for the left wall
         head_idx = rst_node["head_idx"]
-        if head_idx == -1:
+        if head_idx is None:
             return None
 
         head_words = rst_node["head"]
@@ -200,14 +200,13 @@ class Parser(object):
 
         feats = []
 
-        # initialize some local variables for top stack and next queue items
+        # Initialize some local variables for top stack and next queue items.
         s0 = stack[-1]
         s1 = {"nt": "TOP", "head": [Parser.leftwall_w],
-              "hpos": [Parser.leftwall_p], "tree": None, "start_idx": -1,
-              "end_idx": -1, "head_idx": -1}
+              "hpos": [Parser.leftwall_p], "tree": None, "head_idx": None}
         s2 = {"nt": "TOP", "head": [Parser.leftwall_w],
-              "hpos": [Parser.leftwall_p], "tree": None, "start_idx": -1,
-              "end_idx": -1, "head_idx": -1}
+              "hpos": [Parser.leftwall_p], "tree": None, "head_idx": None}
+
         stack_len = len(stack)
         if stack_len > 1:
             s1 = stack[stack_len - 2]
@@ -219,6 +218,17 @@ class Parser(object):
         if len(queue) > 0:
             q0w = queue[0]["head"]
             q0p = queue[0]["hpos"]
+
+        # Make a list of head EDU idx tuples for the top stack/queue items.
+        # Filter out None for when the stack/queue does not have that many
+        # items.
+        s0_idx = s0["head_idx"]
+        s1_idx = s1["head_idx"]
+        s2_idx = s2["head_idx"]
+        q0_idx = queue[0]["head_idx"] if queue else None
+        label_idx_tuples = [('Q0', q0_idx), ('S0', s0_idx),
+                            ('S1', s1_idx), ('S2', s2_idx)]
+        label_idx_tuples = [x for x in label_idx_tuples if x[1] is not None]
 
         # previous action feature
         feats.append("PREV:{}:{}".format(prevact.type, prevact.label))
@@ -241,6 +251,10 @@ class Parser(object):
 
         feats.append("S0nt:{}^S1nt:{}".format(s0["nt"], s1["nt"]))
         feats.append("S1nt:{}^S2nt:{}".format(s1["nt"], s2["nt"]))
+        feats.append("S0nt:{}^S2nt:{}".format(s0["nt"], s2["nt"]))
+        feats.append("S0nt:{}^S1nt:{}^S2nt:{}".format(s0["nt"],
+                                                      s1["nt"],
+                                                      s2["nt"]))
 
         # features for the words and POS tags of the heads of the first and
         # last tokens of the heads of the top stack and next input queue items
@@ -250,36 +264,22 @@ class Parser(object):
         Parser._add_word_and_pos_feats(feats, 'Q0', q0w, q0p)
 
         # EDU head distance feature
-        # (this is in EDUs, not tokens, and -1 is for the left wall)
-        distS0S1 = s0.get("head_idx") - s1.get("head_idx")
-        distS1S2 = s1.get("head_idx") - s2.get("head_idx")
-        if len(queue) > 0:
-            distQ0S0 = queue[0].get("head_idx") - s0.get("head_idx")
-        for i in range(1, 5):
-            if distS0S1 > i:
-                feats.append("distS0S1>{}".format(i))
-            if distS1S2 > i:
-                feats.append("distS1S2>{}".format(i))
-            if len(queue) > 0 and distQ0S0 > i:
-                feats.append("distQ0S0>{}".format(i))
+        # (this is in EDUs, not sentences or tokens. None is for the left wall)
+        for (label_a, idx_a), (label_b, idx_b) \
+                in itertools.combinations(label_idx_tuples, 2):
+            dist = abs(idx_a - idx_b)
+            for i in range(1, 5):
+                if dist > i:
+                    feats.append("edu_dist_{}{}>{}".format(label_a, label_b, i))
 
         # whether the EDUS are in the same sentence
         # (edu_start_indices is a list of (sentence #, token #, EDU #) tuples.
         # Also, EDUs don't cross sentence boundaries.)
         start_indices = doc_dict['edu_start_indices']
-        s0_idx = s0["head_idx"]
-        s1_idx = s1["head_idx"]
-        s2_idx = s2["head_idx"]
-        if s0_idx > -1 and s1_idx > -1 and \
-                start_indices[s0_idx][0] == start_indices[s1_idx][0]:
-            feats.append("S0S1_same_sentence")
-        if s1_idx > -1 and s2_idx > -1 and \
-                start_indices[s1_idx][0] == start_indices[s2_idx][0]:
-            feats.append("S1S2_same_sentence")
-        if queue and s0_idx > -1 and \
-                (start_indices[queue[0]["head_idx"]][0]
-                 == start_indices[s0_idx][0]):
-            feats.append("Q0S0_same_sentence")
+        for (label_a, idx_a), (label_b, idx_b) \
+                in itertools.combinations(label_idx_tuples, 2):
+            if start_indices[idx_a][0] == start_indices[idx_b][0]:
+                feats.append("same_sentence_{}{}".format(label_a, label_b))
 
         # features of EDU heads
         head_node_s0 = Parser._find_edu_head_node(s0, doc_dict)
@@ -304,13 +304,13 @@ class Parser(object):
             feats.append('Q0headw:{}'.format(head_node_q0.head_word()))
             feats.append('Q0headp:{}'.format(head_node_q0.head_pos()))
 
-        # syntactic dominance features between contiguous stack/queue items:
-        # Q0S0, S0S1, and S1S2.  (This is similar to Feng & Hirst, ACL 2014,
-        # and also vaguely similar to Soricut & Marcu, 2003.)
+        # syntactic dominance features between pairs of stack/queue items:
+        # (This is similar to Feng & Hirst, ACL 2014, and also vaguely similar
+        # to Soricut & Marcu, 2003.)
         label_node_tuples = [('Q0', head_node_q0), ('S0', head_node_s0),
                              ('S1', head_node_s1), ('S2', head_node_s2)]
         for (nlabel1, node1), (nlabel2, node2) \
-                in zip(label_node_tuples, label_node_tuples[1:]):
+                in itertools.combinations(label_node_tuples, 2):
             if Parser.syntactically_dominates(node1, node2):
                 feats.append("syn_dominates_{}{}".format(nlabel1, nlabel2))
             if Parser.syntactically_dominates(node2, node1):
@@ -501,9 +501,9 @@ class Parser(object):
         # initialize the stack
         stack = []
 
-        tmp_item = {"head_idx": -1,
-                    "start_idx": -1,
-                    "end_idx": -1,
+        tmp_item = {"head_idx": None,
+                    "start_idx": None,
+                    "end_idx": None,
                     "nt": Parser.leftwall_w,
                     "tree": Tree("({})".format(Parser.leftwall_w)),
                     "head": [Parser.leftwall_w],
