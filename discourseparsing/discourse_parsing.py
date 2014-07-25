@@ -260,7 +260,6 @@ class Parser(object):
         # last tokens of the heads of the top stack and next input queue items
         Parser._add_word_and_pos_feats(feats, 'S0', s0['head'], s0['hpos'])
         Parser._add_word_and_pos_feats(feats, 'S1', s1['head'], s1['hpos'])
-        Parser._add_word_and_pos_feats(feats, 'S2', s2['head'], s2['hpos'])
         Parser._add_word_and_pos_feats(feats, 'Q0', q0w, q0p)
 
         # EDU head distance feature
