@@ -288,19 +288,19 @@ class Parser(object):
             if queue else None
         if head_node_s0:
             feats.append('S0headnt:{}'.format(head_node_s0.label()))
-            feats.append('S0headw:{}'.format(head_node_s0.head_word()))
+            feats.append('S0headw:{}'.format(head_node_s0.head_word().lower()))
             feats.append('S0headp:{}'.format(head_node_s0.head_pos()))
         if head_node_s1:
             feats.append('S1headnt:{}'.format(head_node_s1.label()))
-            feats.append('S1headw:{}'.format(head_node_s1.head_word()))
+            feats.append('S1headw:{}'.format(head_node_s1.head_word().lower()))
             feats.append('S1headp:{}'.format(head_node_s1.head_pos()))
         if head_node_s2:
             feats.append('S2headnt:{}'.format(head_node_s2.label()))
-            feats.append('S2headw:{}'.format(head_node_s2.head_word()))
+            feats.append('S2headw:{}'.format(head_node_s2.head_word().lower()))
             feats.append('S2headp:{}'.format(head_node_s2.head_pos()))
         if head_node_q0:
             feats.append('Q0headnt:{}'.format(head_node_q0.label()))
-            feats.append('Q0headw:{}'.format(head_node_q0.head_word()))
+            feats.append('Q0headw:{}'.format(head_node_q0.head_word().lower()))
             feats.append('Q0headp:{}'.format(head_node_q0.head_pos()))
 
         # syntactic dominance features between pairs of stack/queue items:
