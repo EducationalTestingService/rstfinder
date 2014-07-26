@@ -17,13 +17,14 @@ def main():
                         default='rst_discourse_tb_edus_TRAINING_TRAIN.json')
     parser.add_argument('--new_dev_set',
                         default='rst_discourse_tb_edus_TRAINING_DEV.json')
+    parser.add_argument('--random_seed', type=int, default=1234567890)
     args = parser.parse_args()
 
     with open(args.orig_training_set) as f:
         data = json.load(f)
 
     import random
-    random.seed(1234567890)
+    random.seed(args.random_seed)
     random.shuffle(data)
 
     # reserve 40 docs for development (the test set has only 38)
