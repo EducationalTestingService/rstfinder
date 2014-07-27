@@ -638,6 +638,8 @@ class Parser(object):
                 states.append(tmp_state)
 
         if not completetrees:
+            logging.warning('No complete trees found.')
+
             # Default to a flat tree if there is no complete parse.
             new_tree = Tree("(ROOT)")
             for i in range(len(tagged_edus)):
