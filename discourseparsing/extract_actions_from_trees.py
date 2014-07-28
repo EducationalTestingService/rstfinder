@@ -84,10 +84,6 @@ def _extract_parse_actions_helper(node, stack, cstack, actseq):
     if isinstance(nt[0], str):
         actseq.append(ShiftReduceAction(type='S', label='text'))
         cstack.append(nt)
-    # Or if we are at the root of the tree, then add binary_reduce:ROOT.
-    elif tmp_parent.label() == "ROOT":
-        actseq.append(ShiftReduceAction(type='B', label='ROOT'))
-        chflg = False
     # Otherwise, we have visited all the children of a nonterminal node,
     # and we should add a unary reduce
     else:
