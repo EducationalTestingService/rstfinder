@@ -66,6 +66,7 @@ class Parser(object):
     leftwall_p = 'LEFTWALL'
     rightwall_w = 'RIGHTWALL'
     rightwall_p = 'RIGHTWALL'
+    max_consecutive_unary_reduce = 2
 
     def __init__(self, max_acts, max_states, n_best):
         self.max_acts = max_acts
@@ -192,7 +193,7 @@ class Parser(object):
         return res
 
     @staticmethod
-    def mkfeats(prevact, queue, stack, doc_dict):
+    def mkfeats(state, doc_dict):
         '''
         get features of the parser state represented
         by the current stack and queue
@@ -201,6 +202,11 @@ class Parser(object):
         feats = []
 
         # Initialize some local variables for top stack and next queue items.
+
+        prevact = state["prevact"]
+        queue = state["queue"]
+        stack = state["stack"]
+
         s0 = stack[-1]
         s1 = {"nt": "TOP", "head": [Parser.leftwall_w],
               "hpos": [Parser.leftwall_p], "tree": None, "head_idx": None}
@@ -314,10 +320,14 @@ class Parser(object):
         return feats
 
     @staticmethod
-    def is_valid_action(act, ucnt, queue, stack):
+    def is_valid_action(act, state):
+        queue = state["queue"]
+        stack = state["stack"]
+        ucnt = state["ucnt"]
+
         if act.type == "U":
             # Do not allow too many consecutive unary reduce actions.
-            if ucnt > 2:
+            if ucnt > Parser.max_consecutive_unary_reduce:
                 return False
 
             # Do not allow a reduce action if the stack is empty.
@@ -327,6 +337,17 @@ class Parser(object):
 
             # Do not allow unary reduces on internal nodes for binarized rules.
             if stack[-1]["nt"].endswith('*'):
+                return False
+
+            # Do not allow unary reduce actions on satellites.
+            if stack[-1]["nt"].startswith('satellite'):
+                return False
+
+            # Do not allow reduction to satellites if the queue is empty
+            # and there isn't a nucleus next on the stack.
+            if act.label.startswith('satellite') and not queue \
+                    and not stack[-2]["nt"].startswith('nucleus') \
+                    and not stack[-2]["nt"].endswith('*'):
                 return False
 
         # Do not allow shift if there is nothing left to shift.
@@ -339,12 +360,12 @@ class Parser(object):
         # a nucleus, as indicated by a * suffix).
         if act.type == "B":
             # Do not allow B:ROOT unless we will have a complete parse.
-            if act.label == "ROOT" and (len(stack) != 2 or queue):
+            if act.label == "ROOT" and len(stack) + len(queue) > 3:
                 return False
 
             # Make sure there are enough items to reduce
             # (including the left wall).
-            if act.label != "ROOT" and len(stack) < 3:
+            if act.label != "ROOT" and len(stack) + len(queue) <= 3:
                 return False
 
             # Make sure there is a head.
@@ -364,13 +385,38 @@ class Parser(object):
                     and act.label != rc_label and act.label != rc_label[:-1]:
                 return False
 
+            # Do not allow reduction to satellites if the queue is empty
+            # and there isn't a nucleus next on the stack.
+            # Starred (binarized) nodes can also be nuclei,
+            # but two starred nodes can't be reduced.
+            label_is_satellite = act.label.startswith('satellite')
+            label_is_partial_head = act.label.endswith('*')
+            next_is_nucleus = (stack[-3]["nt"].startswith('nucleus')
+                               if len(stack) > 2 else False)
+            next_is_partial_head = (stack[-3]["nt"].endswith('*')
+                                    if len(stack) > 2 else False)
+            if not queue and label_is_satellite and not label_is_partial_head \
+                    and not next_is_nucleus \
+                    and not next_is_partial_head:
+                return False
+            if not queue and next_is_partial_head and label_is_partial_head:
+                return False
+
         # Default: the action is valid.
         return True
 
     @staticmethod
-    def process_action(act, queue, stack):
+    def process_action(act, state):
         # The B action reduces 2 stack items, creating a non-terminal node,
         # with the head determined by nuclearity.
+
+        stack = state["stack"]
+        queue = state["queue"]
+
+        # If the action is a unary reduce, increment the count.
+        # Otherwise, reset it.
+        state["ucnt"] = state["ucnt"] + 1 if act.type == "U" else 0
+
         if act.type == "B":
             tmp_rc = stack.pop()
             tmp_lc = stack.pop()
@@ -401,7 +447,7 @@ class Parser(object):
                 new_hpos = tmp_rc["hpos"]
                 new_head_idx = tmp_rc["head_idx"]
             else:
-                raise ValueError("Unexpected binary reduce.\n" +
+                raise ValueError("Invalid binary reduce of two non-nuclei.\n" +
                                  "act = {}:{}\n tmp_lc = {}\ntmp_rc = {}"
                                  .format(act.type, act.label, tmp_lc, tmp_rc))
 
@@ -418,6 +464,12 @@ class Parser(object):
         # The U action creates a unary chain (e.g., "(NP (NP ...))").
         if act.type == "U":
             tmp_c = stack.pop()
+
+            if tmp_c['nt'].startswith('satellite'):
+                raise ValueError("Invalid unary reduce of a satellite.\n" +
+                                 "act = {}:{}\n tmp_c = {}"
+                                 .format(act.type, act.label, tmp_c))
+
             new_tree = Tree("({})".format(act.label))
             new_tree.append(tmp_c["tree"])
             tmp_item = {"head_idx": tmp_c["head_idx"],
@@ -428,6 +480,7 @@ class Parser(object):
                         "head": tmp_c["head"],
                         "hpos": tmp_c["hpos"]}
             stack.append(tmp_item)
+
 
         # The S action gets the next input token
         # and puts it on the stack.
@@ -506,7 +559,6 @@ class Parser(object):
         stack.append(tmp_item)
 
         prevact = ShiftReduceAction(type="S", label="text")
-        ucnt = 0  # number of consecutive unary reduce actions
 
         # insert an initial state on the state list
         tmp_state = {"prevact": prevact,
@@ -530,12 +582,8 @@ class Parser(object):
                                   len(states)))
 
             # check if the current state corresponds to a complete tree
-            if len(cur_state["queue"]) == 0 and len(cur_state["stack"]) == 1:
-                tree = cur_state["stack"][0]["tree"]
-
-                # remove the dummy LEFTWALL node
-                assert tree[0].label() == Parser.leftwall_p
-                del tree[0]
+            if len(cur_state["queue"]) == 0 and len(cur_state["stack"]) == 2:
+                tree = cur_state["stack"][-1]["tree"]
 
                 # collapse binary branching * rules in the output
                 output_tree = ParentedTree(tree.pprint())
@@ -553,13 +601,8 @@ class Parser(object):
                 # otherwise, move on to the next best state
                 continue
 
-            stack = cur_state["stack"]
-            queue = cur_state["queue"]
-            prevact = cur_state["prevact"]
-            ucnt = cur_state["ucnt"]
-
             # extract features
-            feats = self.mkfeats(prevact, queue, stack, doc_dict)
+            feats = self.mkfeats(cur_state, doc_dict)
 
             # Compute the possible actions given this state.
             # During training, print them out.
@@ -597,11 +640,10 @@ class Parser(object):
             # If parsing, verify the validity of the actions.
             if gold_actions is None:
                 scored_acts = [x for x in scored_acts
-                               if self.is_valid_action(x[0], ucnt, queue,
-                                                       stack)]
+                               if self.is_valid_action(x[0], cur_state)]
             else:
                 for x in scored_acts:
-                    assert self.is_valid_action(x[0], ucnt, queue, stack)
+                    assert self.is_valid_action(x[0], cur_state)
 
             # Don't exceed the maximum number of actions
             # to consider for a parser state.
@@ -618,23 +660,18 @@ class Parser(object):
                     queue = list(cur_state["queue"])
                     stack = list(cur_state["stack"])
                 prevact = cur_state["prevact"]
-                ucnt = cur_state["ucnt"]
 
                 action, score = scored_acts.pop(0)
 
-                # If the action is a unary reduce, increment the count.
-                # Otherwise, reset it.
-                ucnt = ucnt + 1 if action.type == "U" else 0
-
-                self.process_action(action, queue, stack)
-
                 # Add the newly created state
                 tmp_state = {"prevact": action,
-                             "ucnt": ucnt,
+                             "ucnt": cur_state["ucnt"],
                              "score": cur_state["score"] + score,
                              "nsteps": cur_state["nsteps"] + 1,
                              "stack": stack,
                              "queue": queue}
+                self.process_action(action, tmp_state)
+
                 states.append(tmp_state)
 
         if not completetrees:
