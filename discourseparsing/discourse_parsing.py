@@ -207,17 +207,20 @@ class Parser(object):
         queue = state["queue"]
         stack = state["stack"]
 
-        s0 = stack[-1]
+        s0 = {"nt": "TOP", "head": [Parser.leftwall_w],
+              "hpos": [Parser.leftwall_p], "tree": None, "head_idx": None}
         s1 = {"nt": "TOP", "head": [Parser.leftwall_w],
               "hpos": [Parser.leftwall_p], "tree": None, "head_idx": None}
         s2 = {"nt": "TOP", "head": [Parser.leftwall_w],
               "hpos": [Parser.leftwall_p], "tree": None, "head_idx": None}
 
         stack_len = len(stack)
+        if stack_len > 0:
+            s0 = stack[-1]
         if stack_len > 1:
-            s1 = stack[stack_len - 2]
+            s1 = stack[-2]
         if stack_len > 2:
-            s2 = stack[stack_len - 3]
+            s2 = stack[-3]
 
         q0w = [Parser.rightwall_w]
         q0p = [Parser.rightwall_p]
@@ -331,8 +334,7 @@ class Parser(object):
                 return False
 
             # Do not allow a reduce action if the stack is empty.
-            # (i.e., contains only the leftwall)
-            if stack[-1]["head"] == Parser.leftwall_w:
+            if not stack:
                 return False
 
             # Do not allow unary reduces on internal nodes for binarized rules.
@@ -359,13 +361,14 @@ class Parser(object):
         # with one of them being a nucleus or a partial subtree containing
         # a nucleus, as indicated by a * suffix).
         if act.type == "B":
-            # Do not allow B:ROOT unless we will have a complete parse.
-            if act.label == "ROOT" and len(stack) + len(queue) > 3:
+            # Make sure there are enough items to reduce
+            if len(stack) < 2:
                 return False
 
-            # Make sure there are enough items to reduce
-            # (including the left wall).
-            if act.label != "ROOT" and len(stack) + len(queue) <= 3:
+            # Do not allow B:ROOT unless we will have a complete parse.
+            if act.label == "ROOT" and len(stack) + len(queue) > 2:
+                return False
+            if act.label != "ROOT" and len(stack) + len(queue) == 2:
                 return False
 
             # Make sure there is a head.
@@ -549,15 +552,6 @@ class Parser(object):
         # initialize the stack
         stack = []
 
-        tmp_item = {"head_idx": None,
-                    "start_idx": None,
-                    "end_idx": None,
-                    "nt": Parser.leftwall_w,
-                    "tree": Tree("({})".format(Parser.leftwall_w)),
-                    "head": [Parser.leftwall_w],
-                    "hpos": [Parser.leftwall_p]}
-        stack.append(tmp_item)
-
         prevact = ShiftReduceAction(type="S", label="text")
 
         # insert an initial state on the state list
@@ -582,8 +576,9 @@ class Parser(object):
                                   len(states)))
 
             # check if the current state corresponds to a complete tree
-            if len(cur_state["queue"]) == 0 and len(cur_state["stack"]) == 2:
+            if len(cur_state["queue"]) == 0 and len(cur_state["stack"]) == 1:
                 tree = cur_state["stack"][-1]["tree"]
+                assert tree.label() == 'ROOT'
 
                 # collapse binary branching * rules in the output
                 output_tree = ParentedTree(tree.pprint())
