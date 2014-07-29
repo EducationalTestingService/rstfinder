@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from collections import Counter
-import itertools
+#import itertools
 import json
 import logging
 from operator import itemgetter
@@ -92,7 +92,8 @@ def compute_rst_eval_results(pred_edu_tokens_lists, pred_trees,
                    for tup in gold_tuples}
     pred_tuples = {(tup[0], tup[2], tup[3])
                    for tup in pred_tuples}
-    span_precision, span_recall, span_f1 = compute_p_r_f1(gold_tuples, pred_tuples)
+    span_precision, span_recall, span_f1 = \
+        compute_p_r_f1(gold_tuples, pred_tuples)
 
     # Create a list of all the eval statistics.
     res = {"labeled_precision": labeled_precision,
@@ -118,8 +119,9 @@ def predict_and_evaluate_rst_trees(syntax_parser, segmenter,
 
     for doc_dict in eval_data:
         logging.info('processing {}...'.format(doc_dict['path_basename']))
-        gold_edu_tokens_lists.append(extract_edus_tokens(doc_dict['edu_start_indices'],
-                                                   doc_dict['tokens']))
+        gold_edu_tokens_lists.append( \
+            extract_edus_tokens(doc_dict['edu_start_indices'],
+                                doc_dict['tokens']))
 
         # Collapse the RST labels to use the coarse relations that the parser
         # produces.

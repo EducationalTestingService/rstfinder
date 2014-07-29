@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 '''
-A script to train an RST parsing model.
-This takes a JSON-formatted training set created by `convert_rst_discourse_tb.py`,
-trains a model, and saves the model in a user-specified location.
+A script to train an RST parsing model. This takes a JSON-formatted training set
+created by `convert_rst_discourse_tb.py`, trains a model, and saves the model in
+a user-specified location.
 '''
 
 from collections import Counter

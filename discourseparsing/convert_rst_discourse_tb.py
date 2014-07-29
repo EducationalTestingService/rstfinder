@@ -20,6 +20,8 @@ Each of these dictionaries has the following keys:
 - pos_tags: A list of lists (one per sentence) of POS tags.
 - edu_start_indices: A list of (sentence #, token #, EDU #) tuples for the
                      EDUs in this document.
+- edu_starts_paragraph: A list of binary indicators for whether each EDU starts
+                        a new paragraph.
 
 '''
 
@@ -72,15 +74,15 @@ def main():
     logging.basicConfig(format=('%(asctime)s - %(name)s - %(levelname)s - ' +
                                 '%(message)s'), level=logging.INFO)
 
-    logging.info(" Warnings related to minor issues that are difficult to" +
-                 " resolve will be logged for the following files: " +
-                 " file1.edus, file5.edus, wsj_0678.out.edus," +
-                 " and wsj_2343.out.edus." +
-                 " Multiple warnings 'not enough syntax trees'" +
-                 " will be produced because the RSTDTB has footers that are" +
-                 " not in the PTB (e.g., indicating where a story is" +
-                 " written). Also, there are some loose match warnings" +
-                 " because of differences in formatting between treebanks.")
+    logging.warning(
+        " Warnings related to minor issues that are difficult to resolve will" +
+        " be logged for the following files: " +
+        " file1.edus, file5.edus, wsj_0678.out.edus, and wsj_2343.out.edus." +
+        " Multiple warnings 'not enough syntax trees' will be produced" +
+        " because the RSTDTB has footers that are not in the PTB (e.g.," +
+        " indicating where a story is written). Also, there are some loose" +
+        " match warnings because of differences in formatting between" +
+        " treebanks.")
 
     for dataset in ['TRAINING', 'TEST']:
         logging.info(dataset)
@@ -93,10 +95,15 @@ def main():
                                          'RSTtrees-WSJ-main-1.0',
                                          dataset,
                                          '*.edus')))):
+
+            path_basename = os.path.basename(path)
+            # if path_basename in file_mapping:
+            #     # skip the not-so-well-formatted files "file1" to "file5"
+            #     continue
+
             tokens_doc = []
             edu_start_indices = []
 
-            path_basename = os.path.basename(path)
             logging.info('{} {}'.format(path_index, path_basename))
             ptb_id = (file_mapping[path_basename] if
                       path_basename in file_mapping else
@@ -114,15 +121,62 @@ def main():
 
             with open(path) as f:
                 edus = [line.strip() for line in f.readlines()]
-            path_dis = "{}.dis".format(path[:-5])
+            path_outfile = path[:-5]
+            path_dis = "{}.dis".format(path_outfile)
             with open(path_dis) as f:
                 rst_tree_str = f.read().strip()
                 rst_tree_str = fix_rst_treebank_tree_str(rst_tree_str)
                 rst_tree_str = convert_parens_in_rst_tree_str(rst_tree_str)
                 rst_tree = ParentedTree.parse(rst_tree_str)
-                                              #leaf_pattern=r'(_![^_(?=!)]+_!)')
-                # this leaf_pattern keeps the EDU texts together as one token rather than splitting on whitespace
                 reformat_rst_tree(rst_tree)
+
+            # Identify which EDUs are at the beginnings of paragraphs.
+            edu_starts_paragraph = []
+            with open(path_outfile) as f:
+                outfile_doc = f.read().strip()
+                paragraphs = re.split(r'\n\n+', outfile_doc)
+                # Filter out any paragraphs that don't include a word character.
+                paragraphs = [x for x in paragraphs if re.search(r'\w', x)]
+                # Remove extra nonword characters to make alignment easier
+                # (to avoid problems with the minor discrepancies that exist
+                #  in the two versions of the documents.)
+                paragraphs = [re.sub(r'\W', r'', p.lower())
+                              for p in paragraphs]
+
+                p_idx = -1
+                paragraph = ""
+                for edu_index, edu in enumerate(edus):
+                    logging.debug('edu: {}, paragraph: {}, p_idx: {}'
+                                  .format(edu, paragraph, p_idx))
+                    edu = re.sub(r'\W', r'', edu.lower())
+                    starts_paragraph = False
+                    crossed_paragraphs = False
+                    while len(paragraph) < len(edu):
+                        assert not crossed_paragraphs or starts_paragraph
+                        starts_paragraph = True
+                        p_idx += 1
+                        paragraph += paragraphs[p_idx]
+                        if len(paragraph) < len(edu):
+                            crossed_paragraphs = True
+                            logging.warning(
+                                'A paragraph is split across trees. paragraph' +
+                                'doc: {}, chars: {}, EDU: {}'
+                                .format(path_basename,
+                                        paragraphs[p_idx:p_idx + 2], edu))
+
+                    assert paragraph.index(edu) == 0
+                    logging.debug('edu_starts_paragraph = {}'
+                                  .format(starts_paragraph))
+                    edu_starts_paragraph.append(starts_paragraph)
+                    paragraph = paragraph[len(edu):].strip()
+                assert p_idx == len(paragraphs) - 1
+                if sum(edu_starts_paragraph) != len(paragraphs):
+                    logging.warning('The number of sentences that start a ' +
+                                    'paragraph is not equal to the number of ' +
+                                    'paragraphs.  This is probably due to ' +
+                                    'trees being split across paragraphs. ' +
+                                    '  doc: {}'
+                                    .format(path_basename))
 
             edu_index = -1
             tok_index = 0
@@ -140,14 +194,26 @@ def main():
                 if tok_index >= len(tokens):
                     tree_index += 1
                     if tree_index >= len(trees):
-                        logging.warning('Not enough syntax trees for {}. This is probably because the RSTDB contains a footer that is not in the PTB.  The remaining EDUs will be automatically tagged.'.format(path_basename))
+                        logging.warning(('Not enough syntax trees for {}. ' +
+                                         ' This is probably because the RSTDB' +
+                                         ' contains a footer that is not in' +
+                                         ' the PTB. The remaining EDUs will' +
+                                         ' be automatically tagged.')
+                                        .format(path_basename))
                         unparsed_edus = ' '.join(edus[edu_index + 1:])
-                        unparsed_edus = re.sub(r'---', '--', unparsed_edus)  # the tokenizer splits '---' into '--' '-'.  this is a hack to get around that
-                        for tagged_sent in [nltk.pos_tag(convert_paren_tokens_to_ptb_format(TreebankWordTokenizer().tokenize(x)))
-                                            for x in nltk.sent_tokenize(unparsed_edus)]:
-                            new_tree = ParentedTree('((S {}))'.format(' '.join(['({} {})'.format(tag, word) for word, tag in tagged_sent])))
+                        # The tokenizer splits '---' into '--' '-'.
+                        # This is a hack to get around that.
+                        unparsed_edus = re.sub(r'---', '--', unparsed_edus)
+                        for tagged_sent in \
+                            [nltk.pos_tag(convert_paren_tokens_to_ptb_format( \
+                             TreebankWordTokenizer().tokenize(x)))
+                             for x in nltk.sent_tokenize(unparsed_edus)]:
+                            new_tree = ParentedTree('((S {}))'.format(
+                                ' '.join(['({} {})'.format(tag, word)
+                                          for word, tag in tagged_sent])))
                             trees.append(new_tree)
-                            tokens_doc.append(extract_converted_terminals(new_tree))
+                            tokens_doc.append(
+                                extract_converted_terminals(new_tree))
                             preterminals.append(extract_preterminals(new_tree))
 
                     tree = trees[tree_index]
@@ -263,7 +329,7 @@ def main():
 
                     if edu_start_indices \
                             and tree_index - edu_start_indices[-1][0] > 1:
-                        logging.warning(("ERROR WITH {}. SKIPPED A TREE." +
+                        logging.warning(("SKIPPED A TREE. file = {}" +
                                          " tree_index = {}," +
                                          " edu_start_indices[-1][0] = {}," +
                                          " edu index = {}")
@@ -309,9 +375,12 @@ def main():
                       "pos_tags": [[x.label() for x in preterminals_sentence]
                                    for preterminals_sentence in preterminals],
                       "edu_start_indices": edu_start_indices,
-                      "rst_tree": rst_tree.pprint(margin=TREE_PRINT_MARGIN)}
+                      "rst_tree": rst_tree.pprint(margin=TREE_PRINT_MARGIN),
+                      "edu_starts_paragraph": edu_starts_paragraph}
 
             assert len(edu_start_indices) == len(edus)
+            assert len(edu_starts_paragraph) == len(edus)
+
             # check that the EDUs match up
             edu_tokens = extract_edus_tokens(edu_start_indices, tokens_doc)
             for edu_index, (edu, edu_token_list) \
