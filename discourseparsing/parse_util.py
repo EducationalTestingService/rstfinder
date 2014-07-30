@@ -126,7 +126,7 @@ class SyntaxParserWrapper():
 
         # zpar.en outputs constituent trees, 1 per line, with the "-oc" option
         # the first 3 and last 1 lines are stuff that should be on stderr
-        res = [ParentedTree(s) for s
+        res = [ParentedTree.fromstring(s) for s
                in zpar_output.strip().split('\n')[3:-1]]
         logging.debug('syntax parsing results: {}'.format(
             [t.pprint(margin=TREE_PRINT_MARGIN) for t in res]))
@@ -144,7 +144,7 @@ class SyntaxParserWrapper():
                                                          flt.faultString))
                 sys.exit(1)
             else:
-                res.append(ParentedTree(parsed_sent))
+                res.append(ParentedTree.fromstring(parsed_sent))
                 logging.debug('syntax parsing results: {}'.format(
                     [t.pprint(margin=TREE_PRINT_MARGIN) for t in res]))
 
@@ -156,7 +156,7 @@ class SyntaxParserWrapper():
         for sentence in sentences:
             parsed_sent = self._zpar_ref.parse_sentence(
                 sentence.encode("utf-8"))
-            res.append(ParentedTree(parsed_sent.decode('utf-8')))
+            res.append(ParentedTree.fromstring(parsed_sent.decode('utf-8')))
         logging.debug('syntax parsing results: {}'.format(
             [t.pprint(margin=TREE_PRINT_MARGIN) for t in res]))
 

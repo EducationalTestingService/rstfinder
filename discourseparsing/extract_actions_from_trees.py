@@ -27,7 +27,7 @@ def extract_parse_actions(tree):
     assert tree.label() == 'ROOT'
 
     stack = []
-    cstack = [ParentedTree('(DUMMY0 (DUMMY1 DUMMY3))')]
+    cstack = [ParentedTree.fromstring('(DUMMY0 (DUMMY1 DUMMY3))')]
     actseq = []
     _extract_parse_actions_helper(tree, stack, cstack, actseq)
     actseq = _merge_constituent_end_shifts(actseq)
@@ -128,7 +128,7 @@ def main():
 
     with open(args.mrg_path) as constituent_file:
         for line in constituent_file:
-            tree = ParentedTree(line.strip())
+            tree = ParentedTree.fromstring(line.strip())
             actseq = extract_parse_actions(tree)
             print(' '.join(['{}:{}'.format(x.type, x.label) for x in actseq]))
 

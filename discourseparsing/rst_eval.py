@@ -125,7 +125,7 @@ def predict_and_evaluate_rst_trees(syntax_parser, segmenter,
 
         # Collapse the RST labels to use the coarse relations that the parser
         # produces.
-        gold_tree = ParentedTree(doc_dict['rst_tree'])
+        gold_tree = ParentedTree.fromstring(doc_dict['rst_tree'])
         collapse_rst_labels(gold_tree)
         gold_trees.append(gold_tree)
 

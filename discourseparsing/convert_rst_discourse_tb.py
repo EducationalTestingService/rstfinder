@@ -113,7 +113,7 @@ def main():
 
             with open(ptb_path) as f:
                 doc = re.sub(r'\s+', ' ', f.read()).strip()
-                trees = [ParentedTree('( ({}'.format(x)) for x
+                trees = [ParentedTree.fromstring('( ({}'.format(x)) for x
                          in re.split(r'\(\s*\(', doc) if x]
 
             for t in trees:
@@ -127,7 +127,7 @@ def main():
                 rst_tree_str = f.read().strip()
                 rst_tree_str = fix_rst_treebank_tree_str(rst_tree_str)
                 rst_tree_str = convert_parens_in_rst_tree_str(rst_tree_str)
-                rst_tree = ParentedTree.parse(rst_tree_str)
+                rst_tree = ParentedTree.fromstring(rst_tree_str)
                 reformat_rst_tree(rst_tree)
 
             # Identify which EDUs are at the beginnings of paragraphs.
@@ -208,9 +208,10 @@ def main():
                             [nltk.pos_tag(convert_paren_tokens_to_ptb_format( \
                              TreebankWordTokenizer().tokenize(x)))
                              for x in nltk.sent_tokenize(unparsed_edus)]:
-                            new_tree = ParentedTree('((S {}))'.format(
-                                ' '.join(['({} {})'.format(tag, word)
-                                          for word, tag in tagged_sent])))
+                            new_tree = ParentedTree.fromstring('((S {}))' \
+                                .format(' '.join(['({} {})'.format(tag, word)
+                                                  for word, tag
+                                                  in tagged_sent])))
                             trees.append(new_tree)
                             tokens_doc.append(
                                 extract_converted_terminals(new_tree))

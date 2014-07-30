@@ -168,7 +168,7 @@ def main():
     for doc_dict in train_data:
         path_basename = doc_dict['path_basename']
         logging.info('Extracting examples for {}'.format(path_basename))
-        tree = ParentedTree(doc_dict['rst_tree'])
+        tree = ParentedTree.fromstring(doc_dict['rst_tree'])
         collapse_rst_labels(tree)
         actions = extract_parse_actions(tree)
 

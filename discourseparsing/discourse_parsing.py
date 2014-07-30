@@ -302,11 +302,11 @@ class Parser(object):
             feats.append('S0headnt:{}'.format(head_node_s0.label()))
             feats.append('S0headw:{}'.format(head_node_s0.head_word().lower()))
             feats.append('S0headp:{}'.format(head_node_s0.head_pos()))
-        if head_node_s1 is not None :
+        if head_node_s1 is not None:
             feats.append('S1headnt:{}'.format(head_node_s1.label()))
             feats.append('S1headw:{}'.format(head_node_s1.head_word().lower()))
             feats.append('S1headp:{}'.format(head_node_s1.head_pos()))
-        if head_node_q0 is not None :
+        if head_node_q0 is not None:
             feats.append('Q0headnt:{}'.format(head_node_q0.label()))
             feats.append('Q0headw:{}'.format(head_node_q0.head_word().lower()))
             feats.append('Q0headp:{}'.format(head_node_q0.head_pos()))
@@ -441,7 +441,7 @@ class Parser(object):
         if act.type == "B":
             tmp_rc = stack.pop()
             tmp_lc = stack.pop()
-            new_tree = Tree("({})".format(act.label))
+            new_tree = Tree.fromstring("({})".format(act.label))
             new_tree.append(tmp_lc["tree"])
             new_tree.append(tmp_rc["tree"])
 
@@ -491,7 +491,7 @@ class Parser(object):
                                  "act = {}:{}\n tmp_c = {}"
                                  .format(act.type, act.label, tmp_c))
 
-            new_tree = Tree("({})".format(act.label))
+            new_tree = Tree.fromstring("({})".format(act.label))
             new_tree.append(tmp_c["tree"])
             tmp_item = {"head_idx": tmp_c["head_idx"],
                         "start_idx": tmp_c["start_idx"],
@@ -522,7 +522,7 @@ class Parser(object):
             edu_pos_tags = [x[1] for x in edu]
 
             # make a dictionary for each EDU
-            new_tree = Tree('(text)')
+            new_tree = Tree.fromstring('(text)')
             new_tree.append('{}'.format(edu_index))
             tmp_item = {"head_idx": wnum,
                         "start_idx": wnum,
@@ -565,7 +565,7 @@ class Parser(object):
             doc_dict['syntax_trees_objs'] = []
             for tree_str in doc_dict['syntax_trees']:
                 doc_dict['syntax_trees_objs'].append(
-                    HeadedParentedTree(tree_str))
+                    HeadedParentedTree.fromstring(tree_str))
 
         # initialize the stack
         stack = []
@@ -599,7 +599,7 @@ class Parser(object):
                 assert tree.label() == 'ROOT'
 
                 # collapse binary branching * rules in the output
-                output_tree = ParentedTree(tree.pprint())
+                output_tree = ParentedTree.fromstring(tree.pprint())
                 collapse_binarized_nodes(output_tree)
 
                 completetrees.append({"tree": output_tree,
@@ -691,9 +691,9 @@ class Parser(object):
             logging.warning('No complete trees found.')
 
             # Default to a flat tree if there is no complete parse.
-            new_tree = Tree("(ROOT)")
+            new_tree = Tree.fromstring("(ROOT)")
             for i in range(len(tagged_edus)):
-                tmp_child = Tree('(text)')
+                tmp_child = Tree.fromstring('(text)')
                 tmp_child.append(i)
                 new_tree.append(tmp_child)
             completetrees.append({"tree": new_tree, "score": 0.0})
