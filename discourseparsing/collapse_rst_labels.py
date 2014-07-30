@@ -7,8 +7,12 @@ based on a perl script by Kenji Sagae.
 
 import argparse
 import re
+import sys
 
-from nltk.tree import Tree
+from nltk.tree import ParentedTree
+
+from discourseparsing.tree_util import TREE_PRINT_MARGIN
+from discourseparsing.reformat_rst_trees import reformat_rst_tree
 
 
 def collapse_rst_labels(tree):
@@ -76,19 +80,20 @@ def _collapse_rst_label(label):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="Note that this main method is just for testing.")
     parser.add_argument(
-        'input_path', help='path to an original RST discourse treebank .dis file')
+        'input_path', help='path to an RST discourse treebank .dis file')
     parser.add_argument('output_path',
                         help='path to where the converted output should go')
     args = parser.parse_args()
 
     with open(args.input_path) as input_file:
         with open(args.output_path, 'w') as output_file:
-            for line in input_file:
-                tree = Tree(line.strip())
-                collapse_rst_labels(tree)
-                print(re.sub(r'\s+', r' ', str(tree)), file=output_file)
+            tree = ParentedTree.fromstring(input_file.read().strip())
+            reformat_rst_tree(tree)
+            collapse_rst_labels(tree)
+            print(tree.pprint(TREE_PRINT_MARGIN), file=output_file)
 
 
 if __name__ == '__main__':

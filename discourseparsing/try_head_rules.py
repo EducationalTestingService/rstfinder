@@ -26,7 +26,7 @@ def main():
 
     with open(args.ptb_file) as f:
         doc = re.sub(r'\s+', ' ', f.read()).strip()
-        trees = [HeadedParentedTree('( ({}'.format(x)) for x
+        trees = [HeadedParentedTree.fromstring('( ({}'.format(x)) for x
                  in re.split(r'\(\s*\(', doc) if x]
 
         for t in trees:

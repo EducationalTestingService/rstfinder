@@ -43,7 +43,7 @@ def extract_segmentation_features(doc_dict):
                              doc_dict['syntax_trees'],
                              doc_dict['token_tree_positions'],
                              doc_dict['pos_tags'])):
-        tree = HeadedParentedTree(tree_str)
+        tree = HeadedParentedTree.fromstring(tree_str)
         for token_num, (token, tree_position, pos_tag) \
                 in enumerate(zip(sent_tokens, sent_tree_positions, pos_tags)):
             feats = []

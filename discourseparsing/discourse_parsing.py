@@ -208,11 +208,14 @@ class Parser(object):
         stack = state["stack"]
 
         s0 = {"nt": "TOP", "head": [Parser.leftwall_w],
-              "hpos": [Parser.leftwall_p], "tree": None, "head_idx": None}
+              "hpos": [Parser.leftwall_p], "tree": None, "head_idx": None,
+              "start_idx": None}
         s1 = {"nt": "TOP", "head": [Parser.leftwall_w],
-              "hpos": [Parser.leftwall_p], "tree": None, "head_idx": None}
+              "hpos": [Parser.leftwall_p], "tree": None, "head_idx": None,
+              "start_idx": None}
         s2 = {"nt": "TOP", "head": [Parser.leftwall_w],
-              "hpos": [Parser.leftwall_p], "tree": None, "head_idx": None}
+              "hpos": [Parser.leftwall_p], "tree": None, "head_idx": None,
+              "start_idx": None}
 
         stack_len = len(stack)
         if stack_len > 0:
@@ -244,17 +247,17 @@ class Parser(object):
 
         # stack nonterminal symbol features
         feats.append("S0nt:{}".format(s0["nt"]))
-        if s0["tree"] and s0["tree"].label() != "text":
+        if s0["tree"] is not None and s0["tree"].label() != "text":
             for child in s0["tree"]:
                 feats.append("S0childnt:{}".format(child.label()))
 
         feats.append("S1nt:{}".format(s1["nt"]))
-        if s1["tree"] and s1["tree"].label() != "text":
+        if s1["tree"] is not None and s1["tree"].label() != "text":
             for child in s1["tree"]:
                 feats.append("S1childnt:{}".format(child.label()))
 
         feats.append("S2nt:{}".format(s2["nt"]))
-        if s2["tree"] and s2["tree"].label() != "text":
+        if s2["tree"] is not None and s2["tree"].label() != "text":
             for child in s2["tree"]:
                 feats.append("S2childnt:{}".format(child.label()))
 
@@ -295,15 +298,15 @@ class Parser(object):
         head_node_s2 = Parser._find_edu_head_node(s2, doc_dict)
         head_node_q0 = Parser._find_edu_head_node(queue[0], doc_dict) \
             if queue else None
-        if head_node_s0:
+        if head_node_s0 is not None:
             feats.append('S0headnt:{}'.format(head_node_s0.label()))
             feats.append('S0headw:{}'.format(head_node_s0.head_word().lower()))
             feats.append('S0headp:{}'.format(head_node_s0.head_pos()))
-        if head_node_s1:
+        if head_node_s1 is not None:
             feats.append('S1headnt:{}'.format(head_node_s1.label()))
             feats.append('S1headw:{}'.format(head_node_s1.head_word().lower()))
             feats.append('S1headp:{}'.format(head_node_s1.head_pos()))
-        if head_node_q0:
+        if head_node_q0 is not None:
             feats.append('Q0headnt:{}'.format(head_node_q0.label()))
             feats.append('Q0headw:{}'.format(head_node_q0.head_word().lower()))
             feats.append('Q0headp:{}'.format(head_node_q0.head_pos()))
@@ -319,6 +322,21 @@ class Parser(object):
                 feats.append("syn_dominates_{}{}".format(nlabel1, nlabel2))
             if Parser.syntactically_dominates(node2, node1):
                 feats.append("syn_dominates_{}{}".format(nlabel2, nlabel1))
+
+        # paragraph and document position features
+        starts_paragraph = doc_dict['edu_starts_paragraph']
+        s0_start_idx = s0['start_idx']
+        s1_start_idx = s1['start_idx']
+        s2_start_idx = s2['start_idx']
+        q0_start_idx = queue[0]['start_idx'] if queue else None
+        if s0_start_idx is not None and starts_paragraph[s0_start_idx]:
+            feats.append('s0_starts_paragraph')
+        if s1_start_idx is not None and starts_paragraph[s1_start_idx]:
+            feats.append('s1_starts_paragraph')
+        if s2_start_idx is not None and starts_paragraph[s2_start_idx]:
+            feats.append('s2_starts_paragraph')
+        if q0_start_idx is not None and starts_paragraph[q0_start_idx]:
+            feats.append('q0_starts_paragraph')
 
         return feats
 
@@ -423,7 +441,7 @@ class Parser(object):
         if act.type == "B":
             tmp_rc = stack.pop()
             tmp_lc = stack.pop()
-            new_tree = Tree("({})".format(act.label))
+            new_tree = Tree.fromstring("({})".format(act.label))
             new_tree.append(tmp_lc["tree"])
             new_tree.append(tmp_rc["tree"])
 
@@ -473,7 +491,7 @@ class Parser(object):
                                  "act = {}:{}\n tmp_c = {}"
                                  .format(act.type, act.label, tmp_c))
 
-            new_tree = Tree("({})".format(act.label))
+            new_tree = Tree.fromstring("({})".format(act.label))
             new_tree.append(tmp_c["tree"])
             tmp_item = {"head_idx": tmp_c["head_idx"],
                         "start_idx": tmp_c["start_idx"],
@@ -504,7 +522,7 @@ class Parser(object):
             edu_pos_tags = [x[1] for x in edu]
 
             # make a dictionary for each EDU
-            new_tree = Tree('(text)')
+            new_tree = Tree.fromstring('(text)')
             new_tree.append('{}'.format(edu_index))
             tmp_item = {"head_idx": wnum,
                         "start_idx": wnum,
@@ -547,7 +565,7 @@ class Parser(object):
             doc_dict['syntax_trees_objs'] = []
             for tree_str in doc_dict['syntax_trees']:
                 doc_dict['syntax_trees_objs'].append(
-                    HeadedParentedTree(tree_str))
+                    HeadedParentedTree.fromstring(tree_str))
 
         # initialize the stack
         stack = []
@@ -581,7 +599,7 @@ class Parser(object):
                 assert tree.label() == 'ROOT'
 
                 # collapse binary branching * rules in the output
-                output_tree = ParentedTree(tree.pprint())
+                output_tree = ParentedTree.fromstring(tree.pprint())
                 collapse_binarized_nodes(output_tree)
 
                 completetrees.append({"tree": output_tree,
@@ -673,9 +691,9 @@ class Parser(object):
             logging.warning('No complete trees found.')
 
             # Default to a flat tree if there is no complete parse.
-            new_tree = Tree("(ROOT)")
+            new_tree = Tree.fromstring("(ROOT)")
             for i in range(len(tagged_edus)):
-                tmp_child = Tree('(text)')
+                tmp_child = Tree.fromstring('(text)')
                 tmp_child.append(i)
                 new_tree.append(tmp_child)
             completetrees.append({"tree": new_tree, "score": 0.0})

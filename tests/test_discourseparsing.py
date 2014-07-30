@@ -10,7 +10,7 @@ from discourseparsing.discourse_parsing import Parser
 
 
 def test_extract_parse_actions():
-    tree = ParentedTree('(ROOT (satellite:attribution (text 0)) (nucleus:span (satellite:condition (text 1)) (nucleus:span (nucleus:span (nucleus:same-unit (text 2)) (nucleus:same-unit (satellite:temporal (text 3)) (nucleus:span (text 4)))) (satellite:conclusion (text 5)))))')
+    tree = ParentedTree.fromstring('(ROOT (satellite:attribution (text 0)) (nucleus:span (satellite:condition (text 1)) (nucleus:span (nucleus:span (nucleus:same-unit (text 2)) (nucleus:same-unit (satellite:temporal (text 3)) (nucleus:span (text 4)))) (satellite:conclusion (text 5)))))')
     # I think the tree above would be for something
     # like this silly little example:
     # "John said that if Bob bought this excellent book,
@@ -40,7 +40,7 @@ def test_reconstruct_training_examples():
 
     rst_parser = Parser(max_acts=1, max_states=1, n_best=1)
     for doc_dict in data:
-        tree_orig = ParentedTree(doc_dict['rst_tree'])
+        tree_orig = ParentedTree.fromstring(doc_dict['rst_tree'])
         actions = extract_parse_actions(tree_orig)
 
         tree2 = next(rst_parser.parse(doc_dict,
@@ -56,3 +56,4 @@ if __name__ == '__main__':
                                 '%(message)s'), level=logging.INFO)
     test_extract_parse_actions()
     test_reconstruct_training_examples()
+    print("If no assertions failed, then this passed.")

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 '''
-A script to train an RST parsing model.
-This takes a JSON-formatted training set created by `convert_rst_discourse_tb.py`,
-trains a model, and saves the model in a user-specified location.
+A script to train an RST parsing model. This takes a JSON-formatted training set
+created by `convert_rst_discourse_tb.py`, trains a model, and saves the model in
+a user-specified location.
 '''
 
 from collections import Counter
@@ -168,7 +168,7 @@ def main():
     for doc_dict in train_data:
         path_basename = doc_dict['path_basename']
         logging.info('Extracting examples for {}'.format(path_basename))
-        tree = ParentedTree(doc_dict['rst_tree'])
+        tree = ParentedTree.fromstring(doc_dict['rst_tree'])
         collapse_rst_labels(tree)
         actions = extract_parse_actions(tree)
 
