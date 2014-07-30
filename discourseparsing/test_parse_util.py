@@ -15,7 +15,6 @@ if __name__ == '__main__':
     # set up an argument parser
     parser = argparse.ArgumentParser(prog='test_parse_util.py')
     parser.add_argument('--input', dest='inputfile', help="Input file", required=True)
-    parser.add_argument('--zpar', dest='zpar_directory', help="ZPar directory", required=True)
     parser.add_argument('--models', dest='zpar_model_directory',
                         help="ZPar model directory", required=True)
     parser.add_argument('--port', dest='port', type=int,
@@ -34,10 +33,10 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
     # initialize the syntax wrapper
-    wrapper = SyntaxParserWrapper(zpar_directory=args.zpar_directory,
-                                  zpar_model_directory=args.zpar_model_directory,
+    wrapper = SyntaxParserWrapper(zpar_model_directory=args.zpar_model_directory,
                                   hostname=args.hostname,
                                   port=args.port)
     with open(args.inputfile, 'r') as docf:
-        output = wrapper.parse_document(docf.read())
-        print(output)
+        trees, starts_paragraph_list = wrapper.parse_document(docf.read())
+        print("Syntax trees: {}".format(trees))
+        print("Tree starts paragraph indicators".format(starts_paragraph_list))

@@ -30,6 +30,7 @@ def main():
     with open(args.input_path) as f:
         doc = f.read()
 
+    # TODO add zpar model, port, host, arguments
     parser = SyntaxParserWrapper()
     trees = parser.parse_document(doc)
     tokens_doc = [extract_converted_terminals(tree) for tree in trees]

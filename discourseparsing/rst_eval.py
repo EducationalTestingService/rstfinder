@@ -197,8 +197,11 @@ def main():
 
     # read the models
     logger.info('Loading models')
-    syntax_parser = SyntaxParserWrapper(args.zpar_directory)
-    segmenter = Segmenter(args.segmentation_model) if args.segmentation_model else None
+
+    # TODO add port, host, model args
+    syntax_parser = SyntaxParserWrapper() if not args.use_gold_syntax else None
+    segmenter = Segmenter(args.segmentation_model) \
+        if args.segmentation_model else None
 
     rst_parser = Parser(max_acts=args.max_acts,
                         max_states=args.max_states,
@@ -206,9 +209,6 @@ def main():
     rst_parser.load_model(args.parsing_model)
 
     eval_data = json.load(args.evaluation_set)
-
-    # TODO remove this or comment it out (it's just for debugging)
-    # eval_data = eval_data[:20]
 
     results = predict_and_evaluate_rst_trees(syntax_parser, segmenter,
                                              rst_parser, eval_data,
