@@ -95,7 +95,7 @@ class Segmenter():
     def segment_document(self, doc_dict):
         logging.info('segmenting document...')
 
-        # extract features
+        # Extract features.
         # TODO interact with crf++ via cython, etc.?
         tmpfile = NamedTemporaryFile('w')
         feat_lists, _ = extract_segmentation_features(doc_dict)
@@ -103,13 +103,14 @@ class Segmenter():
             print('\t'.join(feat_list + ["?"]), file=tmpfile)
         tmpfile.flush()
 
-        # get predictions from the CRF++ model
+        # Get predictions from the CRF++ model.
         crf_output = subprocess.check_output(shlex.split(
-            'crf_test -m {} {}'.format(self.model_path, tmpfile.name))).decode('utf-8').strip()
+            'crf_test -m {} {}'.format(self.model_path, tmpfile.name))) \
+            .decode('utf-8').strip()
         tmpfile.close()
 
-        # an index into the list of tokens for this document indicating where the
-        # current sentence started
+        # an index into the list of tokens for this document indicating where
+        # the current sentence started
         sent_start_index = 0
 
         # an index into the list of sentences
@@ -117,25 +118,39 @@ class Segmenter():
 
         edu_number = 0
 
-        # construct the set of EDU start index tuples (sentence number, token
-        # number, EDU number)
+        # Construct the set of EDU start index tuples (sentence number, token
+        # number, EDU number).
         edu_start_indices = []
         all_tokens = doc_dict['tokens']
         cur_sent = all_tokens[0]
-        for i, line in enumerate(crf_output.split('\n')):
-            if i >= sent_start_index + len(cur_sent):
+        for tok_index, line in enumerate(crf_output.split('\n')):
+            if tok_index - sent_start_index >= len(cur_sent):
                 sent_start_index += len(cur_sent)
                 sent_num += 1
                 cur_sent = all_tokens[sent_num] if sent_num < len(
                     all_tokens) else None
-            if line.split()[-1] == "B-EDU":
+            # Start a new EDU where the CRF predicts "B-EDU".
+            # Also, force new EDUs to start at the beginnings of sentences to
+            # account for the rare cases where the CRF does not predict "B-EDU"
+            # at the beginning of a new sentence (CRF++ can only learn this as
+            # a soft constraint).
+            start_of_sentence = (tok_index - sent_start_index == 0)
+            token_label = line.split()[-1]
+            if token_label == "B-EDU" or start_of_sentence:
+                if start_of_sentence and token_label != "B-EDU":
+                    logging.info("The CRF segmentation model did not predict" +
+                                 " B-EDU at the start of a sentence. A new" +
+                                 " EDU will be started regardless, to ensure." +
+                                 " consistency with the RST annotations.")
+
                 edu_start_indices.append(
-                    (sent_num, i - sent_start_index, edu_number))
+                    (sent_num, tok_index - sent_start_index, edu_number))
                 edu_number += 1
 
-        # check that all sentences are covered by the output list of EDUs
-        assert set(range(len(doc_dict['tokens']))) == {x[0] for x
-                                                       in edu_start_indices}
+        # Check that all sentences are covered by the output list of EDUs,
+        # and that every new sentence starts an EDU.
+        assert set(range(len(doc_dict['tokens']))) \
+            == {x[0] for x in edu_start_indices if x[1] == 0}
 
         doc_dict['edu_start_indices'] = edu_start_indices
 

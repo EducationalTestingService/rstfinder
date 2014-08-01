@@ -159,13 +159,18 @@ class Parser(object):
         end_tok_idx = start_tok_idx + len(head_words)
         preterminals = [x for x in tree.subtrees()
                         if isinstance(x[0], str)][start_tok_idx:end_tok_idx]
-        # filter out punctuation
-        maximal_nodes = [node.find_maximal_head_node() for node in preterminals
-                         if re.search(r'[A-Za-z]', node.label())]
-        if len(maximal_nodes) == 0:
-            logging.warning("EDU head only contained punctuation: {}"
-                            .format(preterminals))
+
+        # Filter out punctuation if the EDU has more than just punctuation.
+        # Otherwise "." will be the head of sentences.
+        filtered_preterminals = [node for node in preterminals
+                                 if re.search(r'[A-Za-z]', node.label())]
+        if not filtered_preterminals:
+            logging.debug("EDU head only contained punctuation: {}"
+                          .format(preterminals))
             return None
+
+        preterminals = filtered_preterminals
+        maximal_nodes = [node.find_maximal_head_node() for node in preterminals]
         depths = [len(node.treeposition()) for node in maximal_nodes]
         mindepth_idx = np.argmin(depths)
         res = maximal_nodes[mindepth_idx]
