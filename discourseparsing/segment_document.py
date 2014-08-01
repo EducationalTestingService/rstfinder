@@ -17,22 +17,25 @@ from discourseparsing.tree_util import (extract_preterminals,
                                         extract_converted_terminals,
                                         TREE_PRINT_MARGIN)
 from discourseparsing.parse_util import SyntaxParserWrapper
+from discourseparsing.io_util import read_text_file
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument('model_path', help='crf++ model file created by ' +
                         'tune_segmentation_model.py.')
     parser.add_argument('input_path', help='document text file')
+    parser.add_argument('-zp', '--zpar_port', type=int)
+    parser.add_argument('-zh', '--zpar_hostname', default=None)
     args = parser.parse_args()
 
-    with open(args.input_path) as f:
-        doc = f.read()
+    doc = read_text_file(args.input_path)
 
-    # TODO add zpar model, port, host, arguments
-    parser = SyntaxParserWrapper()
-    trees = parser.parse_document(doc)
+    parser = SyntaxParserWrapper(port=args.zpar_port,
+                                 hostname=args.zpar_hostname)
+    trees, _ = parser.parse_document(doc)
     tokens_doc = [extract_converted_terminals(tree) for tree in trees]
     preterminals = [extract_preterminals(tree) for tree in trees]
     token_tree_positions = [[x.treeposition() for x in

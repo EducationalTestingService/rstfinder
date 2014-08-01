@@ -3,8 +3,6 @@
 import logging
 import json
 
-import cchardet
-
 from discourseparsing.discourse_parsing import Parser
 from discourseparsing.discourse_segmentation import (Segmenter,
                                                      extract_edus_tokens)
@@ -12,6 +10,7 @@ from discourseparsing.parse_util import SyntaxParserWrapper
 from discourseparsing.tree_util import (TREE_PRINT_MARGIN,
                                         extract_preterminals,
                                         extract_converted_terminals)
+from discourseparsing.io_util import read_text_file
 
 
 def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
@@ -82,8 +81,7 @@ def main():
                         help='Maximum number of states to retain for \
                               best-first search',
                         type=int, default=1)
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument('-zp', '--zpar_port', type=int)
+    parser.add_argument('-zp', '--zpar_port', type=int)
     parser.add_argument('-zh', '--zpar_hostname', default=None)
     parser.add_argument('-v', '--verbose',
                         help='Print more status information. For every ' +
@@ -114,14 +112,7 @@ def main():
 
     for input_path in args.input_paths:
         logging.info('rst_parse input file: %s', input_path)
-        with open(input_path, 'rb') as input_file:
-            doc = input_file.read()
-            chardet_output = cchardet.detect(doc)
-            encoding = chardet_output['encoding']
-            encoding_confidence = chardet_output['confidence']
-            logging.debug('decoding as {} with {} confidence'
-                          .format(encoding, encoding_confidence))
-            doc = doc.decode(encoding).strip()
+        doc = read_text_file(input_path)
 
         logging.debug('rst_parse input: %s', doc)
         doc_dict = {"raw_text": doc}

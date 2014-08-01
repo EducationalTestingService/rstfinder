@@ -16,7 +16,8 @@ from discourseparsing.discourse_segmentation import extract_segmentation_feature
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         'input_path', help='JSON file from convert_rst_discourse_tb.py')
     parser.add_argument(

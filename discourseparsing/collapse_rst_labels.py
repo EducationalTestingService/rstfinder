@@ -7,7 +7,6 @@ based on a perl script by Kenji Sagae.
 
 import argparse
 import re
-import sys
 
 from nltk.tree import ParentedTree
 
@@ -81,7 +80,8 @@ def _collapse_rst_label(label):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Note that this main method is just for testing.")
+        description="Note that this main method is just for testing.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         'input_path', help='path to an RST discourse treebank .dis file')
     parser.add_argument('output_path',

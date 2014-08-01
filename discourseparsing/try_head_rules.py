@@ -20,7 +20,8 @@ def depth(t):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('ptb_file', help='PTB MRG file')
     args = parser.parse_args()
 

@@ -18,7 +18,8 @@ def make_segmentation_crfpp_template(output_path, num_features=13):
             print(file=outfile)
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument(
         '--output_path',
         help='A path to where the CRF++ template file should be created.',

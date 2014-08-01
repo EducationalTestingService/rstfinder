@@ -58,7 +58,7 @@ file_mapping = {'file1.edus': 'wsj_0764.out.edus',
 def main():
     parser = argparse.ArgumentParser(
         description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('rst_discourse_tb_dir',
                         help='directory for the RST Discourse Treebank.  \
                               This should have a subdirectory \

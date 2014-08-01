@@ -10,7 +10,8 @@ import argparse
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--orig_training_set',
                         default='rst_discourse_tb_edus_TRAINING.json')
     parser.add_argument('--new_training_set',

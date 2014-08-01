@@ -13,7 +13,8 @@ from discourseparsing.parse_util import SyntaxParserWrapper
 if __name__ == '__main__':
 
     # set up an argument parser
-    parser = argparse.ArgumentParser(prog='test_parse_util.py')
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('--input', dest='inputfile', help="Input file", required=True)
     parser.add_argument('--models', dest='zpar_model_directory',
                         help="ZPar model directory", required=True)

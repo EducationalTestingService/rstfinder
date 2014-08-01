@@ -12,7 +12,8 @@ from discourseparsing.make_segmentation_crfpp_template import make_segmentation_
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('train_path',
                         help='The path to the training set .tsv file for CRF++')
     parser.add_argument('dev_path',

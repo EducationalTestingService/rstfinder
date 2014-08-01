@@ -11,6 +11,8 @@ from nltk.tree import ParentedTree
 
 from discourseparsing.tree_util import (convert_parens_to_ptb_format,
                                         TREE_PRINT_MARGIN)
+from discourseparsing.paragraph_splitting import ParagraphSplitter
+
 
 class SyntaxParserWrapper():
     def __init__(self, zpar_model_directory='zpar/english', hostname=None,
@@ -131,17 +133,9 @@ class SyntaxParserWrapper():
     def parse_document(self, doc):
         logging.info('syntax parsing...')
 
-        # Remove carriage returns if there are any.
-        doc = re.sub(r'\r', '', doc)
-
         # TODO should there be some extra preprocessing to deal with fancy quotes, etc.?
         # The tokenizer doesn't appear to handle it well
-        paragraphs = re.split(r'\s*\n\n+\s*', doc.strip())
-        if len(doc) > 300 and len(paragraphs) == 1:
-            logging.warning(('The document had over 300 characters ({})' +
-                             ' but only one paragraph was detected.' +
-                             ' Note that paragraphs should be separate by' +
-                             ' 2 or more newline characters.').format(len(doc)))
+        paragraphs = ParagraphSplitter.find_paragraphs(doc)
 
         starts_paragraph_list = []
         trees = []
