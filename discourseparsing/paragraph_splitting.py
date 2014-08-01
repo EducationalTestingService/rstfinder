@@ -29,8 +29,8 @@ class ParagraphSplitter(object):
         # If we only found one long paragraph, try splitting by newlines.
         if len(res) == 1 and len(text) > 500 and re.search(r'\.\s*\n', text):
             logging.info('The text was over 500 characters, no indentation' +
-                         ' or blank lines were found, and there is a period ' +
-                         ' followed by a newline. Falling back to splitting ' +
+                         ' or blank lines were found, and there is a period' +
+                         ' followed by a newline. Falling back to splitting' +
                          ' by newlines.')
             res = re.split(r'\n+', text)
 
