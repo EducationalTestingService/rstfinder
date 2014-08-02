@@ -18,12 +18,12 @@ def test_paragraph_splitting():
 
     assert len(paragraphs) == 10
 
-    for i in range(8):
-        assert 'paragraph {}'.format(i + 1) in paragraphs[i]
-        assert paragraphs[i][-1] == "."
+    for i, paragraph in enumerate(paragraphs):
+        assert 'paragraph {}'.format(i + 1) in paragraph
+        assert paragraph[-1] == "."
 
         # Make sure newlines have been removed within each paragraph.
-        assert '\n' not in paragraphs[i]
+        assert '\n' not in paragraph
 
     # Make the total number of non-whitespace characters is the same.
     assert len(re.sub(r'\s', '', text)) \
