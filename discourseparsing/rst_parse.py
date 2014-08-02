@@ -20,6 +20,12 @@ def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
     See `convert_rst_discourse_tb.py` for details about document dictionaries.
     '''
 
+    # Return empty lists if the input was blank.
+    if not doc_dict['raw_text'].strip():
+        # TODO add a unit test for this.
+        logging.warning('The input contained no non-whitespace characters.')
+        return [], []
+
     if 'syntax_trees' not in doc_dict:
         # Do syntactic parsing.
         trees, starts_paragraph_list = \
@@ -52,9 +58,9 @@ def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
                                      doc_dict['tokens'])
 
     # Do RST parsing.
-    rst_parse_tree = rst_parser.parse(doc_dict)
+    rst_parse_trees = rst_parser.parse(doc_dict)
 
-    return edu_tokens, rst_parse_tree
+    return edu_tokens, rst_parse_trees
 
 
 def main():
@@ -83,6 +89,7 @@ def main():
                         type=int, default=1)
     parser.add_argument('-zp', '--zpar_port', type=int)
     parser.add_argument('-zh', '--zpar_hostname', default=None)
+    parser.add_argument('-zm', '--zpar_model_directory', default='zpar/english')
     parser.add_argument('-v', '--verbose',
                         help='Print more status information. For every ' +
                         'additional time this flag is specified, ' +
@@ -100,9 +107,10 @@ def main():
 
     # Read the models.
     logging.info('Loading models')
-    # TODO add zpar model argument
     syntax_parser = SyntaxParserWrapper(port=args.zpar_port,
-                                        hostname=args.zpar_hostname)
+                                        hostname=args.zpar_hostname,
+                                        zpar_model_directory=
+                                        args.zpar_model_directory)
     segmenter = Segmenter(args.segmentation_model)
 
     parser = Parser(max_acts=args.max_acts,

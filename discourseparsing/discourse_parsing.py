@@ -563,6 +563,16 @@ class Parser(object):
 
         queue = self.initialize_edu_data(tagged_edus)
 
+        # If there is only one item on the queue to start, then make it a
+        # finished tree so that parsing will complete immediately.
+        # TODO add a unit test for this.
+        if len(queue) == 1:
+            logging.warning('There was only one EDU to parse. A very simple' +
+                            ' tree will be returned.')
+            new_tree = Tree.fromstring("(ROOT)")
+            new_tree.append(queue[0]['tree'])
+            queue[0]['tree'] = new_tree
+
         # precompute syntax tree objects so this only needs to be done once
         if 'syntax_trees_objs' not in doc_dict \
                 or len(doc_dict['syntax_trees_objs']) \
