@@ -16,9 +16,9 @@ def test_paragraph_splitting():
 
     paragraphs = splitter.find_paragraphs(text)
 
-    assert len(paragraphs) == 7
+    assert len(paragraphs) == 10
 
-    for i in range(7):
+    for i in range(8):
         assert 'paragraph {}'.format(i + 1) in paragraphs[i]
         assert paragraphs[i][-1] == "."
 

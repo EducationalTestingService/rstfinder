@@ -9,6 +9,13 @@ which is split over two lines.
 		This is the start of paragraph 5.
 
 “This is the start” of paragraph 6.
+ 
+This is the start of paragraph 7, which has a space between the newlines before it.
+	
+This is the start of paragraph 8, which has a tab between the newlines before it.
+	 
+     	        
+  
+This is the start of paragraph 9, which has lots of spaces, tabs, and newlines before it.
 
-
-This is the start of paragraph 7, which doesn't end in a newline.
+This is the start of paragraph 10, which doesn't end in a newline.

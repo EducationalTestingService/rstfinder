@@ -24,7 +24,7 @@ class ParagraphSplitter(object):
         text = re.sub(r'\r', r'', text.strip())
 
         # Note that ":?" makes the parenthesized thing not count as a group.
-        res = re.split(r'\n(?:\n|\s\s\s|\t)\s*', text)
+        res = re.split(r'\n\s*(?:\n|\s\s\s|\t)\s*', text)
 
         # If we only found one long paragraph, try splitting by newlines.
         if len(res) == 1 and len(text) > 500 and re.search(r'\.\s*\n', text):
