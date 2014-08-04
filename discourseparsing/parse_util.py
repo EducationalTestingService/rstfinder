@@ -112,9 +112,13 @@ class SyntaxParserWrapper():
         res = []
         for sentence in sentences:
             parsed_sent = self._zpar_proxy.parse_sentence(sentence)
-            res.append(ParentedTree.fromstring(parsed_sent))
-            logging.debug('syntax parsing results: {}'.format(
-                [t.pprint(margin=TREE_PRINT_MARGIN) for t in res]))
+            if parsed_sent:
+                res.append(ParentedTree.fromstring(parsed_sent))
+            else:
+                logging.warning('The syntactic parser was unable to parse: {}'
+                                .format(sentence))
+        logging.debug('syntax parsing results: {}'.format(
+            [t.pprint(margin=TREE_PRINT_MARGIN) for t in res]))
 
         return res
 
@@ -124,9 +128,13 @@ class SyntaxParserWrapper():
         for sentence in sentences:
             parsed_sent = self._zpar_ref.parse_sentence(
                 sentence.encode("utf-8"))
-            res.append(ParentedTree.fromstring(parsed_sent.decode('utf-8')))
-            logging.debug('syntax parsing results: {}'.format(
-                [t.pprint(margin=TREE_PRINT_MARGIN) for t in res]))
+            if parsed_sent:
+                res.append(ParentedTree.fromstring(parsed_sent.decode('utf-8')))
+            else:
+                logging.warning('The syntactic parser was unable to parse: {}'
+                                .format(sentence))
+        logging.debug('syntax parsing results: {}'.format(
+            [t.pprint(margin=TREE_PRINT_MARGIN) for t in res]))
 
         return res
 
@@ -139,6 +147,7 @@ class SyntaxParserWrapper():
 
         starts_paragraph_list = []
         trees = []
+        no_parse_for_paragraph = False
         for paragraph in paragraphs:
             # try to use the server first
             if self._zpar_proxy:
@@ -149,14 +158,22 @@ class SyntaxParserWrapper():
                     raise RuntimeError('The ZPar server is unavailable.')
                 trees_p = self._parse_document_via_lib(paragraph)
 
-            starts_paragraph_list.append(True)
-            starts_paragraph_list.extend([False for t in trees_p[1:]])
-            trees.extend(trees_p)
+            if len(trees_p) > 0:
+                starts_paragraph_list.append(True)
+                starts_paragraph_list.extend([False for t in trees_p[1:]])
+                trees.extend(trees_p)
+            else:
+                # TODO add some sort of error flag to the dictionary for this document?
+                no_parse_for_paragraph = True
 
         logging.debug('starts_paragraph_list = {}'
                       .format(starts_paragraph_list))
 
-        assert sum(starts_paragraph_list) == len(paragraphs)
+        # Check that either the number of True indicators in
+        # starts_paragraph_list equals the number of paragraphs, or that the
+        # syntax parser had to skip a paragraph entirely.
+        assert (sum(starts_paragraph_list) == len(paragraphs)
+                or no_parse_for_paragraph)
         assert len(trees) == len(starts_paragraph_list)
 
         return trees, starts_paragraph_list

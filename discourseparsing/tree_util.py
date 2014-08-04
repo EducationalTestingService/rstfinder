@@ -258,7 +258,6 @@ def extract_converted_terminals(tree):
         elif w == '``' or w == "''":
             w = '"'
 
-        w = re.sub(r'\\', r'', w)
         prev_w = w
         res.append(w)
     return res
@@ -284,6 +283,12 @@ def convert_ptb_tree(t):
         label = subtree.label()
         if '=' in label and label[0] != '=':
             subtree.set_label(label[:label.index('=')])
+
+    # Remove escape sequences from words (e.g., "3\\/4")
+    for subtree in t.subtrees():
+        if isinstance(subtree[0], str):
+            for i in range(len(subtree)):
+                subtree[i] = re.sub(r'\\', r'', subtree[i])
 
 
 def find_first_common_ancestor(n1, n2):

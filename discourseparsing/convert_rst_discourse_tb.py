@@ -184,6 +184,7 @@ def main():
 
             edu = ""
             tree = trees[0]
+
             tokens_doc = [extract_converted_terminals(t) for t in trees]
             tokens = tokens_doc[0]
             preterminals = [extract_preterminals(t) for t in trees]

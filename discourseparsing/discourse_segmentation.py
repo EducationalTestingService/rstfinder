@@ -118,11 +118,16 @@ class Segmenter():
 
         edu_number = 0
 
+        # Check that the input is not blank.
+        all_tokens = doc_dict['tokens']
+        if not all_tokens:
+            doc_dict['edu_start_indices'] = []
+            return
+
         # Construct the set of EDU start index tuples (sentence number, token
         # number, EDU number).
-        edu_start_indices = []
-        all_tokens = doc_dict['tokens']
         cur_sent = all_tokens[0]
+        edu_start_indices = []
         for tok_index, line in enumerate(crf_output.split('\n')):
             if tok_index - sent_start_index >= len(cur_sent):
                 sent_start_index += len(cur_sent)
@@ -157,6 +162,10 @@ class Segmenter():
 
 def extract_edus_tokens(edu_start_indices, tokens_doc):
     res = []
+
+    # check for blank input.
+    if not edu_start_indices:
+        return res
 
     # add a dummy index pair representing the end of the document
     tmp_indices = edu_start_indices + [[edu_start_indices[-1][0] + 1,
