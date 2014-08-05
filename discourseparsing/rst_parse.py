@@ -21,7 +21,9 @@ def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
     '''
 
     # Return empty lists if the input was blank.
-    if not doc_dict['raw_text'].strip():
+    # (Check whether raw_text is available so this does not crash
+    # when evaluating on pre-parsed treebank documents.)
+    if 'raw_text' in doc_dict and not doc_dict['raw_text'].strip():
         # TODO add a unit test for this.
         logging.warning('The input contained no non-whitespace characters.')
         return [], []
