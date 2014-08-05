@@ -7,7 +7,7 @@ This script merges the RST Discourse Treebank
 and creates JSON files for the training and test sets.
 The JSON files contain lists with one dictionary per document.
 Each of these dictionaries has the following keys:
-- ptb_id: The Penn Treebank ID (e.g., wsj0764)
+- doc_id: The Penn Treebank ID (e.g., wsj0764)
 - path_basename: the basename of the RST Discourse Treebank (e.g., file1.edus)
 - tokens: a list of lists of tokens in the document, as extracted from the
           PTB parse trees.
@@ -364,7 +364,7 @@ def main():
 
                 tok_index += 1
 
-            output = {"ptb_id": ptb_id,
+            output = {"doc_id": ptb_id,
                       "path_basename": path_basename,
                       "tokens": tokens_doc,
                       "edu_strings": edus,

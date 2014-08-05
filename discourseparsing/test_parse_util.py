@@ -2,12 +2,8 @@
 
 import argparse
 import logging
-import sys
-
-sys.path.append('/Users/nmadnani/work/discourse-parsing')
 
 from discourseparsing.parse_util import SyntaxParserWrapper
-
 
 
 if __name__ == '__main__':
@@ -15,7 +11,8 @@ if __name__ == '__main__':
     # set up an argument parser
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--input', dest='inputfile', help="Input file", required=True)
+    parser.add_argument('--input', dest='inputfile', help="Input file",
+                        required=True)
     parser.add_argument('--models', dest='zpar_model_directory',
                         help="ZPar model directory", required=True)
     parser.add_argument('--port', dest='port', type=int,
@@ -38,6 +35,7 @@ if __name__ == '__main__':
                                   hostname=args.hostname,
                                   port=args.port)
     with open(args.inputfile, 'r') as docf:
-        trees, starts_paragraph_list = wrapper.parse_document(docf.read())
+        doc_dict = {"raw_text": docf.read(), "doc_id": args.input}
+        trees, starts_paragraph_list = wrapper.parse_document(doc_dict)
         print("Syntax trees: {}".format(trees))
         print("Tree starts paragraph indicators".format(starts_paragraph_list))

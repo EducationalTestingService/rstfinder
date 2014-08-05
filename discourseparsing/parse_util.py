@@ -101,29 +101,29 @@ class SyntaxParserWrapper():
             raise Exception('Cannot find parser model at {}'
                             .format(self.zpar_model_directory))
 
-    def tokenize_document(self, doc):
-        tmpdoc = re.sub(r'\s+', r' ', doc.strip())
+    def tokenize_document(self, txt):
+        tmpdoc = re.sub(r'\s+', r' ', txt.strip())
         sentences = [convert_parens_to_ptb_format(s)
                      for s in self.tokenizer.tokenize(tmpdoc)]
         return sentences
 
-    def _parse_document_via_server(self, doc):
-        sentences = self.tokenize_document(doc)
+    def _parse_document_via_server(self, txt, doc_id):
+        sentences = self.tokenize_document(txt)
         res = []
         for sentence in sentences:
             parsed_sent = self._zpar_proxy.parse_sentence(sentence)
             if parsed_sent:
                 res.append(ParentedTree.fromstring(parsed_sent))
             else:
-                logging.warning('The syntactic parser was unable to parse: {}'
-                                .format(sentence))
+                logging.warning('The syntactic parser was unable to parse: ' +
+                                '{}, doc_id = {}'.format(sentence, doc_id))
         logging.debug('syntax parsing results: {}'.format(
             [t.pprint(margin=TREE_PRINT_MARGIN) for t in res]))
 
         return res
 
-    def _parse_document_via_lib(self, doc):
-        sentences = self.tokenize_document(doc)
+    def _parse_document_via_lib(self, txt, doc_id):
+        sentences = self.tokenize_document(txt)
         res = []
         for sentence in sentences:
             parsed_sent = self._zpar_ref.parse_sentence(
@@ -131,19 +131,21 @@ class SyntaxParserWrapper():
             if parsed_sent:
                 res.append(ParentedTree.fromstring(parsed_sent.decode('utf-8')))
             else:
-                logging.warning('The syntactic parser was unable to parse: {}'
-                                .format(sentence))
+                logging.warning('The syntactic parser was unable to parse: ' +
+                                '{}, doc_id = {}'.format(sentence, doc_id))
         logging.debug('syntax parsing results: {}'.format(
             [t.pprint(margin=TREE_PRINT_MARGIN) for t in res]))
 
         return res
 
-    def parse_document(self, doc):
-        logging.info('syntax parsing...')
+    def parse_document(self, doc_dict):
+        doc_id = doc_dict["doc_id"]
+        logging.info('syntax parsing, doc_id = {}'.format(doc_id))
 
         # TODO should there be some extra preprocessing to deal with fancy quotes, etc.?
         # The tokenizer doesn't appear to handle it well
-        paragraphs = ParagraphSplitter.find_paragraphs(doc)
+        paragraphs = ParagraphSplitter.find_paragraphs(doc_dict["raw_text"],
+                                                       doc_id=doc_id)
 
         starts_paragraph_list = []
         trees = []
@@ -151,12 +153,12 @@ class SyntaxParserWrapper():
         for paragraph in paragraphs:
             # try to use the server first
             if self._zpar_proxy:
-                trees_p = self._parse_document_via_server(paragraph)
+                trees_p = self._parse_document_via_server(paragraph, doc_id)
             # then fall back to the shared library
             else:
                 if self._zpar_ref is None:
                     raise RuntimeError('The ZPar server is unavailable.')
-                trees_p = self._parse_document_via_lib(paragraph)
+                trees_p = self._parse_document_via_lib(paragraph, doc_id)
 
             if len(trees_p) > 0:
                 starts_paragraph_list.append(True)
@@ -166,8 +168,8 @@ class SyntaxParserWrapper():
                 # TODO add some sort of error flag to the dictionary for this document?
                 no_parse_for_paragraph = True
 
-        logging.debug('starts_paragraph_list = {}'
-                      .format(starts_paragraph_list))
+        logging.debug('starts_paragraph_list = {}, doc_id = {}'
+                      .format(starts_paragraph_list, doc_id))
 
         # Check that either the number of True indicators in
         # starts_paragraph_list equals the number of paragraphs, or that the

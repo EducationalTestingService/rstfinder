@@ -12,7 +12,7 @@ def read_text_file(input_path):
         chardet_output = cchardet.detect(doc)
         encoding = chardet_output['encoding']
         encoding_confidence = chardet_output['confidence']
-        logging.debug('decoding as {} with {} confidence'
-                      .format(encoding, encoding_confidence))
+        logging.debug('decoding {} as {} with {} confidence'
+                      .format(input_path, encoding, encoding_confidence))
         doc = doc.decode(encoding)
     return doc

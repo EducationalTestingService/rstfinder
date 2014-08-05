@@ -165,8 +165,8 @@ class Parser(object):
         filtered_preterminals = [node for node in preterminals
                                  if re.search(r'[A-Za-z]', node.label())]
         if not filtered_preterminals:
-            logging.debug("EDU head only contained punctuation: {}"
-                          .format(preterminals))
+            logging.debug("EDU head only contained punctuation: {}, doc_id = {}"
+                          .format(preterminals, doc_dict["doc_id"]))
             return None
 
         preterminals = filtered_preterminals
@@ -555,7 +555,8 @@ class Parser(object):
         Disabling `make features` can be useful for debugging and testing.
         '''
 
-        logging.info('RST parsing document...')
+        doc_id = doc_dict["doc_id"]
+        logging.info('RST parsing, doc_id = {}'.format(doc_id))
 
         states = []
         completetrees = []
@@ -568,7 +569,8 @@ class Parser(object):
         # TODO add a unit test for this.
         if len(queue) == 1:
             logging.warning('There was only one EDU to parse. A very simple' +
-                            ' tree will be returned.')
+                            ' tree will be returned. doc_id = {}'
+                            .format(doc_id))
             new_tree = Tree.fromstring("(ROOT)")
             new_tree.append(queue[0]['tree'])
             queue[0]['tree'] = new_tree
@@ -602,11 +604,11 @@ class Parser(object):
             states = states[:self.max_states]
 
             cur_state = states.pop(0)  # should maybe replace this with a deque
-            logging.debug("cur_state prevact: {}:{}, score: {}, num. states: {}"
+            logging.debug(("cur_state prevact = {}:{}, score = {}," +
+                           " num. states = {}, doc_id = {}")
                           .format(cur_state["prevact"].type,
                                   cur_state["prevact"].label,
-                                  cur_state["score"],
-                                  len(states)))
+                                  cur_state["score"], len(states), doc_id))
 
             # check if the current state corresponds to a complete tree
             if len(cur_state["queue"]) == 0 and len(cur_state["stack"]) == 1:
@@ -619,7 +621,7 @@ class Parser(object):
 
                 completetrees.append({"tree": output_tree,
                                       "score": cur_state["score"]})
-                logging.debug('complete tree found')
+                logging.debug('complete tree found, doc_id = {}'.format(doc_id))
 
                 # stop if we have found enough trees
                 if gold_actions is not None or (len(completetrees) >=
@@ -703,7 +705,8 @@ class Parser(object):
                 states.append(tmp_state)
 
         if not completetrees:
-            logging.warning('No complete trees found.')
+            logging.warning('No complete trees found. doc id = {}'
+                            .format(doc_dict['doc_id']))
 
             # Default to a flat tree if there is no complete parse.
             new_tree = Tree.fromstring("(ROOT)")

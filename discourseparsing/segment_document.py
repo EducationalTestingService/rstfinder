@@ -31,11 +31,12 @@ def main():
     parser.add_argument('-zh', '--zpar_hostname', default=None)
     args = parser.parse_args()
 
-    doc = read_text_file(args.input_path)
+    raw_text = read_text_file(args.input_path)
+    doc_dict = {"doc_id": args.input_path, "raw_text": raw_text}
 
     parser = SyntaxParserWrapper(port=args.zpar_port,
                                  hostname=args.zpar_hostname)
-    trees, _ = parser.parse_document(doc)
+    trees, _ = parser.parse_document(doc_dict)
     tokens_doc = [extract_converted_terminals(tree) for tree in trees]
     preterminals = [extract_preterminals(tree) for tree in trees]
     token_tree_positions = [[x.treeposition() for x in
@@ -45,10 +46,10 @@ def main():
     pos_tags = [[x.label() for x in preterminals_sentence]
                 for preterminals_sentence in preterminals]
 
-    doc_dict = {"tokens": tokens_doc,
-                "syntax_trees": [t.pprint(TREE_PRINT_MARGIN) for t in trees],
-                "token_tree_positions": token_tree_positions,
-                "pos_tags": pos_tags}
+    doc_dict["tokens"] = tokens_doc
+    doc_dict["syntax_trees"] = [t.pprint(TREE_PRINT_MARGIN) for t in trees]
+    doc_dict["token_tree_positions"] = token_tree_positions
+    doc_dict["pos_tags"] = pos_tags
 
     segmenter = Segmenter(args.model_path)
     segmenter.segment_document(doc_dict)

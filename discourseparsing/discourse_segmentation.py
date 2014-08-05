@@ -93,7 +93,8 @@ class Segmenter():
         self.model_path = model_path
 
     def segment_document(self, doc_dict):
-        logging.info('segmenting document...')
+        doc_id = doc_dict["doc_id"]
+        logging.info('segmenting document, doc_id = {}'.format(doc_id))
 
         # Extract features.
         # TODO interact with crf++ via cython, etc.?
@@ -146,7 +147,8 @@ class Segmenter():
                     logging.info("The CRF segmentation model did not predict" +
                                  " B-EDU at the start of a sentence. A new" +
                                  " EDU will be started regardless, to ensure." +
-                                 " consistency with the RST annotations.")
+                                 " consistency with the RST annotations." +
+                                 " doc_id = {}".format(doc_id))
 
                 edu_start_indices.append(
                     (sent_num, tok_index - sent_start_index, edu_number))
@@ -180,10 +182,10 @@ def extract_edus_tokens(edu_start_indices, tokens_doc):
         elif sent_index > prev_sent_index and tok_index == 0:
             res.append(tokens_doc[prev_sent_index][prev_tok_index:])
         else:
-            raise ValueError('An EDU ({}) crosses sentences: (sent {}, tok {}) => (sent {}, tok {})'
-                             .format(prev_edu_index,
-                                     prev_sent_index, prev_tok_index,
-                                     sent_index, tok_index))
+            raise ValueError(("An EDU ({}) crosses sentences: " +
+                              "(sent {}, tok {}) => (sent {}, tok {})")
+                             .format(prev_edu_index, prev_sent_index,
+                                     prev_tok_index, sent_index, tok_index))
     return res
 
 

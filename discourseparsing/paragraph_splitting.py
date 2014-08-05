@@ -19,7 +19,7 @@ class ParagraphSplitter(object):
         pass
 
     @staticmethod
-    def find_paragraphs(text):
+    def find_paragraphs(text, doc_id=None):
         # Remove carriage returns and leading/trailing whitespace.
         text = re.sub(r'\r', r'', text.strip())
 
@@ -31,7 +31,7 @@ class ParagraphSplitter(object):
             logging.info('The text was over 500 characters, no indentation' +
                          ' or blank lines were found, and there is a period' +
                          ' followed by a newline. Falling back to splitting' +
-                         ' by newlines.')
+                         ' by newlines. doc_id = {}'.format(doc_id))
             res = re.split(r'\n+', text)
 
         # Replace multiple spaces/newlines within a paragraph with one space.
@@ -54,6 +54,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     doc = read_text_file(args.input_text)
-    paragraphs = ParagraphSplitter.find_paragraphs(doc)
+    paragraphs = ParagraphSplitter.find_paragraphs(doc, args.input_text)
     for paragraph in paragraphs:
         print(paragraph)

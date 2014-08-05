@@ -25,13 +25,14 @@ def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
     # when evaluating on pre-parsed treebank documents.)
     if 'raw_text' in doc_dict and not doc_dict['raw_text'].strip():
         # TODO add a unit test for this.
-        logging.warning('The input contained no non-whitespace characters.')
+        logging.warning('The input contained no non-whitespace characters.' +
+                        ' doc_id = {}'.format(doc_dict["doc_id"]))
         return [], []
 
     if 'syntax_trees' not in doc_dict:
         # Do syntactic parsing.
         trees, starts_paragraph_list = \
-            syntax_parser.parse_document(doc_dict['raw_text'])
+            syntax_parser.parse_document(doc_dict)
         doc_dict['syntax_trees'] = [t.pprint(margin=TREE_PRINT_MARGIN)
                                     for t in trees]
         preterminals = [extract_preterminals(t) for t in trees]
@@ -121,11 +122,12 @@ def main():
     parser.load_model(args.parsing_model)
 
     for input_path in args.input_paths:
-        logging.info('rst_parse input file: %s', input_path)
+        logging.info('rst_parse input file: {}'.format(input_path))
         doc = read_text_file(input_path)
 
-        logging.debug('rst_parse input: %s', doc)
-        doc_dict = {"raw_text": doc}
+        logging.debug('rst_parse input. doc_id = {}, text = {}'
+                      .format(input_path, doc))
+        doc_dict = {"raw_text": doc, "doc_id": input_path}
 
         edu_tokens, complete_trees = segment_and_parse(doc_dict, syntax_parser,
                                                        segmenter, parser)
