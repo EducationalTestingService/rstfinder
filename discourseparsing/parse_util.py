@@ -15,9 +15,13 @@ from discourseparsing.paragraph_splitting import ParagraphSplitter
 
 
 class SyntaxParserWrapper():
-    def __init__(self, zpar_model_directory='zpar/english', hostname=None,
+    def __init__(self, zpar_model_directory=None, hostname=None,
                  port=None):
         self.zpar_model_directory = zpar_model_directory
+        if self.zpar_model_directory is None:
+            self.zpar_model_directory = os.getenv('ZPAR_MODEL_DIR',
+                                                  'zpar/english')
+
         self.tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
         self._zpar_proxy = None
         self._zpar_ref = None
