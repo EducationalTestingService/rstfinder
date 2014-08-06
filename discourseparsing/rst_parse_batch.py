@@ -27,7 +27,7 @@ def batch_process(docs, output_path, zpar_model_directory,
     with open(output_path, 'w') as outfile:
         for doc_id, text in docs:
             logging.info('doc_id: {}'.format(doc_id))
-            doc_dict = {"raw_text": text}
+            doc_dict = {"doc_id": doc_id, "raw_text": text}
             edu_tokens, complete_trees = \
                 segment_and_parse(doc_dict, syntax_parser, segmenter, parser)
             print(json.dumps({"id": doc_id, "edu_tokens": edu_tokens, \
