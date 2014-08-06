@@ -30,7 +30,7 @@ def batch_process(docs, output_path, zpar_model_directory,
             doc_dict = {"doc_id": doc_id, "raw_text": text}
             edu_tokens, complete_trees = \
                 segment_and_parse(doc_dict, syntax_parser, segmenter, parser)
-            print(json.dumps({"id": doc_id, "edu_tokens": edu_tokens, \
+            print(json.dumps({"doc_id": doc_id, "edu_tokens": edu_tokens, \
                 "scored_rst_trees": \
                 [{"score": tree["score"],
                   "tree": tree["tree"].pprint(margin=TREE_PRINT_MARGIN)}
