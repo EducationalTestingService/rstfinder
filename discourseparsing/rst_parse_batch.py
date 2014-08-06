@@ -54,7 +54,7 @@ def main():
                         default=0, action='count')
     parser.add_argument('-m', '--max_workers', type=int, default=cpu_count(),
                         help='number of parallel processes to use')
-    parser.add_argument('-zm', '--zpar_model_directory', default='zpar/english')
+    parser.add_argument('-zm', '--zpar_model_directory', default=None)
     parser.add_argument('input_file', help='json file with a dictionary from' +
                         ' IDs to texts.')
     parser.add_argument('output_prefix', help='path prefix for where outputs' +

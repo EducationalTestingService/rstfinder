@@ -92,7 +92,7 @@ def main():
                         type=int, default=1)
     parser.add_argument('-zp', '--zpar_port', type=int)
     parser.add_argument('-zh', '--zpar_hostname', default=None)
-    parser.add_argument('-zm', '--zpar_model_directory', default='zpar/english')
+    parser.add_argument('-zm', '--zpar_model_directory', default=None)
     parser.add_argument('-v', '--verbose',
                         help='Print more status information. For every ' +
                         'additional time this flag is specified, ' +
