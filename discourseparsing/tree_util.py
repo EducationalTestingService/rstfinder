@@ -217,7 +217,6 @@ class HeadedParentedTree(ParentedTree):
 
         return res
 
-
     def head_preterminal(self):
         res = self
         while not isinstance(res[0], str):
@@ -242,7 +241,7 @@ def convert_paren_tokens_to_ptb_format(toks):
 def convert_parens_to_ptb_format(sent):
     for key, val in _ptb_paren_mapping.items():
         sent = sent.replace(key, ' {} '.format(val))
-     # Remove extra spaces added by normalizing brackets.
+    # Remove extra spaces added by normalizing brackets.
     sent = re.sub(r'\s+', r' ', sent).strip()
     return sent
 
@@ -351,7 +350,8 @@ def collapse_binarized_nodes(t):
     for subtree in reversed(to_process):
         if subtree.label().endswith('*'):
             parent = subtree.parent()
-            assert subtree.label() == parent.label() or subtree.label()[:-1] == parent.label()
+            assert (subtree.label() == parent.label() or
+                    subtree.label()[:-1] == parent.label())
             tmp_index = parent.index(subtree)
             del parent[tmp_index]
             while subtree:

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 
 '''
-A script to train an RST parsing model. This takes a JSON-formatted training set
-created by `convert_rst_discourse_tb.py`, trains a model, and saves the model in
-a user-specified location.
+A script to train an RST parsing model. This takes a JSON-formatted training
+set created by `convert_rst_discourse_tb.py`, trains a model, and saves the
+model in a user-specified location.
 '''
 
 from collections import Counter
@@ -73,7 +73,8 @@ def train_rst_parsing_model(working_path, model_path, parameter_settings):
     run_configuration(cfg_path)
 
     # make the model smaller/faster
-    minimize_model(model_path, 'rst_parsing_all_feats_LogisticRegression.model')
+    minimize_model(model_path,
+                   'rst_parsing_all_feats_LogisticRegression.model')
 
 
 def minimize_model(model_path, model_name):
@@ -90,7 +91,7 @@ def minimize_model(model_path, model_name):
     model.feat_vectorizer.restrict(nonzero_feat_mask)
     # Refit the feature selector to expect the correct size matrices.
     model.feat_selector.fit(np.ones((1, model.model.coef_.shape[1])))
-    # Make the feature vectorizer return dense matrices (which is a bit faster).
+    # Make the feature vectorizer return dense matrices (this is a bit faster).
     model.feat_vectorizer.set_params(sparse=False)
     # Delete the raw_coef_ attribute that sklearn *only* uses when training.
     model.model.raw_coef_ = None
@@ -125,8 +126,8 @@ def main():
                         'tuning/evaluation.',
                         type=argparse.FileType('r'))
     parser.add_argument('model_path',
-                        help='Prefix for the path to where the model should be '
-                        'stored.  A suffix with the C value will be added.')
+                        help='Prefix for the path to where the model should be'
+                        ' stored.  A suffix with the C value will be added.')
     parser.add_argument('-w', '--working_path',
                         help='Path to where intermediate files should be ' +
                         'stored', default='working')
@@ -141,8 +142,8 @@ def main():
                         'output gets more verbose.',
                         default=0, action='count')
     parser.add_argument('-s', '--single_process', action='store_true',
-                        help='Run in a single process for all hyperparameter ' +
-                        'grid points, to simplify debugging.')
+                        help='Run in a single process for all hyperparameter' +
+                        ' grid points, to simplify debugging.')
     args = parser.parse_args()
 
     parser = Parser(1, 1, 1)

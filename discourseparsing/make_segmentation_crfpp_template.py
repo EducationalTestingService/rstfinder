@@ -17,6 +17,7 @@ def make_segmentation_crfpp_template(output_path, num_features=13):
                       file=outfile)
             print(file=outfile)
 
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)

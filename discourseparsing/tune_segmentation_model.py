@@ -16,14 +16,15 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('train_path',
-                        help='The path to the training set .tsv file for CRF++')
+                        help='The path to the training set .tsv file for' +
+                             ' CRF++')
     parser.add_argument('dev_path',
                         help='The path to the development set .tsv file for' +
                         ' CRF++')
     parser.add_argument('model_path_prefix',
-                        help='The path prefix for where the models should be ' +
-                        'stored.  Multiple files will be saved, for ' +
-                        'different hyperparameter settings.')
+                        help='The path prefix for where the models should be' +
+                        ' stored.  Multiple files will be saved, for' +
+                        ' different hyperparameter settings.')
     parser.add_argument('--template_path',
                         help='path to the CRF++ template for segmentation ' +
                         '(this will be created if the file does not exist)',

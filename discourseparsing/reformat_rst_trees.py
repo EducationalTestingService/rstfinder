@@ -26,9 +26,10 @@ def convert_parens_in_rst_tree_str(rst_tree_str):
     RST trees.
     '''
     for bracket_type, bracket_replacement in _ptb_paren_mapping.items():
-        rst_tree_str = re.sub('(_![^_(?=!)]*)\\{}([^_(?=!)]*_!)' \
-            .format(bracket_type), '\\g<1>{}\\g<2>'.format(bracket_replacement),
-                              rst_tree_str)
+        rst_tree_str = \
+            re.sub('(_![^_(?=!)]*)\\{}([^_(?=!)]*_!)'.format(bracket_type),
+                   '\\g<1>{}\\g<2>'.format(bracket_replacement),
+                   rst_tree_str)
     return rst_tree_str
 
 
@@ -102,8 +103,8 @@ def reformat_rst_tree(input_tree):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Converts the gold standard rst parses in the rst" + \
-                    " treebank to look more like what the parser produces",
+        description=("Converts the gold standard rst parses in the rst" +
+                     " treebank to look more like what the parser produces"),
         conflict_handler='resolve',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-i', '--inputfile',

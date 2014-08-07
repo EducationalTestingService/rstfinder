@@ -110,10 +110,9 @@ def main():
 
     # Read the models.
     logging.info('Loading models')
-    syntax_parser = SyntaxParserWrapper(port=args.zpar_port,
-                                        hostname=args.zpar_hostname,
-                                        zpar_model_directory=
-                                        args.zpar_model_directory)
+    syntax_parser = \
+        SyntaxParserWrapper(port=args.zpar_port, hostname=args.zpar_hostname,
+                            zpar_model_directory=args.zpar_model_directory)
     segmenter = Segmenter(args.segmentation_model)
 
     parser = Parser(max_acts=args.max_acts,
@@ -133,8 +132,9 @@ def main():
                                                        segmenter, parser)
 
         print(json.dumps({"edu_tokens": edu_tokens, \
-            "scored_rst_trees": [{"score": tree["score"], "tree": tree["tree"] \
-                                  .pprint(margin=TREE_PRINT_MARGIN)}
+            "scored_rst_trees": [{"score": tree["score"],
+                                  "tree": tree["tree"]
+                                          .pprint(margin=TREE_PRINT_MARGIN)}
                                  for tree in complete_trees]}))
 
 

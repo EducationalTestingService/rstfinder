@@ -88,6 +88,7 @@ def extract_segmentation_features(doc_dict):
 
     return feat_lists, labels
 
+
 class Segmenter():
     def __init__(self, model_path):
         self.model_path = model_path
@@ -144,11 +145,12 @@ class Segmenter():
             token_label = line.split()[-1]
             if token_label == "B-EDU" or start_of_sentence:
                 if start_of_sentence and token_label != "B-EDU":
-                    logging.info("The CRF segmentation model did not predict" +
-                                 " B-EDU at the start of a sentence. A new" +
-                                 " EDU will be started regardless, to ensure." +
-                                 " consistency with the RST annotations." +
-                                 " doc_id = {}".format(doc_id))
+                    logging.info(("The CRF segmentation model did not" +
+                                  " predict B-EDU at the start of a" +
+                                  " sentence. A new EDU will be started" +
+                                  " regardless, to ensure consistency with" +
+                                  " the RST annotations. doc_id = {}")
+                                 .format(doc_id))
 
                 edu_start_indices.append(
                     (sent_num, tok_index - sent_start_index, edu_number))
@@ -194,5 +196,6 @@ def extract_tagged_doc_edus(doc_dict):
     res = [list(zip(edu_words, edu_tags))
            for edu_words, edu_tags
            in zip(extract_edus_tokens(edu_start_indices, doc_dict['tokens']),
-                  extract_edus_tokens(edu_start_indices, doc_dict['pos_tags']))]
+                  extract_edus_tokens(edu_start_indices,
+                                      doc_dict['pos_tags']))]
     return res

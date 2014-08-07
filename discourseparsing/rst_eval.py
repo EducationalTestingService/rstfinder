@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 from collections import Counter
-#import itertools
 import json
 import logging
 from operator import itemgetter
@@ -25,14 +24,19 @@ def _extract_spans(doc_id, edu_tokens_lists, tree):
         end = start + len(edu_tokens_list) - 1
         edu_token_spans.append((start, end))
         prev_end = end
-    # TODO Are just the start and end indices sufficient if there are same-unit relations, where some other EDU (e.g., attribution) might be in the middle?  Or should we use a list of tokens instead of just (start, end) indices?
+    # TODO Are just the start and end indices sufficient if there are same-unit
+    # relations, where some other EDU (e.g., attribution) might be in the
+    # middle?  Or should we use a list of tokens instead of just (start, end)
+    # indices?
 
     # Now compute the token spans for each subtree in the RST tree,
     # whose leaves are indices into the list of EDUs.
     res = set()
     for subtree in tree.subtrees():
         if subtree.label() == 'text' or subtree.label() == 'ROOT':
-            # TODO should the nodes immediately above the text nodes be skipped as well (they seem important for evaluating labeled spans but trivial for the case of evaluating unlabeled spans)
+            # TODO should the nodes immediately above the text nodes be skipped
+            # as well (they seem important for evaluating labeled spans but
+            # trivial for the case of evaluating unlabeled spans)
             continue
         leaves = subtree.leaves()
         res.add((doc_id,
@@ -41,11 +45,13 @@ def _extract_spans(doc_id, edu_tokens_lists, tree):
                  edu_token_spans[int(leaves[-1])][1]))
     return res
 
+
 def compute_p_r_f1(gold_tuples, pred_tuples):
     precision = float(len(gold_tuples & pred_tuples)) / len(pred_tuples)
     recall = float(len(gold_tuples & pred_tuples)) / len(gold_tuples)
     f1 = 2.0 * precision * recall / (precision + recall)
     return precision, recall, f1
+
 
 def compute_rst_eval_results(pred_edu_tokens_lists, pred_trees,
                              gold_edu_tokens_lists, gold_trees):
@@ -85,7 +91,8 @@ def compute_rst_eval_results(pred_edu_tokens_lists, pred_trees,
                    for tup in gold_tuples}
     pred_tuples = {(tup[0], tup[1].split(':')[0], tup[2], tup[3])
                    for tup in pred_tuples}
-    nuc_precision, nuc_recall, nuc_f1 = compute_p_r_f1(gold_tuples, pred_tuples)
+    nuc_precision, nuc_recall, nuc_f1 = \
+        compute_p_r_f1(gold_tuples, pred_tuples)
 
     # Compute p/r/f1 for just spans.
     gold_tuples = {(tup[0], tup[2], tup[3])
@@ -129,12 +136,15 @@ def predict_and_evaluate_rst_trees(syntax_parser, segmenter,
         collapse_rst_labels(gold_tree)
         gold_trees.append(gold_tree)
 
-        # TODO when not using gold syntax, should the script still use gold standard tokens?
+        # TODO when not using gold syntax, should the script still use gold
+        # standard tokens?
 
         # remove gold standard trees or EDU boundaries if evaluating
         # using automatic preprocessing
         if not use_gold_syntax:
-            # TODO will merging the EDU strings here to make the raw_text variable produce the appropriate eval result when not using gold standard trees?
+            # TODO will merging the EDU strings here to make the raw_text
+            # variable produce the appropriate eval result when not using gold
+            # standard trees?
             doc_dict['raw_text'] = ' '.join(doc_dict['edu_strings'])
             del doc_dict['syntax_trees']
             del doc_dict['token_tree_positions']
@@ -210,12 +220,12 @@ def main():
 
     eval_data = json.load(args.evaluation_set)
 
-    results = predict_and_evaluate_rst_trees(syntax_parser, segmenter,
-                                             rst_parser, eval_data,
-                                             use_gold_syntax=args.use_gold_syntax)
+    results = \
+        predict_and_evaluate_rst_trees(syntax_parser, segmenter, rst_parser,
+                                       eval_data,
+                                       use_gold_syntax=args.use_gold_syntax)
     print(json.dumps(sorted(results.items())))
 
 
 if __name__ == '__main__':
     main()
-

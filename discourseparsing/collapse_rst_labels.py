@@ -35,44 +35,65 @@ def _collapse_rst_label(label):
     relation_lc = relation.lower()
     if re.search(r'^attribution', relation_lc):
         relation = "ATTRIBUTION"
+
     elif re.search(r'^(background|circumstance)', relation_lc):
         relation = "BACKGROUND"
+
     elif re.search(r'^(cause|result|consequence)', relation_lc):
         relation = "CAUSE"
-    elif re.search(r'^(comparison|preference|analogy|proportion)', relation_lc):
+
+    elif re.search(r'^(comparison|preference|analogy|proportion)',
+                   relation_lc):
         relation = "COMPARISON"
-    elif re.search(r'^(condition|hypothetical|contingency|otherwise)', relation_lc):
+
+    elif re.search(r'^(condition|hypothetical|contingency|otherwise)',
+                   relation_lc):
         relation = "CONDITION"
+
     elif re.search(r'^(contrast|concession|antithesis)', relation_lc):
         relation = "CONTRAST"
+
     elif re.search(r'^(elaboration.*|example|definition)', relation_lc):
         relation = "ELABORATION"
+
     elif re.search(r'^(purpose|enablement)', relation_lc):
         relation = "ENABLEMENT"
+
     elif re.search(r'^(problem\-solution|question\-answer|statement\-response|topic\-comment|comment\-topic|rhetorical\-question)', relation_lc):
         relation = "TOPICCOMMENT"
-    elif re.search(r'^(evaluation|interpretation|conclusion|comment)', relation_lc):
+
+    elif re.search(r'^(evaluation|interpretation|conclusion|comment)',
+                   relation_lc):
         # note that this check for "comment" needs to come after the one
         # above that looks for "comment-topic"
         relation = "EVALUATION"
+
     elif re.search(r'^(evidence|explanation.*|reason)', relation_lc):
         relation = "EXPLANATION"
+
     elif re.search(r'^(list|disjunction)', relation_lc):
         relation = "JOINT"
+
     elif re.search(r'^(manner|means)', relation_lc):
         relation = "MANNERMEANS"
+
     elif re.search(r'^(summary|restatement)', relation_lc):
         relation = "SUMMARY"
-    elif re.search(r'^(temporal\-.*|sequence|inverted\-sequence)', relation_lc):
+
+    elif re.search(r'^(temporal\-.*|sequence|inverted\-sequence)',
+                   relation_lc):
         relation = "TEMPORAL"
+
     elif re.search(r'^(topic-.*)', relation_lc):
         relation = "TOPICCHANGE"
+
     elif re.search(r'^(span|same\-unit|textualorganization)$', relation_lc):
         pass
+
     else:
         raise ValueError('unknown relation type in label: {}'.format(label))
 
-    # TODO make this all upper case (to resemble PTB nonterminals)
+    # TODO make this all upper case (to resemble PTB nonterminals)?
     res = "{}:{}".format(direction, relation).lower()
 
     return res

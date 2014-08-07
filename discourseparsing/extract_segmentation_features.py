@@ -12,7 +12,8 @@ with tune_segmentation_model.py.
 
 import argparse
 import json
-from discourseparsing.discourse_segmentation import extract_segmentation_features
+from discourseparsing.discourse_segmentation \
+    import extract_segmentation_features
 
 
 def main():

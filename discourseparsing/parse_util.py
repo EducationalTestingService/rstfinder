@@ -133,7 +133,8 @@ class SyntaxParserWrapper():
             parsed_sent = self._zpar_ref.parse_sentence(
                 sentence.encode("utf-8"))
             if parsed_sent:
-                res.append(ParentedTree.fromstring(parsed_sent.decode('utf-8')))
+                res.append(
+                    ParentedTree.fromstring(parsed_sent.decode('utf-8')))
             else:
                 logging.warning('The syntactic parser was unable to parse: ' +
                                 '{}, doc_id = {}'.format(sentence, doc_id))
@@ -146,8 +147,8 @@ class SyntaxParserWrapper():
         doc_id = doc_dict["doc_id"]
         logging.info('syntax parsing, doc_id = {}'.format(doc_id))
 
-        # TODO should there be some extra preprocessing to deal with fancy quotes, etc.?
-        # The tokenizer doesn't appear to handle it well
+        # TODO should there be some extra preprocessing to deal with fancy
+        # quotes, etc.? The tokenizer doesn't appear to handle it well
         paragraphs = ParagraphSplitter.find_paragraphs(doc_dict["raw_text"],
                                                        doc_id=doc_id)
 
@@ -169,7 +170,8 @@ class SyntaxParserWrapper():
                 starts_paragraph_list.extend([False for t in trees_p[1:]])
                 trees.extend(trees_p)
             else:
-                # TODO add some sort of error flag to the dictionary for this document?
+                # TODO add some sort of error flag to the dictionary for this
+                # document?
                 no_parse_for_paragraph = True
 
         logging.debug('starts_paragraph_list = {}, doc_id = {}'
@@ -183,5 +185,3 @@ class SyntaxParserWrapper():
         assert len(trees) == len(starts_paragraph_list)
 
         return trees, starts_paragraph_list
-
-

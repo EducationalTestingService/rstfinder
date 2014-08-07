@@ -80,7 +80,6 @@ def main():
         for i, docs_batch in enumerate(docs_batches):
             logging.info('batch size {}'.format(len(docs_batch)))
             output_path = '{}.{}'.format(args.output_prefix, i)
-            # batch_process(docs_batch, output_path, args.zpar_model_directory, args.segmentation_model, args.parsing_model)
             future = executor.submit(batch_process, docs_batch,
                                      output_path,
                                      args.zpar_model_directory,

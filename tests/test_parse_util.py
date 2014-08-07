@@ -31,9 +31,9 @@ if __name__ == '__main__':
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
 
     # initialize the syntax wrapper
-    wrapper = SyntaxParserWrapper(zpar_model_directory=args.zpar_model_directory,
-                                  hostname=args.hostname,
-                                  port=args.port)
+    wrapper = \
+        SyntaxParserWrapper(zpar_model_directory=args.zpar_model_directory,
+                            hostname=args.hostname, port=args.port)
     with open(args.inputfile, 'r') as docf:
         doc_dict = {"raw_text": docf.read(), "doc_id": args.input}
         trees, starts_paragraph_list = wrapper.parse_document(doc_dict)

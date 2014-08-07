@@ -40,9 +40,9 @@ from nltk.tokenize.treebank import TreebankWordTokenizer
 from discourseparsing.tree_util import (convert_ptb_tree, extract_preterminals,
                                         extract_converted_terminals,
                                         TREE_PRINT_MARGIN)
-from discourseparsing.reformat_rst_trees import (reformat_rst_tree,
-                                                 fix_rst_treebank_tree_str,
-                                                 convert_parens_in_rst_tree_str)
+from discourseparsing.reformat_rst_trees \
+    import (reformat_rst_tree, fix_rst_treebank_tree_str,
+            convert_parens_in_rst_tree_str)
 from discourseparsing.tree_util import convert_paren_tokens_to_ptb_format
 from discourseparsing.discourse_segmentation import extract_edus_tokens
 
@@ -75,8 +75,8 @@ def main():
                                 '%(message)s'), level=logging.INFO)
 
     logging.warning(
-        " Warnings related to minor issues that are difficult to resolve will" +
-        " be logged for the following files: " +
+        " Warnings related to minor issues that are difficult to resolve " +
+        " will be logged for the following files: " +
         " file1.edus, file5.edus, wsj_0678.out.edus, and wsj_2343.out.edus." +
         " Multiple warnings 'not enough syntax trees' will be produced" +
         " because the RSTDTB has footers that are not in the PTB (e.g.," +
@@ -135,7 +135,7 @@ def main():
             with open(path_outfile) as f:
                 outfile_doc = f.read().strip()
                 paragraphs = re.split(r'\n\n+', outfile_doc)
-                # Filter out any paragraphs that don't include a word character.
+                # Filter out paragraphs that don't include a word character.
                 paragraphs = [x for x in paragraphs if re.search(r'\w', x)]
                 # Remove extra nonword characters to make alignment easier
                 # (to avoid problems with the minor discrepancies that exist
@@ -159,8 +159,8 @@ def main():
                         if len(paragraph) < len(edu):
                             crossed_paragraphs = True
                             logging.warning(
-                                'A paragraph is split across trees. paragraph' +
-                                'doc: {}, chars: {}, EDU: {}'
+                                'A paragraph is split across trees.' +
+                                ' doc: {}, chars: {}, EDU: {}'
                                 .format(path_basename,
                                         paragraphs[p_idx:p_idx + 2], edu))
 
@@ -171,11 +171,11 @@ def main():
                     paragraph = paragraph[len(edu):].strip()
                 assert p_idx == len(paragraphs) - 1
                 if sum(edu_starts_paragraph) != len(paragraphs):
-                    logging.warning('The number of sentences that start a ' +
-                                    'paragraph is not equal to the number of ' +
-                                    'paragraphs.  This is probably due to ' +
-                                    'trees being split across paragraphs. ' +
-                                    '  doc: {}'
+                    logging.warning(('The number of sentences that start a' +
+                                     ' paragraph is not equal to the number' +
+                                     ' of paragraphs.  This is probably due' +
+                                     ' to trees being split across' +
+                                     ' paragraphs. doc: {}')
                                     .format(path_basename))
 
             edu_index = -1
@@ -195,8 +195,8 @@ def main():
                 if tok_index >= len(tokens):
                     tree_index += 1
                     if tree_index >= len(trees):
-                        logging.warning(('Not enough syntax trees for {}. ' +
-                                         ' This is probably because the RSTDB' +
+                        logging.warning(('Not enough syntax trees for {},' +
+                                         ' probably because the RSTDB' +
                                          ' contains a footer that is not in' +
                                          ' the PTB. The remaining EDUs will' +
                                          ' be automatically tagged.')

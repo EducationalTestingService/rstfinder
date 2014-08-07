@@ -97,15 +97,16 @@ class Parser(object):
     def _add_word_and_pos_feats(feats, prefix, words, pos_tags):
         '''
         This is for adding word and POS features for the head EDU of a subtree.
-        It also adds specially marked features for the first 2 and last 1 token.
-        `feats` is the existing list of features.
+        It also adds specially marked features for the first 2 and last 1
+        token. `feats` is the existing list of features.
         The prefix indicates where the tokens are from (S0, S1, S2, Q0, Q1).
         '''
 
         # Do not add any word or POS features for the LEFTWALL or RIGHTWALL.
         # That information should be available in the nonterminal features.
         if pos_tags == [Parser.leftwall_p] or pos_tags == [Parser.rightwall_p]:
-            assert words == [Parser.leftwall_w] or words == [Parser.rightwall_w]
+            assert (words == [Parser.leftwall_w] or
+                    words == [Parser.rightwall_w])
             return
 
         # first 2 and last 1
@@ -165,12 +166,14 @@ class Parser(object):
         filtered_preterminals = [node for node in preterminals
                                  if re.search(r'[A-Za-z]', node.label())]
         if not filtered_preterminals:
-            logging.debug("EDU head only contained punctuation: {}, doc_id = {}"
+            logging.debug(("EDU head only contained punctuation: {}," +
+                           " doc_id = {}")
                           .format(preterminals, doc_dict["doc_id"]))
             return None
 
         preterminals = filtered_preterminals
-        maximal_nodes = [node.find_maximal_head_node() for node in preterminals]
+        maximal_nodes = [node.find_maximal_head_node()
+                         for node in preterminals]
         depths = [len(node.treeposition()) for node in maximal_nodes]
         mindepth_idx = np.argmin(depths)
         res = maximal_nodes[mindepth_idx]
@@ -286,7 +289,8 @@ class Parser(object):
             dist = abs(idx_a - idx_b)
             for i in range(1, 5):
                 if dist > i:
-                    feats.append("edu_dist_{}{}>{}".format(label_a, label_b, i))
+                    feats.append("edu_dist_{}{}>{}".format(label_a,
+                                                           label_b, i))
 
         # whether the EDUS are in the same sentence
         # (edu_start_indices is a list of (sentence #, token #, EDU #) tuples.
@@ -507,7 +511,6 @@ class Parser(object):
                         "hpos": tmp_c["hpos"]}
             stack.append(tmp_item)
 
-
         # The S action gets the next input token
         # and puts it on the stack.
         if act.type == "S":
@@ -621,7 +624,8 @@ class Parser(object):
 
                 completetrees.append({"tree": output_tree,
                                       "score": cur_state["score"]})
-                logging.debug('complete tree found, doc_id = {}'.format(doc_id))
+                logging.debug('complete tree found, doc_id = {}'
+                              .format(doc_id))
 
                 # stop if we have found enough trees
                 if gold_actions is not None or (len(completetrees) >=
