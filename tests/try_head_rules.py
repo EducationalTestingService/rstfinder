@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 '''
 A simple script for testing out head rules on a PTB file.
@@ -7,8 +7,8 @@ A simple script for testing out head rules on a PTB file.
 import argparse
 import re
 
-from extract_segmentation_features import HeadedParentedTree
-from convert_rst_discourse_tb import convert_ptb_tree
+from discourseparsing.tree_util import HeadedParentedTree
+from discourseparsing.convert_rst_discourse_tb import convert_ptb_tree
 
 def depth(t):
     res = 0
@@ -20,13 +20,14 @@ def depth(t):
 
 
 def main():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('ptb_file', help='PTB MRG file')
     args = parser.parse_args()
 
     with open(args.ptb_file) as f:
         doc = re.sub(r'\s+', ' ', f.read()).strip()
-        trees = [HeadedParentedTree('( ({}'.format(x)) for x
+        trees = [HeadedParentedTree.fromstring('( ({}'.format(x)) for x
                  in re.split(r'\(\s*\(', doc) if x]
 
         for t in trees:

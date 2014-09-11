@@ -4,7 +4,21 @@ import re
 from nltk.tree import ParentedTree
 
 
+TREE_PRINT_MARGIN = 1000000000
+
+_ptb_paren_mapping = {'(': r'-LRB-',
+                      ')': r'-RRB-',
+                      '[': r'-LSB-',
+                      ']': r'-RSB-',
+                      '{': r'-LCB-',
+                      '}': r'-RCB-'}
+_reverse_ptb_paren_mapping = {bracket_replacement: bracket_type
+                              for bracket_type, bracket_replacement
+                              in _ptb_paren_mapping.items()}
+
+
 class HeadedParentedTree(ParentedTree):
+
     '''
     A subclass of nltk.tree.ParentedTree
     that also returns heads using head rules from Michael Collins's
@@ -128,9 +142,12 @@ class HeadedParentedTree(ParentedTree):
                 if self[-1].label() == "POS":
                     head_index = num_children - 1
 
-                # Otherwise, look right to left for NN, NNP, NNPS, NNS, NX, POS, or JJR.
+                # Otherwise, look right to left for NN, NNP, NNPS, NNS, NX,
+                # POS, or JJR.
                 if head_index is None:
-                    head_index = self._search_children(["NN", "NNP", "NNPS", "NNS", "NX", "POS", "JJR"],
+                    head_index = self._search_children(["NN", "NNP", "NNPS",
+                                                        "NNS", "NX", "POS",
+                                                        "JJR"],
                                                        "R")
 
                 # Otherwise, search left to right for NP.
@@ -150,7 +167,8 @@ class HeadedParentedTree(ParentedTree):
 
                 # Otherwise, search right to left for JJ, JJS, RB, or QP.
                 if head_index is None:
-                    head_index = self._search_children(["JJ", "JJS", "RB", "QP"],
+                    head_index = self._search_children(["JJ", "JJS", "RB",
+                                                        "QP"],
                                                        "R")
 
                 # Otherwise, return the last child.
@@ -186,6 +204,19 @@ class HeadedParentedTree(ParentedTree):
 
         return self._head
 
+    def find_maximal_head_node(self):
+        '''
+        Finds the topmost node that has this node as its head.
+        Returns itself if the parent has a different head
+        '''
+        res = self
+        parent = res.parent()
+        while parent is not None and parent.head() == res:
+            res = parent
+            parent = res.parent()
+
+        return res
+
     def head_preterminal(self):
         res = self
         while not isinstance(res[0], str):
@@ -203,24 +234,29 @@ def extract_preterminals(tree):
     return [node for node in tree.subtrees() if node.height() == 2]
 
 
+def convert_paren_tokens_to_ptb_format(toks):
+    return [_ptb_paren_mapping.get(tok, tok) for tok in toks]
+
+
+def convert_parens_to_ptb_format(sent):
+    for key, val in _ptb_paren_mapping.items():
+        sent = sent.replace(key, ' {} '.format(val))
+    # Remove extra spaces added by normalizing brackets.
+    sent = re.sub(r'\s+', r' ', sent).strip()
+    return sent
+
+
 def extract_converted_terminals(tree):
     res = []
     prev_w = ""
     for w in tree.leaves():
         if prev_w and prev_w == "U.S." and w == ".":
             continue
-        if w == '-LCB-':
-            w = '{'
-        elif w == '-RCB-':
-            w = '}'
-        elif w == '-LRB-':
-            w = '('
-        elif w == '-RRB-':
-            w = ')'
+        if w in _reverse_ptb_paren_mapping:
+            w = _reverse_ptb_paren_mapping[w]
         elif w == '``' or w == "''":
             w = '"'
 
-        w = re.sub(r'\\', r'', w)
         prev_w = w
         res.append(w)
     return res
@@ -247,6 +283,12 @@ def convert_ptb_tree(t):
         if '=' in label and label[0] != '=':
             subtree.set_label(label[:label.index('=')])
 
+    # Remove escape sequences from words (e.g., "3\\/4")
+    for subtree in t.subtrees():
+        if isinstance(subtree[0], str):
+            for i in range(len(subtree)):
+                subtree[i] = re.sub(r'\\', r'', subtree[i])
+
 
 def find_first_common_ancestor(n1, n2):
     '''
@@ -258,6 +300,8 @@ def find_first_common_ancestor(n1, n2):
     Find the first common ancestor for the two nodes n1 and n2 in the same
     tree.
     '''
+
+    # TODO write a unit test for this
 
     # make sure we are in the same tree
     assert n1.root() == n2.root()
@@ -284,3 +328,36 @@ def find_first_common_ancestor(n1, n2):
 
     assert res is not None
     return res
+
+
+def collapse_binarized_nodes(t):
+    '''
+    For each node that is marked as a temporary, binarized node (with a *),
+    remove it from its parent and add its children in its place.
+
+    Note that this modifies the tree in place.
+    '''
+
+    assert isinstance(t, ParentedTree)
+
+    # TODO write a unit test for this method
+    to_process = []
+    for subtree in t.subtrees():
+        to_process.append(subtree)
+
+    # Do a reverse of the pre-order traversal implicit
+    # in the subtrees methods, so the leaves are visited first.
+    for subtree in reversed(to_process):
+        if subtree.label().endswith('*'):
+            parent = subtree.parent()
+            assert (subtree.label() == parent.label() or
+                    subtree.label()[:-1] == parent.label())
+            tmp_index = parent.index(subtree)
+            del parent[tmp_index]
+            while subtree:
+                child = subtree.pop()
+                parent.insert(tmp_index, child)
+
+    # Make sure the output is correct.
+    for subtree in t.subtrees():
+        assert not subtree.label().endswith('*')
