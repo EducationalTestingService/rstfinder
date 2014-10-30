@@ -61,7 +61,7 @@ function computeMaxDepths(tree, depth) {
   
   tree.numLeaves = 0;
   if ( !tree.children ) {
-    tree.numLeaves = 1;
+    tree.numLeaves = 1;  // count self as a leaf
   }
 
   for (idx in tree.children) {
