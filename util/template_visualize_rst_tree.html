@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<!--
+This template is based on some D3.js examples:
+http://mbostock.github.io/d3/talk/20111018/tree.html
+http://bl.ocks.org/mbostock/4063570
+http://www.d3noob.org/2013/01/adding-tooltips-to-d3js-graph.html
+-->
+
+<title>RST Tree Visualization</title>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+<script type="text/javascript" src="d3.min.js"></script>
+<style type="text/css">
+
+
+body {
+  font-family: "Helvetica-light", "Helvetica", "Arial", "sans-serif";
+}
+
+div.tooltip {
+  position: absolute;
+  max-width: 400px;
+  padding: 7px;
+  background: rgba(245, 245, 245, 0.95);
+  border: 0px;
+  pointer-events: none;
+  font-size: 12px;
+}
+
+.node circle {
+  fill: #fff;
+  stroke: #000;
+  stroke-width: 1.5px;
+}
+
+.node text {
+  font-size: 11px;
+}
+
+line.link {
+  fill: none;
+  stroke: #000;
+  stroke-width: 1.5px;
+}
+
+
+</style>
+</head>
+<body>
+<div id="body">
+</div>
+<script type="text/javascript">
+
+
+// a function for computing some tree info that will be useful later
+function computeMaxDepths(tree, depth) {
+  tree.depth = depth;
+  tree.maxDepth = tree.depth;
+  
+  tree.numLeaves = 0;
+  if ( !tree.children ) {
+    tree.numLeaves = 1;  // count self as a leaf
+  }
+
+  for (idx in tree.children) {
+    var child = tree.children[idx];
+    computeMaxDepths(child, depth + 1);
+    if (child.maxDepth > tree.maxDepth){
+      tree.maxDepth = child.maxDepth;
+    }
+
+    tree.numLeaves += child.numLeaves;
+  }
+}
+
+
+// figure out the color based on whether the node is a leaf, satellite, or nucleus
+function computeNodeColor(d){
+  if ( !d.children ) {
+    return "#aaa";
+  } else if ( d.name.indexOf("nucleus:") == 0 ) {
+    return "#faa";
+  } else {
+    return "#fff";
+  }
+}
+
+
+// shorten the text to display (and hide nonterminal labels)
+function computeNodeText (d) {
+  if ( d.children ) {
+    return "";
+  } else if ( d.name.length < 60 ) {
+    return d.name;
+  } else {
+    return d.name.substring(0, 56) + " ...";
+  }
+}
+
+
+// this creates the tree visualization
+function initVisualization(source) {
+  
+  // Compute the new tree layout.
+  var nodes = tree.nodes(root);
+
+  // shrink depth to make room for text
+  nodes.forEach(
+    function(d){
+      d.y = d.y * (width - textBoxWidth) / width;
+    }
+  );
+
+  var node = vis.selectAll("g.node")
+      .data(nodes, function(d) { return d.id || (d.id = ++i); });
+
+  // create nodes
+  var nodeEnter = node.enter().append("svg:g")
+      .attr("class", "node")
+      .attr("transform", function(d) { return "translate(" + source.y0 + "," + source.x0 + ")"; })
+
+  // add the circle representing the nodes
+  nodeEnter.append("svg:circle")
+      .attr("r", 6)
+      .style("fill", computeNodeColor);
+
+  // add text next to nodes, if applicable
+  nodeEnter.append("svg:text")
+      .attr("x", 12)
+      .attr("dy", "0.35em")
+      .text(computeNodeText)
+      .style("visibility", function(d) { return d.children ? "hidden" : "visible";} )
+      .style("fill-opacity", 1);
+
+  // add tooltip triggers
+  nodeEnter.on("mouseover", function(d) {
+            tooltipDiv.transition()
+                .duration(100)
+                .style("opacity", 1.0);
+            tooltipDiv.text(d.name)
+                .style("left", (d3.event.pageX + 10) + "px")
+                .style("top", (d3.event.pageY) + "px");
+            })
+        .on("mouseout", function(d) {
+            tooltipDiv.transition()
+                .duration(100)
+                .style("opacity", 0.0);
+        });
+
+  // set node positions
+  node.attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
+
+  // add the links between nodes
+  var links = vis.selectAll("path.link")
+      .data(tree.links(nodes), function(d) { return d.target.id; });//TODO remove .data call?
+
+  links.enter().insert("svg:line", "g")
+      .attr("class", "link")
+      .attr("x1", function(d) { return d.source.y; })
+      .attr("y1", function(d) { return d.source.x; })
+      .attr("x2", function(d) { return d.target.y; })
+      .attr("y2", function(d) { return d.target.x; });
+}
+
+
+// create a div element for tooltips
+var tooltipDiv = d3.select("body").append("div")   
+    .attr("class", "tooltip")               
+    .style("opacity", 0);
+
+// get the tree JSON through jinja2
+var root = {{ tree_json }};
+computeMaxDepths(root, 0);
+
+// set various parameters
+var textBoxWidth = 500;
+var width = 30 * root.maxDepth + textBoxWidth;
+var height = root.numLeaves * 18;
+var margin = 10;
+var i = 0;
+
+var tree = d3.layout.cluster()
+    .size([height, width]);
+
+var diagonal = d3.svg.diagonal()
+    .projection(function(d) { return [d.y, d.x]; });
+
+var vis = d3.select("#body").append("svg:svg")
+    .attr("width", width)
+    .attr("height", height)
+    .append("svg:g")
+    .attr("transform", "translate(" + margin + ", 0)"); // margin
+
+root.x0 = height / 2;
+root.y0 = 0;
+
+// visualize!
+initVisualization(root);
+
+
+</script>
+</body>
+</html>

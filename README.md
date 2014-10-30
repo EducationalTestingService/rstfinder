@@ -69,3 +69,8 @@ rst_eval rst_discourse_tb_edus_TRAINING_DEV.json -p rst_parsing_modelC1.0 --use_
 This will compute precision, recall, and F1 scores for 3 scenarios: spans labeled with nuclearity and relation types, spans labeled only with nuclearity, and unlabeled token spans.  The above version of the command will use gold standard EDUs and syntactic parses.
 
 NOTE: The evaluation script has basic functionality in place, but at the moment it almost certainly does not appropriately handle important edge cases (e.g., same-unit relations, relations at the top of the tree).  These issues need to be addressed before the script can be used in experiments.
+
+Visualization
+=============
+
+The script `util/visualize_rst_tree.py` can be used to create an HTML/javascript visualization, using D3.js (http://d3js.org/).  See the D3.js license: `util/LICENSE_d3.txt`.  The input to the script is the output of `rst_parse`.  See `util/example.json` for an example input.
