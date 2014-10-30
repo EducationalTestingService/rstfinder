@@ -39,9 +39,9 @@ div.tooltip {
   font-size: 11px;
 }
 
-path.link {
+line.link {
   fill: none;
-  stroke: #ccc;
+  stroke: #000;
   stroke-width: 1.5px;
 }
 
@@ -150,18 +150,18 @@ function initVisualization(source) {
         });
 
   // set node positions
-  var nodeUpdate = node.attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
+  node.attr("transform", function(d) { return "translate(" + d.y + "," + d.x + ")"; });
 
   // add the links between nodes
-  var link = vis.selectAll("path.link")
-      .data(tree.links(nodes), function(d) { return d.target.id; });
+  var links = vis.selectAll("path.link")
+      .data(tree.links(nodes), function(d) { return d.target.id; });//TODO remove .data call?
 
-  link.enter().insert("svg:path", "g")
+  links.enter().insert("svg:line", "g")
       .attr("class", "link")
-      .attr("d", function(d) {
-        var o = {x: source.x0, y: source.y0};
-        return diagonal({source: o, target: o});
-      }).attr("d", diagonal);
+      .attr("x1", function(d) { return d.source.y; })
+      .attr("y1", function(d) { return d.source.x; })
+      .attr("x2", function(d) { return d.target.y; })
+      .attr("y2", function(d) { return d.target.x; });
 }
 
 
