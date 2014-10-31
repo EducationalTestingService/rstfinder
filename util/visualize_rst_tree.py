@@ -52,7 +52,7 @@ def main():
     parser.add_argument('input_json_path',
                         help='JSON file with output from the RST discourse'
                         ' parser.')
-    parser.add_argument('output_html_path', help="path for the HTML output")
+    parser.add_argument('output_html_path', help="path for the HTML output (note that d3.min.js will need to be in the same directory when viewing this file)")
     args = parser.parse_args()
 
     if args.input_json_path == args.output_html_path:
