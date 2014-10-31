@@ -53,6 +53,7 @@ def main():
                         help='JSON file with output from the RST discourse'
                         ' parser.')
     parser.add_argument('output_html_path', help="path for the HTML output (note that d3.min.js will need to be in the same directory when viewing this file)")
+    parser.add_argument('--embed_d3js', help="If specified, the d3.min.js file will be embedded in the output HTML for offline viewing.  By default, a link to cdnjs.cloudflare.com will be included.", action='store_true')
     args = parser.parse_args()
 
     if args.input_json_path == args.output_html_path:
@@ -66,7 +67,14 @@ def main():
         input_json = json.load(f)
     tree_json = convert_tree_json(input_json)
 
-    html_output = tmpl_overview.render(tree_json=tree_json)
+    if args.embed_d3js:
+        with open(os.path.join(THIS_FILE_DIRNAME, 'd3.min.js')) as f:
+            d3_js = ('<script type="text/javascript">{}</script>'
+                     .format(f.read()))
+    else:
+        d3_js = '<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.13/d3.min.js"></script>'
+
+    html_output = tmpl_overview.render(tree_json=tree_json, d3_js=d3_js)
 
     with open(args.output_html_path, 'w') as outfile:
         print(html_output, file=outfile)
