@@ -52,8 +52,16 @@ def main():
     parser.add_argument('input_json_path',
                         help='JSON file with output from the RST discourse'
                         ' parser.')
-    parser.add_argument('output_html_path', help="path for the HTML output (note that d3.min.js will need to be in the same directory when viewing this file)")
-    parser.add_argument('--embed_d3js', help="If specified, the d3.min.js file will be embedded in the output HTML for offline viewing.  By default, a link to cdnjs.cloudflare.com will be included.", action='store_true')
+    parser.add_argument('output_html_path',
+                        help="path for the HTML output (note that d3.min.js"
+                        " will need to be in the same directory when viewing"
+                        " this file)")
+    parser.add_argument('--embed_d3js',
+                        help="If specified, the d3.min.js file will be"
+                        " embedded in the output HTML for offline viewing."
+                        " By default, a link to cdnjs.cloudflare.com will be"
+                        " included.",
+                        action='store_true')
     args = parser.parse_args()
 
     if args.input_json_path == args.output_html_path:
