@@ -11,7 +11,10 @@ http://www.d3noob.org/2013/01/adding-tooltips-to-d3js-graph.html
 For the D3.js license, see LICENSE_d3.txt or
 https://github.com/mbostock/d3/blob/master/LICENSE for the D3.js license.
 
-Note: on very large trees, edges may cross.  This appears to be a feature of
+If you want to extract an SVG file from the output HTML file, use
+this: http://nytimes.github.io/svg-crowbar/.
+
+Note: On very large trees, edges may cross.  This appears to be a feature of
 the layout algorithm.  It could be avoided by having curved edges, but I don't
 think functionality for computing the necessary paths is available.
 '''
