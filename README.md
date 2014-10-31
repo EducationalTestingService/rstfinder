@@ -1,4 +1,10 @@
 
+License
+=======
+
+This code is licensed under the permissive MIT license (see LICENSE.txt).
+
+
 Setup
 =====
 

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# License: MIT
 
 '''
 A script for converting the RST discourse treebank into a gold standard

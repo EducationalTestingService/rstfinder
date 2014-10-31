@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# License: MIT
 
 '''
 This script merges the RST Discourse Treebank

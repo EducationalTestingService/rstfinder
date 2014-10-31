@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# License: MIT
 
 '''
 A script to split up the official RST discourse treebank training set into a

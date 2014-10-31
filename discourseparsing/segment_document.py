@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# License: MIT
 
 '''
 A script for segmenting a document based on a CRF discourse segmentation model

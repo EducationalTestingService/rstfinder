@@ -1,3 +1,4 @@
+# License: MIT
 
 from tempfile import NamedTemporaryFile
 import shlex

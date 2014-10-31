@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# License: MIT
 
 '''
 A script to train an RST parsing model. This takes a JSON-formatted training

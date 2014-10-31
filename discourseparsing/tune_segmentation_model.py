@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# License: MIT
 
 import re
 import argparse
