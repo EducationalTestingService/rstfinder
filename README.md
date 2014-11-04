@@ -2,7 +2,7 @@
 License
 =======
 
-This code is licensed under the permissive MIT license (see LICENSE.txt).
+This code is licensed under the MIT license (see LICENSE.txt).
 
 
 Setup
