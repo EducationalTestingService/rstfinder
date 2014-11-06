@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # License: MIT
 
-import re
 import argparse
-import subprocess
-import shlex
+import itertools
 import os
+import re
+import shlex
+import subprocess
 
 from sklearn.metrics import f1_score, precision_score, recall_score
 
@@ -18,7 +19,7 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('train_path',
                         help='The path to the training set .tsv file for' +
-                             ' CRF++')
+                        ' CRF++')
     parser.add_argument('dev_path',
                         help='The path to the development set .tsv file for' +
                         ' CRF++')
@@ -57,11 +58,20 @@ def main():
         crf_test_output = subprocess.check_output(shlex.split(
             'crf_test -m {} {}'.format(model_path, args.dev_path))) \
             .decode('utf-8')
-        output_split = [re.split(r'\t', x)[-2:]
-                        for x in re.split(r'\n+', crf_test_output)
-                        if x.strip()]
-        gold = [1 if x[0] == 'B-EDU' else 0 for x in output_split]
-        pred = [1 if x[1] == 'B-EDU' else 0 for x in output_split]
+
+        # split up the output into one list per token per sentence
+        output_by_sent = [[re.split(r'\t', token_output)[-2:] for token_output
+                           in re.split(r'\n', sentence_output)]
+                          for sentence_output
+                          in re.split(r'\n\n+', crf_test_output.strip())]
+
+        # remove EDU boundaries at sentence boundaries
+        output_by_sent = [x[1:] for x in output_by_sent]
+
+        gold = [1 if x[0] == 'B-EDU' else 0 for x
+                in itertools.chain(*output_by_sent)]
+        pred = [1 if x[1] == 'B-EDU' else 0 for x
+                in itertools.chain(*output_by_sent)]
 
         f1 = f1_score(gold, pred)
         precision = precision_score(gold, pred)
