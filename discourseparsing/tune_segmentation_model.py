@@ -35,7 +35,7 @@ def main():
                         help='comma-separated list of model complexity ' +
                         'parameter settings to evaluate.',
                         default=','.join([str(2.0 ** x)
-                                          for x in range(0, 8)]))
+                                          for x in range(-4, 5)]))
     args = parser.parse_args()
 
     best_f1 = -1
@@ -43,6 +43,8 @@ def main():
     best_recall = -1
     best_C = None
     best_model_path = None
+    sample_size = None
+    num_sentences = None
 
     if not os.path.exists(args.template_path):
         make_segmentation_crfpp_template(args.template_path)
@@ -65,13 +67,21 @@ def main():
                           for sentence_output
                           in re.split(r'\n\n+', crf_test_output.strip())]
 
-        # remove EDU boundaries at sentence boundaries
+        # Remove EDU boundaries at sentence boundaries for the evaluation,
+        # following previous work (e.g., Soricut and Marcu, 2003).
         output_by_sent = [x[1:] for x in output_by_sent]
+        chained_output = list(itertools.chain(*output_by_sent))
 
-        gold = [1 if x[0] == 'B-EDU' else 0 for x
-                in itertools.chain(*output_by_sent)]
-        pred = [1 if x[1] == 'B-EDU' else 0 for x
-                in itertools.chain(*output_by_sent)]
+        gold = [1 if x[0] == 'B-EDU' else 0 for x in chained_output]
+        pred = [1 if x[1] == 'B-EDU' else 0 for x in chained_output]
+
+        # sample size should be constant
+        if sample_size is None:
+            sample_size = len(chained_output)
+            num_sentences = len(output_by_sent)
+        else:
+            assert sample_size == len(chained_output)
+            assert num_sentences == len(output_by_sent)
 
         f1 = f1_score(gold, pred)
         precision = precision_score(gold, pred)
@@ -86,6 +96,8 @@ def main():
 
         print("model path = {}".format(model_path))
         print("C = {}".format(C_value))
+        print("sample size = {}".format(sample_size))
+        print("num sentences = {}".format(num_sentences))
         print("precision (B-EDU class) = {}".format(precision))
         print("recall (B-EDU class) = {}".format(recall))
         print("F1 (B-EDU class) = {}".format(f1))
@@ -93,6 +105,8 @@ def main():
     print()
     print("best model path = {}".format(best_model_path))
     print("best C = {}".format(best_C))
+    print("sample size = {}".format(sample_size))
+    print("num sentences = {}".format(num_sentences))
     print("best precision (B-EDU class) = {}".format(best_precision))
     print("best recall (B-EDU class) = {}".format(best_recall))
     print("best F1 (B-EDU class) = {}".format(best_f1))
