@@ -1,3 +1,4 @@
+# License: MIT
 
 import ctypes as c
 import socket

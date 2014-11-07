@@ -1,3 +1,4 @@
+# License: MIT
 
 from tempfile import NamedTemporaryFile
 import shlex
@@ -26,12 +27,21 @@ def parse_node_features(nodes):
 
 def extract_segmentation_features(doc_dict):
     '''
+    This extracts features for use in the discourse segmentation CRF. Note that
+    the CRF++ template makes it so that the features for the current word and
+    2 previous and 2 next words are used for each word.
+
     :param doc_dict: A dictionary of edu_start_indices, tokens, syntax_trees,
-                token_tree_positions, and pos_tags for a document, as
-                extracted by convert_rst_discourse_tb.py.
+                     token_tree_positions, and pos_tags for a document, as
+                     extracted by convert_rst_discourse_tb.py.
+    :returns: a list of lists of lists of features (one feature list per word
+              per sentence), and a list of lists of labels (one label per word
+              per sentence)
     '''
-    labels = []
-    feat_lists = []
+
+    labels_doc = []
+    feat_lists_doc = []
+
     if 'edu_start_indices' in doc_dict:
         edu_starts = {(x[0], x[1]) for x in doc_dict['edu_start_indices']}
     else:
@@ -43,13 +53,15 @@ def extract_segmentation_features(doc_dict):
                              doc_dict['syntax_trees'],
                              doc_dict['token_tree_positions'],
                              doc_dict['pos_tags'])):
+
+        labels_sent = []
+        feat_lists_sent = []
+
         tree = HeadedParentedTree.fromstring(tree_str)
         for token_num, (token, tree_position, pos_tag) \
                 in enumerate(zip(sent_tokens, sent_tree_positions, pos_tags)):
             feats = []
             label = 'B-EDU' if (sent_num, token_num) in edu_starts else 'C-EDU'
-
-            # TODO: all of the stuff below needs to be checked
 
             # POS tags and words for lexicalized parse nodes
             # from 3.2 of Bach et al., 2012.
@@ -76,17 +88,18 @@ def extract_segmentation_features(doc_dict):
             # now make the list of features
             feats.append(token.lower())
             feats.append(pos_tag)
-            feats.append('B-SENT' if token_num == 0 else 'C-SENT')
             feats.extend(parse_node_features([node_p,
                                               ancestor_w,
                                               ancestor_r,
                                               node_p_parent,
                                               node_p_right_sibling]))
 
-            feat_lists.append(feats)
-            labels.append(label)
+            feat_lists_sent.append(feats)
+            labels_sent.append(label)
+        feat_lists_doc.append(feat_lists_sent)
+        labels_doc.append(labels_sent)
 
-    return feat_lists, labels
+    return feat_lists_doc, labels_doc
 
 
 class Segmenter():
@@ -98,27 +111,24 @@ class Segmenter():
         logging.info('segmenting document, doc_id = {}'.format(doc_id))
 
         # Extract features.
-        # TODO interact with crf++ via cython, etc.?
         tmpfile = NamedTemporaryFile('w')
-        feat_lists, _ = extract_segmentation_features(doc_dict)
-        for feat_list in feat_lists:
-            print('\t'.join(feat_list + ["?"]), file=tmpfile)
+        feat_lists_doc, _ = extract_segmentation_features(doc_dict)
+        for feat_lists_sent in feat_lists_doc:
+            for feat_list_word in feat_lists_sent:
+                print('\t'.join(feat_list_word + ["?"]), file=tmpfile)
+            print('\n', file=tmpfile)
         tmpfile.flush()
 
         # Get predictions from the CRF++ model.
+        # TODO interact with crf++ via cython, etc.?
         crf_output = subprocess.check_output(shlex.split(
             'crf_test -m {} {}'.format(self.model_path, tmpfile.name))) \
             .decode('utf-8').strip()
         tmpfile.close()
 
-        # an index into the list of tokens for this document indicating where
-        # the current sentence started
-        sent_start_index = 0
-
         # an index into the list of sentences
         sent_num = 0
-
-        edu_number = 0
+        edu_num = 0
 
         # Check that the input is not blank.
         all_tokens = doc_dict['tokens']
@@ -128,33 +138,16 @@ class Segmenter():
 
         # Construct the set of EDU start index tuples (sentence number, token
         # number, EDU number).
-        cur_sent = all_tokens[0]
         edu_start_indices = []
-        for tok_index, line in enumerate(crf_output.split('\n')):
-            if tok_index - sent_start_index >= len(cur_sent):
-                sent_start_index += len(cur_sent)
-                sent_num += 1
-                cur_sent = all_tokens[sent_num] if sent_num < len(
-                    all_tokens) else None
-            # Start a new EDU where the CRF predicts "B-EDU".
-            # Also, force new EDUs to start at the beginnings of sentences to
-            # account for the rare cases where the CRF does not predict "B-EDU"
-            # at the beginning of a new sentence (CRF++ can only learn this as
-            # a soft constraint).
-            start_of_sentence = (tok_index - sent_start_index == 0)
-            token_label = line.split()[-1]
-            if token_label == "B-EDU" or start_of_sentence:
-                if start_of_sentence and token_label != "B-EDU":
-                    logging.info(("The CRF segmentation model did not" +
-                                  " predict B-EDU at the start of a" +
-                                  " sentence. A new EDU will be started" +
-                                  " regardless, to ensure consistency with" +
-                                  " the RST annotations. doc_id = {}")
-                                 .format(doc_id))
 
-                edu_start_indices.append(
-                    (sent_num, tok_index - sent_start_index, edu_number))
-                edu_number += 1
+        for sent_num, crf_output_sent in enumerate(crf_output.split('\n\n')):
+            for tok_num, line in enumerate(crf_output_sent.split('\n')):
+                # Start a new EDU where the CRF predicts "B-EDU" and
+                # at the beginnings of sentences.
+                token_label = line.split()[-1]
+                if token_label == "B-EDU" or tok_num == 0:
+                    edu_start_indices.append((sent_num, tok_num, edu_num))
+                    edu_num += 1
 
         # Check that all sentences are covered by the output list of EDUs,
         # and that every new sentence starts an EDU.

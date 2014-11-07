@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# License: MIT
 
 from collections import Counter
 import json
@@ -116,9 +117,8 @@ def compute_rst_eval_results(pred_edu_tokens_lists, pred_trees,
     return res
 
 
-def predict_and_evaluate_rst_trees(syntax_parser, segmenter,
-                                   rst_parser, eval_data,
-                                   use_gold_syntax=True):
+def predict_rst_trees_for_eval(syntax_parser, segmenter, rst_parser, eval_data,
+                               use_gold_syntax=True):
     pred_edu_tokens_lists = []
     pred_trees = []
     gold_edu_tokens_lists = []
@@ -158,10 +158,20 @@ def predict_and_evaluate_rst_trees(syntax_parser, segmenter,
                                           segmenter, rst_parser)
         pred_trees.append(next(trees)['tree'])
         pred_edu_tokens_lists.append(tokens)
+    return (pred_edu_tokens_lists, pred_trees, gold_edu_tokens_lists,
+            gold_trees)
 
-    results = compute_rst_eval_results(pred_edu_tokens_lists, pred_trees,
-                                       gold_edu_tokens_lists, gold_trees)
-    return results
+
+def predict_and_evaluate_rst_trees(syntax_parser, segmenter, rst_parser,
+                                   eval_data, use_gold_syntax=True):
+
+    pred_edu_tokens_lists, pred_trees, gold_edu_tokens_lists, gold_trees = \
+        predict_rst_trees_for_eval(syntax_parser, segmenter, rst_parser,
+                                   eval_data, use_gold_syntax=use_gold_syntax)
+
+    res = compute_rst_eval_results(pred_edu_tokens_lists, pred_trees,
+                                   gold_edu_tokens_lists, gold_trees)
+    return res
 
 
 def main():

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# License: MIT
 
 '''
 A discourse segmenter following the Base model from this paper:
@@ -30,12 +31,12 @@ def main():
 
     with open(args.output_path, 'w') as outfile:
         for doc in data:
-            feat_lists, labels = extract_segmentation_features(doc)
-            for feat_list, label in zip(feat_lists, labels):
-                print('\t'.join(feat_list + [label]), file=outfile)
-
-            print('\t'.join(['' for x in range(len(feat_lists[0]) + 1)]),
-                  file=outfile)
+            feat_lists_doc, labels_doc = extract_segmentation_features(doc)
+            for feat_lists_sent, labels_sent in zip(feat_lists_doc, labels_doc):
+                for feat_list, label in zip(feat_lists_sent, labels_sent):
+                    print('\t'.join(feat_list + [label]), file=outfile)
+                # blank lines between sentences (and documents)
+                print(file=outfile)
 
 
 if __name__ == '__main__':
