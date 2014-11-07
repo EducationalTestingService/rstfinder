@@ -35,7 +35,7 @@ def main():
                         help='comma-separated list of model complexity ' +
                         'parameter settings to evaluate.',
                         default=','.join([str(2.0 ** x)
-                                          for x in range(-4, 5)]))
+                                          for x in range(-6, 7)]))
     args = parser.parse_args()
 
     best_f1 = -1
