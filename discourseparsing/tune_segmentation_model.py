@@ -14,6 +14,38 @@ from discourseparsing.make_segmentation_crfpp_template \
     import make_segmentation_crfpp_template
 
 
+def convert_crfpp_output(crfpp_output):
+    '''
+    Takes the command line output of CRF++, splits it into one
+    [gold_label, pred_label] list per word per sentence.
+    '''
+    res = [[re.split(r'\t', token_output)[-2:] for token_output
+            in re.split(r'\n', sentence_output)]
+           for sentence_output in re.split(r'\n\n+', crfpp_output.strip())]
+    return res
+
+
+def evaluate_segmentation_output(output_by_sent):
+    '''
+    Returns precision, recall, F1, a gold standard count, and a predicted count
+    for the B-EDU (start of an EDU) class, which corresponds to the start of
+    an EDU.  This ignores EDU boundaries at sentence boundaries for the
+    evaluation, following previous work (e.g., Soricut and Marcu, 2003).
+    '''
+
+    output_by_sent_skip1st = [x[1:] for x in output_by_sent]
+    chained_output = list(itertools.chain(*output_by_sent_skip1st))
+
+    gold = [1 if x[0] == 'B-EDU' else 0 for x in chained_output]
+    pred = [1 if x[1] == 'B-EDU' else 0 for x in chained_output]
+
+    precision = precision_score(gold, pred)
+    recall = recall_score(gold, pred)
+    f1 = f1_score(gold, pred)
+
+    return precision, recall, f1, sum(gold), sum(pred)
+
+
 def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -43,7 +75,6 @@ def main():
     best_recall = -1
     best_C = None
     best_model_path = None
-    sample_size = None
     num_sentences = None
 
     if not os.path.exists(args.template_path):
@@ -62,30 +93,15 @@ def main():
             .decode('utf-8')
 
         # split up the output into one list per token per sentence
-        output_by_sent = [[re.split(r'\t', token_output)[-2:] for token_output
-                           in re.split(r'\n', sentence_output)]
-                          for sentence_output
-                          in re.split(r'\n\n+', crf_test_output.strip())]
+        output_by_sent = convert_crfpp_output(crf_test_output)
 
-        # Remove EDU boundaries at sentence boundaries for the evaluation,
-        # following previous work (e.g., Soricut and Marcu, 2003).
-        output_by_sent = [x[1:] for x in output_by_sent]
-        chained_output = list(itertools.chain(*output_by_sent))
-
-        gold = [1 if x[0] == 'B-EDU' else 0 for x in chained_output]
-        pred = [1 if x[1] == 'B-EDU' else 0 for x in chained_output]
-
-        # sample size should be constant
-        if sample_size is None:
-            sample_size = len(chained_output)
+        if num_sentences is None:
             num_sentences = len(output_by_sent)
         else:
-            assert sample_size == len(chained_output)
             assert num_sentences == len(output_by_sent)
 
-        f1 = f1_score(gold, pred)
-        precision = precision_score(gold, pred)
-        recall = recall_score(gold, pred)
+        precision, recall, f1, num_gold, num_pred = \
+            evaluate_segmentation_output(output_by_sent)
 
         if f1 > best_f1:
             best_f1 = f1
@@ -96,7 +112,10 @@ def main():
 
         print("model path = {}".format(model_path))
         print("C = {}".format(C_value))
-        print("sample size = {}".format(sample_size))
+        print("num gold B-EDU (not including sent. boundaries) = {}"
+              .format(num_gold))
+        print("num pred. B-EDU (not including sent. boundaries) = {}"
+              .format(num_pred))
         print("num sentences = {}".format(num_sentences))
         print("precision (B-EDU class) = {}".format(precision))
         print("recall (B-EDU class) = {}".format(recall))
@@ -105,7 +124,6 @@ def main():
     print()
     print("best model path = {}".format(best_model_path))
     print("best C = {}".format(best_C))
-    print("sample size = {}".format(sample_size))
     print("num sentences = {}".format(num_sentences))
     print("best precision (B-EDU class) = {}".format(best_precision))
     print("best recall (B-EDU class) = {}".format(best_recall))
