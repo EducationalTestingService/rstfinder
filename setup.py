@@ -15,7 +15,7 @@ def requirements():
 
 
 setup(name='discourseparsing',
-      version='0.2.0',
+      version='0.2.1',
       description=('A discourse parser and segmenter for use with the \
                     Rhetorical Structure Theory Discourse Treebank \
                     (https://catalog.ldc.upenn.edu/LDC2002T07).'),
