@@ -33,8 +33,9 @@ def train_rst_parsing_model(working_path, model_path, parameter_settings):
 
     C_value = parameter_settings['C']
     working_subdir = os.path.join(working_path, 'C{}'.format(C_value))
-    if not os.path.exists(working_subdir):
-        os.makedirs(working_subdir)
+    assert not os.path.exists(working_subdir)
+    os.makedirs(working_subdir)
+
     if not os.path.exists(model_path):
         os.makedirs(model_path)
 
@@ -67,6 +68,8 @@ def train_rst_parsing_model(working_path, model_path, parameter_settings):
         cfg.add_section(section_name)
         for key, val in section_dict.items():
             cfg.set(section_name, key, val)
+
+    assert not os.path.exists(cfg_path)
     with open(cfg_path, 'w') as config_file:
         cfg.write(config_file)
 
@@ -147,6 +150,12 @@ def main():
                         ' grid points, to simplify debugging.')
     args = parser.parse_args()
 
+    if os.path.exists(args.working_path):
+        raise IOError("{} already exists.  Stopping here to avoid the "
+                      "possibility of overwriting files that are currently "
+                      "being used.".format(args.working_path))
+    os.makedirs(args.working_path)
+
     parser = Parser(1, 1, 1)
 
     # Convert verbose flag to actually logging level
@@ -161,9 +170,6 @@ def main():
     logger.info('Extracting examples')
     train_data = json.load(args.train_file)
     eval_data = json.load(args.eval_file)
-
-    # TODO remove or comment out the following debugging command
-    # train_data = train_data[:20]
 
     train_examples = []
 
@@ -192,8 +198,6 @@ def main():
                                            eval_data)
 
     # Make the SKLL jsonlines feature file
-    if not os.path.exists(args.working_path):
-        os.makedirs(args.working_path)
     train_path = os.path.join(args.working_path, 'rst_parsing.jsonlines')
     with open(train_path, 'w') as train_file:
         for example in train_examples:

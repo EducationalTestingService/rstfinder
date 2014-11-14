@@ -1,0 +1,6 @@
+0.2.1
+* Added some checks on the existence of directories during training to avoid potential confusion. 
+
+0.2.0
+* changed how discourse segmentation works to follow previous work (e.g., Bach et al., 2012).
+* fixed a mistake in the segmentation evaluation: sentence boundaries should have been ignored when evaluating EDU boundaries.
