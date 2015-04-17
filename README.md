@@ -14,7 +14,7 @@ This repository is pip-installable.  To make it work properly, I recommend runni
 
 Additionally, the syntactic parsing code must be set up to use ZPar.  The simplest but least efficient way is to put the ZPar distribution (version 0.6) in a subdirectory `zpar` (or symbolic link) in the current working directory, along with the English models in a subdirectory `zpar/english`.  For efficiency, a better method is to use the `python-zpar` wrapper, which is currently available at `https://github.com/EducationalTestingService/python-zpar` or `https://pypi.python.org/pypi/python-zpar/`.  To set this up, run make and then either a) set an environment variable `ZPAR_LIBRARY_DIR` equal to the directory where `zpar.so` is created (e.g., `/Users/USER1/python-zpar/dist`) to run ZPar as part of the discourse parser, or b) start a separate server using python-zpar's `zpar_server`.
 
-Finally, CRF++ (version 0.58) should be installed, and its `bin` directory should be added to your `PATH` environment variable.  See `http://crfpp.googlecode.com/svn/trunk/doc/index.html`.
+Finally, CRF++ (version 0.58) should be installed, and its `bin` directory should be added to your `PATH` environment variable.  See `http://taku910.github.io/crfpp/`.
 
 Input Preparation
 =================
