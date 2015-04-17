@@ -46,7 +46,7 @@ def train_rst_parsing_model(working_path, model_path, parameter_settings):
     # Make the SKLL config file.
     cfg_dict = {"General": {"task": "train",
                             "experiment_name": "rst_parsing"},
-                "Input": {"train_location": working_path,
+                "Input": {"train_directory": working_path,
                           "ids_to_floats": "False",
                           "featuresets": json.dumps([["rst_parsing"]]),
                           "featureset_names": json.dumps(["all_feats"]),
