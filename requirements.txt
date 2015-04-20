@@ -1,8 +1,8 @@
-numpy>=1.8
-nltk>=3.0.0
-scikit-learn>=0.14
-scipy>=0.14
+numpy=1.9.2=py34_0
+nltk=3.0.2=np19py34_0
+scikit-learn=0.15.2=np19py34_0
+scipy=0.15.1=np19py34_0
 cchardet>=0.3.5
-skll>=0.26.0
+skll=1.0.1=np19py34_0
 python-zpar
 jinja2
