@@ -4,5 +4,6 @@ scikit-learn==0.15.2
 scipy==0.15.1
 cchardet>=0.3.5
 skll==1.0.1
+python>=3
 python-zpar
 jinja2
