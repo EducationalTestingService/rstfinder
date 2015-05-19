@@ -1,3 +1,8 @@
+Overview
+========
+
+This repository contains code for a shift-reduce discourse parser based on rhetorical structure theory.  A detailed system description can be found at http://arxiv.org/abs/1505.02425.
+
 
 License
 =======
