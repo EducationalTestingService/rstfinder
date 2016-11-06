@@ -115,7 +115,7 @@ def main():
             tree = ParentedTree.fromstring(input_file.read().strip())
             reformat_rst_tree(tree)
             collapse_rst_labels(tree)
-            print(tree.pprint(TREE_PRINT_MARGIN), file=output_file)
+            tree.pprint(margin=TREE_PRINT_MARGIN, file=output_file)
 
 
 if __name__ == '__main__':

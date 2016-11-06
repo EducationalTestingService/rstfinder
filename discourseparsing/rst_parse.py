@@ -34,7 +34,7 @@ def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
         # Do syntactic parsing.
         trees, starts_paragraph_list = \
             syntax_parser.parse_document(doc_dict)
-        doc_dict['syntax_trees'] = [t.pprint(margin=TREE_PRINT_MARGIN)
+        doc_dict['syntax_trees'] = [t.pformat(margin=TREE_PRINT_MARGIN)
                                     for t in trees]
         preterminals = [extract_preterminals(t) for t in trees]
         doc_dict['token_tree_positions'] = [[x.treeposition() for x in
@@ -135,7 +135,7 @@ def main():
         print(json.dumps({"edu_tokens": edu_tokens, \
             "scored_rst_trees": [{"score": tree["score"],
                                   "tree": tree["tree"]
-                                          .pprint(margin=TREE_PRINT_MARGIN)}
+                                          .pformat(margin=TREE_PRINT_MARGIN)}
                                  for tree in complete_trees]}))
 
 
