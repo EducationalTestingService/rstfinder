@@ -390,7 +390,7 @@ def main():
                     in enumerate(zip(edus, edu_tokens)):
                 edu_nospace = re.sub(r'\s+', '', edu).lower()
                 edu_tokens_nospace = ''.join(edu_token_list).lower()
-                distance = nltk.metrics.distance.edit_distance(
+                distance = nltk.distance.edit_distance(
                     edu_nospace, edu_tokens_nospace)
                 if distance > 4:
                     logging.warning(("EDIT DISTANCE > 3 IN {}: " +
