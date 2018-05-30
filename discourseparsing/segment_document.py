@@ -48,7 +48,7 @@ def main():
                 for preterminals_sentence in preterminals]
 
     doc_dict["tokens"] = tokens_doc
-    doc_dict["syntax_trees"] = [t.pprint(TREE_PRINT_MARGIN) for t in trees]
+    doc_dict["syntax_trees"] = [t.pformat(margin=TREE_PRINT_MARGIN) for t in trees]
     doc_dict["token_tree_positions"] = token_tree_positions
     doc_dict["pos_tags"] = pos_tags
 

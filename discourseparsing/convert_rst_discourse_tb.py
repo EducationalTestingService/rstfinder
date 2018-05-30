@@ -369,7 +369,7 @@ def main():
                       "path_basename": path_basename,
                       "tokens": tokens_doc,
                       "edu_strings": edus,
-                      "syntax_trees": [t.pprint(margin=TREE_PRINT_MARGIN)
+                      "syntax_trees": [t.pformat(margin=TREE_PRINT_MARGIN)
                                        for t in trees],
                       "token_tree_positions": [[x.treeposition() for x in
                                                 preterminals_sentence]
@@ -378,7 +378,7 @@ def main():
                       "pos_tags": [[x.label() for x in preterminals_sentence]
                                    for preterminals_sentence in preterminals],
                       "edu_start_indices": edu_start_indices,
-                      "rst_tree": rst_tree.pprint(margin=TREE_PRINT_MARGIN),
+                      "rst_tree": rst_tree.pformat(margin=TREE_PRINT_MARGIN),
                       "edu_starts_paragraph": edu_starts_paragraph}
 
             assert len(edu_start_indices) == len(edus)
@@ -390,7 +390,7 @@ def main():
                     in enumerate(zip(edus, edu_tokens)):
                 edu_nospace = re.sub(r'\s+', '', edu).lower()
                 edu_tokens_nospace = ''.join(edu_token_list).lower()
-                distance = nltk.metrics.distance.edit_distance(
+                distance = nltk.distance.edit_distance(
                     edu_nospace, edu_tokens_nospace)
                 if distance > 4:
                     logging.warning(("EDIT DISTANCE > 3 IN {}: " +

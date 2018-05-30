@@ -34,7 +34,7 @@ def batch_process(docs, output_path, zpar_model_directory,
             print(json.dumps({"doc_id": doc_id, "edu_tokens": edu_tokens, \
                 "scored_rst_trees": \
                 [{"score": tree["score"],
-                  "tree": tree["tree"].pprint(margin=TREE_PRINT_MARGIN)}
+                  "tree": tree["tree"].pformat(margin=TREE_PRINT_MARGIN)}
                  for tree in complete_trees]}), file=outfile)
 
 

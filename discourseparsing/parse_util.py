@@ -104,7 +104,7 @@ class SyntaxParserWrapper():
                 logging.warning('The syntactic parser was unable to parse: ' +
                                 '{}, doc_id = {}'.format(sentence, doc_id))
         logging.debug('syntax parsing results: {}'.format(
-            [t.pprint(margin=TREE_PRINT_MARGIN) for t in res]))
+            [t.pformat(margin=TREE_PRINT_MARGIN) for t in res]))
 
         return res
 
@@ -120,7 +120,7 @@ class SyntaxParserWrapper():
                 logging.warning('The syntactic parser was unable to parse: ' +
                                 '{}, doc_id = {}'.format(sentence, doc_id))
         logging.debug('syntax parsing results: {}'.format(
-            [t.pprint(margin=TREE_PRINT_MARGIN) for t in res]))
+            [t.pformat(margin=TREE_PRINT_MARGIN) for t in res]))
 
         return res
 

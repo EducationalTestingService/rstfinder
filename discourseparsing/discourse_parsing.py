@@ -591,7 +591,7 @@ class Parser(object):
                 assert tree.label() == 'ROOT'
 
                 # collapse binary branching * rules in the output
-                output_tree = ParentedTree.fromstring(tree.pprint())
+                output_tree = ParentedTree.fromstring(tree.pformat())
                 collapse_binarized_nodes(output_tree)
 
                 completetrees.append({"tree": output_tree,
