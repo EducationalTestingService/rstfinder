@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 # License: MIT
 
+import codecs
 import logging
 import json
+import os
 
 from discourseparsing.discourse_parsing import Parser
 from discourseparsing.discourse_segmentation import (Segmenter,
@@ -132,11 +134,18 @@ def main():
         edu_tokens, complete_trees = segment_and_parse(doc_dict, syntax_parser,
                                                        segmenter, parser)
 
+        complete_trees = [tree for tree in complete_trees]  # can't use a generator twice
+
         print(json.dumps({"edu_tokens": edu_tokens, \
             "scored_rst_trees": [{"score": tree["score"],
                                   "tree": tree["tree"]
                                           .pformat(margin=TREE_PRINT_MARGIN)}
                                  for tree in complete_trees]}))
+
+        for i, tree in enumerate(complete_trees, 1):
+            ptree_str = tree['tree'].__repr__() + '\n'
+            with codecs.open(input_path + '_{}.parentedtree'.format(str(i)), 'w', 'utf-8') as ptree_file:
+                ptree_file.write(ptree_str)
 
 
 if __name__ == '__main__':
