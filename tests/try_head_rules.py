@@ -32,7 +32,7 @@ def main():
 
         for t in trees:
             convert_ptb_tree(t)
-            print("\n\n{}".format(t.pprint()))
+            print("\n\n{}".format(t.pformat()))
             for subtree in t.subtrees():
                 print("{}{}\t{}".format(' '.join(['' for x in range(depth(subtree))]), subtree.label(), subtree.head_word()))
 

@@ -591,7 +591,7 @@ class Parser(object):
                 assert tree.label() == 'ROOT'
 
                 # collapse binary branching * rules in the output
-                output_tree = ParentedTree.fromstring(tree.pprint())
+                output_tree = ParentedTree.fromstring(tree.pformat())
                 collapse_binarized_nodes(output_tree)
 
                 completetrees.append({"tree": output_tree,
@@ -631,9 +631,9 @@ class Parser(object):
                 scored_acts.append(ScoredAction(act, 0.0))  # logprob
             else:
                 vectorizer = self.model.feat_vectorizer
-                examples = skll.data.ExamplesTuple(
-                    None, None, vectorizer.transform(Counter(feats)),
-                    vectorizer)
+
+                examples = skll.data.FeatureSet('features', ['EXAMPLE'], None, 
+                    vectorizer.transform(Counter(feats)), vectorizer)
                 scores = [np.log(x) for x in self.model.predict(examples)[0]]
 
                 # Convert the string labels from the classifier back into

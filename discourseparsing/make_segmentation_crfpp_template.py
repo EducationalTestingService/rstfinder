@@ -10,7 +10,7 @@ It needs to be rerun when the segmenter feature set changes.
 import argparse
 
 
-def make_segmentation_crfpp_template(output_path, num_features=13):
+def make_segmentation_crfpp_template(output_path, num_features=12):
     with open(output_path, 'w') as outfile:
         for i in range(num_features):
             # This makes it so the features for the current word are based

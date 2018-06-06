@@ -82,7 +82,7 @@ def reformat_rst_tree(input_tree):
     Treebank tree.
     '''
     logging.debug('Reformatting {}'.format(
-        input_tree.pprint(margin=TREE_PRINT_MARGIN)))
+        input_tree.pformat(margin=TREE_PRINT_MARGIN)))
 
     # 1. rename the top node
     input_tree.set_label('ROOT')
@@ -99,7 +99,7 @@ def reformat_rst_tree(input_tree):
     _replace_edu_strings(input_tree)
 
     logging.debug('Reformatted: {}'.format(
-        input_tree.pprint(margin=TREE_PRINT_MARGIN)))
+        input_tree.pformat(margin=TREE_PRINT_MARGIN)))
 
 
 def main():
@@ -122,7 +122,7 @@ def main():
         rst_tree_str = convert_parens_in_rst_tree_str(rst_tree_str)
         t = ParentedTree.fromstring(rst_tree_str)
         reformat_rst_tree(t)
-        print(t.pprint(margin=TREE_PRINT_MARGIN))
+        t.pprint(margin=TREE_PRINT_MARGIN)
 
 
 if __name__ == '__main__':

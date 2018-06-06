@@ -13,6 +13,7 @@ from nltk.tree import ParentedTree
 from discourseparsing.tree_util import (convert_parens_to_ptb_format,
                                         TREE_PRINT_MARGIN)
 from discourseparsing.paragraph_splitting import ParagraphSplitter
+from zpar import ZPar
 
 
 class SyntaxParserWrapper():
@@ -54,19 +55,14 @@ class SyntaxParserWrapper():
 
             try:
                 # Create a zpar wrapper data structure
-                self._zpar_ref = c.cdll.LoadLibrary(zpar_library_path)
+                z = ZPar(self.zpar_model_directory)
+                self._zpar_ref = z.get_parser()
             except OSError as e:
-                logging.warning('Could not find zpar shared library. ' +
-                                'Did you set ZPAR_LIBRARY_DIR correctly?')
+                logging.warning('Could not load zpar via python-zpar. ' +
+                                'Did you set ZPAR_LIBRARY_DIR correctly?' + 
+                                'Did you set ZPAR_MODEL_DIR correctly?')
                 raise e
-            else:
-                self._initialize_zpar()
 
-    def __del__(self):
-        if self._zpar_ref:
-            unload_models = self._zpar_ref.unload_models
-            unload_models.restype = None
-            unload_models()
 
     @staticmethod
     def _get_rpc(hostname, port):
@@ -90,21 +86,6 @@ class SyntaxParserWrapper():
         # Otherwise, return that a server was found, and return its proxy.
         return True, proxy
 
-    def _initialize_zpar(self):
-        # define the argument and return types for all
-        # the functions we want to expose to the client
-        load_parser = self._zpar_ref.load_parser
-        load_parser.restype = c.c_int
-        load_parser.argtypes = [c.c_char_p]
-
-        parse_sentence = self._zpar_ref.parse_sentence
-        parse_sentence.restype = c.c_char_p
-        parse_sentence.argtypes = [c.c_char_p]
-
-        if load_parser(self.zpar_model_directory.encode('utf-8')):
-            self._zpar_ref.unload_models()
-            raise Exception('Cannot find parser model at {}'
-                            .format(self.zpar_model_directory))
 
     def tokenize_document(self, txt):
         tmpdoc = re.sub(r'\s+', r' ', txt.strip())
@@ -123,7 +104,7 @@ class SyntaxParserWrapper():
                 logging.warning('The syntactic parser was unable to parse: ' +
                                 '{}, doc_id = {}'.format(sentence, doc_id))
         logging.debug('syntax parsing results: {}'.format(
-            [t.pprint(margin=TREE_PRINT_MARGIN) for t in res]))
+            [t.pformat(margin=TREE_PRINT_MARGIN) for t in res]))
 
         return res
 
@@ -131,16 +112,15 @@ class SyntaxParserWrapper():
         sentences = self.tokenize_document(txt)
         res = []
         for sentence in sentences:
-            parsed_sent = self._zpar_ref.parse_sentence(
-                sentence.encode("utf-8"))
+            parsed_sent = self._zpar_ref.parse_sentence(sentence)
             if parsed_sent:
                 res.append(
-                    ParentedTree.fromstring(parsed_sent.decode('utf-8')))
+                    ParentedTree.fromstring(parsed_sent))
             else:
                 logging.warning('The syntactic parser was unable to parse: ' +
                                 '{}, doc_id = {}'.format(sentence, doc_id))
         logging.debug('syntax parsing results: {}'.format(
-            [t.pprint(margin=TREE_PRINT_MARGIN) for t in res]))
+            [t.pformat(margin=TREE_PRINT_MARGIN) for t in res]))
 
         return res
 
