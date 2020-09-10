@@ -4,4 +4,4 @@ cchardet
 skll==2.0
 python-zpar
 jinja2
-scikits.bootstrap
+scikits-bootstrap
