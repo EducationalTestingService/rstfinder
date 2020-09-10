@@ -1,30 +1,35 @@
-# License: MIT
+"""
+Classes and functions pertaining to syntactic (constituency) trees.
 
+:author: Michael Heilman
+:author: Nitin Madnani
+:organization: ETS
+"""
 import re
 
 from nltk.tree import ParentedTree
 
-
 TREE_PRINT_MARGIN = 1000000000
 
-_ptb_paren_mapping = {'(': r'-LRB-',
-                      ')': r'-RRB-',
-                      '[': r'-LSB-',
-                      ']': r'-RSB-',
-                      '{': r'-LCB-',
-                      '}': r'-RCB-'}
+_ptb_paren_mapping = {'(': r"-LRB-",
+                      ')': r"-RRB-",
+                      '[': r"-LSB-",
+                      ']': r"-RSB-",
+                      '{': r"-LCB-",
+                      '}': r"-RCB-"}
 _reverse_ptb_paren_mapping = {bracket_replacement: bracket_type
                               for bracket_type, bracket_replacement
                               in _ptb_paren_mapping.items()}
 
 
 class HeadedParentedTree(ParentedTree):
+    """
+    Modify ``nltk.tree.ParentedTree`` to also return heads.
 
-    '''
-    A subclass of nltk.tree.ParentedTree
-    that also returns heads using head rules from Michael Collins's
-    1999 thesis, Appendix A.  See the head() function.
-    '''
+    This subclass of ``nltk.tree.ParentedTree`` also returns heads
+    using head rules from Michael Collins's 1999 thesis, Appendix A. 
+    See the ``head()`` method below.
+    """
 
     start_points = {"ADJP": "L",
                     "ADVP": "R",
@@ -88,16 +93,30 @@ class HeadedParentedTree(ParentedTree):
                      "X": []}
 
     def __init__(self, node_or_str, children=None):
+        """Initialize the tree."""
         self._head = None
         super(HeadedParentedTree, self).__init__(node_or_str, children)
 
     def _search_children(self, search_list, start_point):
-        '''
-        A helper function for finding heads of noun phrases.
-        This finds the first node whose label is in search_list, starting
-        from start_point, either "L" for left (i.e., 0) or "R" for right.
-        '''
+        """
+        Find heads of noun phrases.
 
+        This is a helper function for finding heads of noun phrases.
+        It finds the first node whose label is in search_list, starting
+        from start_point, either "L" for left (i.e., 0) or "R" for right.
+
+        Parameters
+        ----------
+        search_list : list
+            List of labels.
+        start_point : str
+            The starting point for the search.
+
+        Returns
+        -------
+        head_index : int
+            The positional index of the head node.
+        """
         assert start_point == "L" or start_point == "R"
 
         head_index = None
@@ -120,14 +139,16 @@ class HeadedParentedTree(ParentedTree):
         return head_index
 
     def head(self):
-        '''
-        Head finding rules, following Michael Collins' head rules
-        (from his 1999 Ph.D. thesis, Appendix A).
+        """
+        Find the head of the tree.
+
+        This method uses the head finding rules, following Michael Collins'
+        head rules (from his 1999 Ph.D. thesis, Appendix A).
 
         A default of the leftmost child was added for NX nodes, which aren't
-        discussed in Collin's thesis.  This follows the Stanford Rarser
+        discussed in Collin's thesis.  This follows the Stanford Parser
         (http://nlp.stanford.edu/nlp/javadoc/javanlp/edu/stanford/nlp/trees/CollinsHeadFinder.html).
-        '''
+        """
         if self._head is None:
             num_children = len(self)
             head_index = None
@@ -206,10 +227,11 @@ class HeadedParentedTree(ParentedTree):
         return self._head
 
     def find_maximal_head_node(self):
-        '''
-        Finds the topmost node that has this node as its head.
-        Returns itself if the parent has a different head
-        '''
+        """
+        Find the topmost node that has this node as its head.
+
+        Returns itself if the parent has a different head.
+        """
         res = self
         parent = res.parent()
         while parent is not None and parent.head() == res:
@@ -219,39 +241,47 @@ class HeadedParentedTree(ParentedTree):
         return res
 
     def head_preterminal(self):
+        """Return the head perterminal."""
         res = self
         while not isinstance(res[0], str):
             res = res.head()
         return res
 
     def head_word(self):
+        """Return the head word."""
         return self.head_preterminal()[0]
 
     def head_pos(self):
+        """Return the part-of-speech for the head."""
         return self.head_preterminal().label()
 
 
 def extract_preterminals(tree):
+    """Extract the preterminals from the given tree."""
     return [node for node in tree.subtrees() if node.height() == 2]
 
 
 def convert_paren_tokens_to_ptb_format(toks):
+    """Convert parentheses tokens in given list to PTB format."""
     return [_ptb_paren_mapping.get(tok, tok) for tok in toks]
 
 
 def convert_parens_to_ptb_format(sent):
+    """Convert parentheses in given string to PTB format."""
     for key, val in _ptb_paren_mapping.items():
-        sent = sent.replace(key, ' {} '.format(val))
-    # Remove extra spaces added by normalizing brackets.
+        sent = sent.replace(key, f" {val} ")
+
+    # remove extra spaces added by normalizing brackets
     sent = re.sub(r'\s+', r' ', sent).strip()
     return sent
 
 
 def extract_converted_terminals(tree):
+    """Extract all converted terminals in tree, e.g., parentheses & quotes."""
     res = []
     prev_w = ""
     for w in tree.leaves():
-        if prev_w and prev_w == "U.S." and w == ".":
+        if prev_w and prev_w == "U.S." and w == '.':
             continue
         if w in _reverse_ptb_paren_mapping:
             w = _reverse_ptb_paren_mapping[w]
@@ -263,20 +293,20 @@ def extract_converted_terminals(tree):
     return res
 
 
-def convert_ptb_tree(t):
-    # Remove traces, etc.
+def convert_ptb_tree(tree):
+    """Convert PTB tree to remove traces etc."""
     for subtree in [x for x in
-                    t.subtrees(filter=lambda x: x.label() == '-NONE-')]:
+                    tree.subtrees(filter=lambda x: x.label() == "-NONE-")]:
         curtree = subtree
-        while curtree.label() == '-NONE-' or len(curtree) == 0:
+        while curtree.label() == "-NONE-" or len(curtree) == 0:
             parent = curtree.parent()
             parent.remove(curtree)
             curtree = parent
 
-    # Remove suffixes that don't appear in typical parser output
-    # (e.g., "-SBJ-1" in "NP-SBJ-1").
-    # Leave labels starting with "-" as is (e.g., "-LRB-").
-    for subtree in t.subtrees():
+    # remove suffixes that don't appear in typical parser output
+    # (e.g., "-SBJ-1" in "NP-SBJ-1"); eave labels starting with
+    # "-" as is (e.g., "-LRB-").
+    for subtree in tree.subtrees():
         label = subtree.label()
         if '-' in label and label[0] != '-':
             subtree.set_label(label[:label.index('-')])
@@ -284,69 +314,75 @@ def convert_ptb_tree(t):
         if '=' in label and label[0] != '=':
             subtree.set_label(label[:label.index('=')])
 
-    # Remove escape sequences from words (e.g., "3\\/4")
-    for subtree in t.subtrees():
+    # remove escape sequences from words (e.g., "3\\/4")
+    for subtree in tree.subtrees():
         if isinstance(subtree[0], str):
             for i in range(len(subtree)):
                 subtree[i] = re.sub(r'\\', r'', subtree[i])
 
 
-def find_first_common_ancestor(n1, n2):
-    '''
-    :param n1: node in tree t
-    :type n1: ParentedTree
-    :param n2: node in tree t
-    :type n2: ParentedTree
+def find_first_common_ancestor(node1, node2):
+    """
+    Find the first common ancestor for two nodes in the same tree.
 
-    Find the first common ancestor for the two nodes n1 and n2 in the same
-    tree.
-    '''
+    Parameters
+    ----------
+    node1 : nltk.tree.ParentedTree
+        The first node.
+    node2 : nltk.tree.ParentedTree
+        The second node.
 
-    # TODO write a unit test for this
+    Returns
+    -------
+    ancestor_node : nltk.tree.ParentedTree
+        The first common ancestor for two nodes in the same tree.
+    """
+    # TODO: write a unit test for this
 
     # make sure we are in the same tree
-    assert n1.root() == n2.root()
+    assert node1.root() == node2.root()
 
-    # make a set of all ancestors of n1
-    n1_ancestor_treepositions = set()
-    n1_parent = n1.parent()
-    while n1_parent is not None:
-        # Note: this storing treepositions isn't
-        # particularly efficient since treeposition() walks up the tree.
-        # Using memory addresses like id(n1_parent)
-        # would be faster, but seems potentially hazardous/confusing.
-        n1_ancestor_treepositions.add(n1_parent.treeposition())
-        n1_parent = n1_parent.parent()
+    # make a set of all ancestors of node1
+    node1_ancestor_treepositions = set()
+    node1_parent = node1.parent()
+    while node1_parent is not None:
+        # note: storing treepositions isn't particularly efficient since
+        # treeposition() walks up the tree; using memory addresses like
+        # id(node1_parent) would be faster, but seems potentially
+        # hazardous/confusing
+        node1_ancestor_treepositions.add(node1_parent.treeposition())
+        node1_parent = node1_parent.parent()
 
-    # find the first ancestor of n2 that is also an ancestor of n1
-    n2_parent = n2.parent()
+    # find the first ancestor of node2 that is also an ancestor of node1
+    node2_parent = node2.parent()
     res = None
-    while n2_parent is not None:
-        if n2_parent.treeposition() in n1_ancestor_treepositions:
-            res = n2_parent
+    while node2_parent is not None:
+        if node2_parent.treeposition() in node1_ancestor_treepositions:
+            res = node2_parent
             break
-        n2_parent = n2_parent.parent()
+        node2_parent = node2_parent.parent()
 
     assert res is not None
     return res
 
 
-def collapse_binarized_nodes(t):
-    '''
+def collapse_binarized_nodes(tree):
+    """
+    Remove temporary, binarized nodes from the given tree.
+
     For each node that is marked as a temporary, binarized node (with a *),
     remove it from its parent and add its children in its place.
 
     Note that this modifies the tree in place.
-    '''
+    """
+    assert isinstance(tree, ParentedTree)
 
-    assert isinstance(t, ParentedTree)
-
-    # TODO write a unit test for this method
+    # TODO: write a unit test for this method
     to_process = []
-    for subtree in t.subtrees():
+    for subtree in tree.subtrees():
         to_process.append(subtree)
 
-    # Do a reverse of the pre-order traversal implicit
+    # do a reverse of the pre-order traversal implicit
     # in the subtrees methods, so the leaves are visited first.
     for subtree in reversed(to_process):
         if subtree.label().endswith('*'):
@@ -359,6 +395,6 @@ def collapse_binarized_nodes(t):
                 child = subtree.pop()
                 parent.insert(tmp_index, child)
 
-    # Make sure the output is correct.
-    for subtree in t.subtrees():
+    # make sure the output is correct
+    for subtree in tree.subtrees():
         assert not subtree.label().endswith('*')
