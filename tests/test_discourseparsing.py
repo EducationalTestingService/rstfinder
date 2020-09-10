@@ -1,59 +1,64 @@
-#!/usr/bin/env python
-
 import json
-import logging
 
-from nltk.tree import ParentedTree
-
-from discourseparsing.extract_actions_from_trees import extract_parse_actions
 from discourseparsing.discourse_parsing import Parser
+from discourseparsing.extract_actions_from_trees import extract_parse_actions
+from nltk.tree import ParentedTree
+from nose.tools import eq_
 
 
 def test_extract_parse_actions():
-    tree = ParentedTree.fromstring('(ROOT (satellite:attribution (text 0)) (nucleus:span (satellite:condition (text 1)) (nucleus:span (nucleus:span (nucleus:same-unit (text 2)) (nucleus:same-unit (satellite:temporal (text 3)) (nucleus:span (text 4)))) (satellite:conclusion (text 5)))))')
-    # I think the tree above would be for something
-    # like this silly little example:
+    """Check that parse actions are extracted as expected."""
+    # the following tree represents a sentence like:
     # "John said that if Bob bought this excellent book,
     # then before the end of next week Bob would finish it,
     # and therefore he would be happy."
-
+    tree = ParentedTree.fromstring("""(ROOT
+                                      (satellite:attribution (text 0))
+                                      (nucleus:span
+                                          (satellite:condition (text 1))
+                                          (nucleus:span
+                                              (nucleus:span
+                                                  (nucleus:same-unit (text 2))
+                                                  (nucleus:same-unit
+                                                      (satellite:temporal (text 3))
+                                                      (nucleus:span (text 4))))
+                                              (satellite:conclusion (text 5)))))
+                                    """)
     actions = extract_parse_actions(tree)
-
     num_shifts = len([x for x in actions if x.type == 'S'])
-    assert num_shifts == 6
-    assert actions[0].type == 'S'
-    assert actions[1].type == 'U'
-    assert actions[1].label == 'satellite:attribution'
-    assert actions[2].type == 'S'
+    eq_(num_shifts, 6)
+    eq_(actions[0].type, 'S')
+    eq_(actions[1].type, 'U')
+    eq_(actions[1].label, "satellite:attribution")
+    eq_(actions[2].type, 'S')
 
 
 def test_reconstruct_training_examples():
-    '''
-    This code goes through the training data and makes sure
-    that the actions extracted from the trees can be used to
-    reconstruct those trees from a list of EDUs.
-    '''
+    """Check extracted actions for entire training data."""
+    # go through the training data and make sure
+    # that the actions extracted from the trees can be used to
+    # reconstruct those trees from a list of EDUs
 
-    train_path = 'rst_discourse_tb_edus_TRAINING_TRAIN.json'
-    with open(train_path) as f:
-        data = json.load(f)
+    # read in the training data
+    file_path = 'rst_discourse_tb_edus_TRAINING_TRAIN.json'
+    with open(file_path) as train_data_file:
+        data = json.load(train_data_file)
 
+    # instantiate the parser
     rst_parser = Parser(max_acts=1, max_states=1, n_best=1)
+
+    # iterate over each document in the training data
     for doc_dict in data:
-        tree_orig = ParentedTree.fromstring(doc_dict['rst_tree'])
-        actions = extract_parse_actions(tree_orig)
 
-        tree2 = next(rst_parser.parse(doc_dict,
-                                      gold_actions=actions,
-                                      make_features=False))['tree']
+        # get the original RST tree
+        original_tree = ParentedTree.fromstring(doc_dict['rst_tree'])
 
-        logging.info('test_reconstruct_training_examples verified tree for {}'.format(doc_dict['path_basename']))
-        assert tree2 == tree_orig
+        # extract the parser actions from this tree
+        actions = extract_parse_actions(original_tree)
 
+        # reconstruct the tree from these actions using the parser
+        reconstructed_tree = next(rst_parser.parse(doc_dict,
+                                                   gold_actions=actions,
+                                                   make_features=False))['tree']
 
-if __name__ == '__main__':
-    logging.basicConfig(format=('%(asctime)s - %(name)s - %(levelname)s - ' +
-                                '%(message)s'), level=logging.INFO)
-    test_extract_parse_actions()
-    test_reconstruct_training_examples()
-    print("If no assertions failed, then this passed.")
+        eq_(reconstructed_tree, original_tree)
