@@ -241,7 +241,7 @@ class HeadedParentedTree(ParentedTree):
         return res
 
     def head_preterminal(self):
-        """Return the head perterminal."""
+        """Return the head preterminal."""
         res = self
         while not isinstance(res[0], str):
             res = res.head()
@@ -295,7 +295,7 @@ def extract_converted_terminals(tree):
 
 def convert_ptb_tree(tree):
     """Convert PTB tree to remove traces etc."""
-    for subtree in [x for x in
+    for subtree in [st for st in
                     tree.subtrees(filter=lambda x: x.label() == "-NONE-")]:
         curtree = subtree
         while curtree.label() == "-NONE-" or len(curtree) == 0:
@@ -304,7 +304,7 @@ def convert_ptb_tree(tree):
             curtree = parent
 
     # remove suffixes that don't appear in typical parser output
-    # (e.g., "-SBJ-1" in "NP-SBJ-1"); eave labels starting with
+    # (e.g., "-SBJ-1" in "NP-SBJ-1"); leave labels starting with
     # "-" as is (e.g., "-LRB-").
     for subtree in tree.subtrees():
         label = subtree.label()

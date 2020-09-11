@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 """
 This script generates an html file with a tree visualization, using d3.js.
@@ -26,6 +26,7 @@ import os
 from os.path import abspath, dirname, join
 
 from jinja2 import Environment, FileSystemLoader
+
 from nltk.tree import ParentedTree
 
 THIS_FILE_DIRNAME = dirname(abspath(__file__))
@@ -40,7 +41,8 @@ def convert_tree_json(input_json):
 
 
 def _convert_tree_json_helper(subtree, edus):
-    if subtree.label() == 'text':
+    """Helper function for ``convert_tree_json()``."""
+    if subtree.label() == "text":
         return {"name": edus[int(subtree[0])]}
     return {"name": subtree.label(),
             "children": [_convert_tree_json_helper(x, edus) for x in subtree]}
@@ -66,7 +68,7 @@ def main():  # noqa: D103
         raise ValueError("The input and output paths are the same.")
 
     env = Environment(loader=FileSystemLoader(THIS_FILE_DIRNAME))
-    tmpl_overview = env.get_template('template_visualize_rst_tree.html')
+    tmpl_overview = env.get_template("template_visualize_rst_tree.html")
 
     with open(args.input_json_path) as inputfh:
         input_json = json.load(inputfh)

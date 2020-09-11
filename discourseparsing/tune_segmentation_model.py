@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Functions to tune the CRF++ based segmentation model.
 

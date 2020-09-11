@@ -143,8 +143,8 @@ def main():  # noqa: D103
             # read in the RST tree and reformat
             with open(edu_path, 'r') as edufh:
                 edus = [line.strip() for line in edufh.readlines()]
-            edu_path_outfile = edu_path[:-5]
-            dis_path = f"{edu_path_outfile}.dis"
+            edu_path_file = edu_path[:-5]
+            dis_path = f"{edu_path_file}.dis"
             with open(dis_path) as disfh:
                 rst_tree_str = disfh.read().strip()
                 rst_tree_str = fix_rst_treebank_tree_str(rst_tree_str)
@@ -154,7 +154,7 @@ def main():  # noqa: D103
 
             # identify which EDUs are at the beginnings of paragraphs
             edu_starts_paragraph = []
-            with open(edu_path_outfile) as edufh:
+            with open(edu_path_file) as edufh:
                 outfile_doc = edufh.read().strip()
                 paragraphs = re.split(r'\n\n+', outfile_doc)
 

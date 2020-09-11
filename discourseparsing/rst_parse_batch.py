@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Functions for batch-parsing multiple documents in parallel.
 
@@ -39,7 +39,7 @@ def batch_process(docs,
     zpar_model_directory : str
         Path to the directory containing the ZPar English constituency model.
     segmentation_model : str
-        Path to the CRF++-based discourse segmentation model.
+        Path to the CRF++ based discourse segmentation model.
     parsing_model : str
         Path to the RST parsing model.
     """

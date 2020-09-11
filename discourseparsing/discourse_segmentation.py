@@ -18,7 +18,7 @@ from .tree_util import HeadedParentedTree, find_first_common_ancestor
 
 def parse_node_features(nodes):
     """
-    Generate synatctic parser features from the given nodes.
+    Generate syntactic parser features from the given nodes.
 
     Parameters
     ----------
@@ -54,7 +54,7 @@ def extract_segmentation_features(doc_dict):
 
     This function extracts features for use in the discourse segmentation
     CRF. Note that the CRF++ template makes it so that the features for the
-    current word and 2 previous and 2 next words are used for each word.
+    current word, the 2 previous, and the 2 next words are used for each word.
 
     Parameters
     ----------
@@ -112,8 +112,8 @@ def extract_segmentation_features(doc_dict):
                 node_r = tree[sent_tree_positions[token_num + 1]]
             else:
                 node_r = None
-            # parent node
 
+            # parent node
             node_p, ancestor_w, ancestor_r = None, None, None
             node_p_parent, node_p_right_sibling = None, None
 

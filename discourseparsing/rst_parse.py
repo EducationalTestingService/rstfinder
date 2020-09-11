@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 """
 Segment and RST-parse a document.
@@ -192,7 +192,7 @@ def main():  # noqa: D103
 
         for i, tree in enumerate(complete_trees, start=1):
             ptree_str = tree["tree"].__repr__() + "\n"
-            with codecs.open(input_path + f"_{str(i)}.parentedtree", 'w', "utf-8") as ptree_file:
+            with codecs.open(f"{input_path}_{str(i)}.parentedtree", 'w', "utf-8") as ptree_file:
                 ptree_file.write(ptree_str)
 
 

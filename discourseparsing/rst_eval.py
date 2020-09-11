@@ -231,7 +231,7 @@ def predict_rst_trees_for_eval(syntax_parser,
         # standard tokens?
 
         # remove gold standard trees or EDU boundaries if evaluating
-        # using automatic pre-processing
+        # using automatic preprocessing
         if not use_gold_syntax:
             # TODO: will merging the EDU strings here to make the raw_text
             # variable produce the appropriate eval result when not using gold

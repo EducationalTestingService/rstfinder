@@ -21,7 +21,7 @@ def test_paragraph_splitting():
     eq_(len(paragraphs), 10)
 
     for paragraph_num, paragraph in enumerate(paragraphs, start=1):
-        assert 'paragraph {}'.format(paragraph_num) in paragraph
+        assert f"paragraph {paragraph_num}" in paragraph
         eq_(paragraph[-1], '.')
 
         # Make sure newlines have been removed within each paragraph.

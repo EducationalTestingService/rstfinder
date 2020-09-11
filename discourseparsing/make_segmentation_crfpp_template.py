@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 """
 Generate a feature template for CRF++ segmentation model.
 

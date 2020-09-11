@@ -213,15 +213,15 @@ class Parser(object):
                 node1.root() != node2.root()):
             return False
         tree_position_node1 = node1.treeposition()
-        tree_position_node1 = node2.treeposition()
+        tree_position_node2 = node2.treeposition()
 
         # return `False` if node 1 is deeper in the tree
-        if len(tree_position_node1) >= len(tree_position_node1):
+        if len(tree_position_node1) >= len(tree_position_node2):
             return False
 
         # the treeposition (i.e., sequence of child indices from the root)
         # of `node1` should be a prefix of the treeposition of `node2`
-        res = (tree_position_node1 == tree_position_node1[:len(tree_position_node1)])
+        res = (tree_position_node1 == tree_position_node2[:len(tree_position_node1)])
         return res
 
     @staticmethod
