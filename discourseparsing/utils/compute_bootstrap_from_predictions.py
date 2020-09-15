@@ -1,22 +1,27 @@
-#!/usr/bin/env python3.3
+#!/usr/bin/env python
 
-'''
+"""
+Compute bootstrap confidence intervals for RST parser evaluation.
+
 This is a script for computing bootstrap confidence intervals
 around RST parser evaluation results.
 
-Note: this could be extended to compute CIs for the difference in performance
+NOTE: this could be extended to compute CIs for the difference in performance
 between two systems.
-'''
 
+:author: Michael Heilman
+:author: Nitin Madnani
+:organization: ETS
+"""
+
+import argparse
 import json
 import logging
 
 import numpy as np
 import scikits.bootstrap as boot
-
 from discourseparsing.discourse_parsing import Parser
-from discourseparsing.rst_eval import (compute_rst_eval_results,
-                                       predict_rst_trees_for_eval)
+from discourseparsing.rst_eval import compute_rst_eval_results, predict_rst_trees_for_eval
 
 
 def make_score_func(metric_name):
@@ -26,22 +31,25 @@ def make_score_func(metric_name):
     return score_func
 
 
-def main():
-    import argparse
+def main():  # noqa: D103
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('evaluation_set',
-                        help='The dev or test set JSON file',
+    parser.add_argument("evaluation_set",
+                        help="The dev or test set JSON file",
                         type=argparse.FileType('r'))
-    parser.add_argument('-p', '--parsing_model',
-                        help='Path to RST parsing model.',
+    parser.add_argument("-p",
+                        "--parsing_model",
+                        help="Path to RST parsing model.",
                         required=True)
-    parser.add_argument('-v', '--verbose',
-                        help='Print more status information. For every ' +
-                        'additional time this flag is specified, ' +
-                        'output gets more verbose.',
-                        default=0, action='count')
-    parser.add_argument('--metric_name', help='name of metric to use',
+    parser.add_argument("-v",
+                        "--verbose",
+                        help="Print more status information. For every "
+                             "additional time this flag is specified, "
+                             "output gets more verbose.",
+                        default=0,
+                        action="count")
+    parser.add_argument("--metric_name",
+                        help="Name of metric to use.",
                         choices=["labeled_precision",
                                  "labeled_recall",
                                  "labeled_f1",
@@ -52,14 +60,15 @@ def main():
                                  "span_recall",
                                  "span_f1"],
                         required=True)
-    parser.add_argument('--n_samples', type=int, default=10000)
-    parser.add_argument('--alpha', type=float, default=0.05)
+    parser.add_argument("--n_samples", type=int, default=10000)
+    parser.add_argument("--alpha", type=float, default=0.05)
     args = parser.parse_args()
 
-    # Convert verbose flag to actually logging level
+    # convert verbose flag to logging level
     log_levels = [logging.WARNING, logging.INFO, logging.DEBUG]
     log_level = log_levels[min(args.verbose, 2)]
-    # Make warnings from built-in warnings module get formatted more nicely
+
+    # format warnings more nicely
     logging.captureWarnings(True)
     logging.basicConfig(format=('%(asctime)s - %(name)s - %(levelname)s - ' +
                                 '%(message)s'), level=log_level)
@@ -71,10 +80,13 @@ def main():
     rst_parser = Parser(max_acts=1, max_states=1, n_best=1)
     rst_parser.load_model(args.parsing_model)
 
+    # read in the evaluation data
     eval_data = json.load(args.evaluation_set)
 
-    pred_edu_tokens_lists, pred_trees, gold_edu_tokens_lists, gold_trees = \
-        predict_rst_trees_for_eval(None, None, rst_parser, eval_data)
+    (pred_edu_tokens_lists,
+     pred_trees,
+     gold_edu_tokens_lists,
+     gold_trees) = predict_rst_trees_for_eval(None, None, rst_parser, eval_data)
 
     data = np.array(list(zip(pred_edu_tokens_lists, pred_trees,
                              gold_edu_tokens_lists, gold_trees)))
@@ -87,9 +99,12 @@ def main():
     tmp_score = make_score_func(args.metric_name)(data)
     assert tmp_score == orig_score
 
-    boot_ci_lower, boot_ci_upper = \
-        boot.ci(data, make_score_func(args.metric_name),
-                n_samples=args.n_samples, method='bca', alpha=args.alpha)
+    (boot_ci_lower,
+     boot_ci_upper) = boot.ci(data,
+                              make_score_func(args.metric_name),
+                              n_samples=args.n_samples,
+                              method="bca",
+                              alpha=args.alpha)
 
     print("evaluation_set: {}".format(args.evaluation_set))
     print("alpha: {}".format(args.alpha))
@@ -99,6 +114,5 @@ def main():
     print("CI: ({}, {})".format(boot_ci_lower, boot_ci_upper))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
-
