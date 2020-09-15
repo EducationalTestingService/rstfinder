@@ -1,9 +1,9 @@
 import json
 
-from discourseparsing.discourse_parsing import Parser
-from discourseparsing.extract_actions_from_trees import extract_parse_actions
 from nltk.tree import ParentedTree
 from nose.tools import eq_
+from rstfinder.discourse_parsing import Parser
+from rstfinder.extract_actions_from_trees import extract_parse_actions
 
 
 def test_extract_parse_actions():

@@ -1,5 +1,5 @@
-from discourseparsing.tune_segmentation_model import convert_crfpp_output, evaluate_segmentation_output
 from nose.tools import eq_
+from rstfinder.tune_segmentation_model import convert_crfpp_output, evaluate_segmentation_output
 
 
 def test_segmentation_evaluation():
