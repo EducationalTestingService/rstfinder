@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
-'''
+"""
 A simple script for testing out head rules on a PTB file.
-'''
+"""
 
 import argparse
 import re
 
-from discourseparsing.tree_util import HeadedParentedTree
-from discourseparsing.convert_rst_discourse_tb import convert_ptb_tree
+from rstfinder.convert_rst_discourse_tb import convert_ptb_tree
+from rstfinder.tree_util import HeadedParentedTree
+
 
 def depth(t):
     res = 0
@@ -35,6 +36,7 @@ def main():
             print("\n\n{}".format(t.pformat()))
             for subtree in t.subtrees():
                 print("{}{}\t{}".format(' '.join(['' for x in range(depth(subtree))]), subtree.label(), subtree.head_word()))
+
 
 if __name__ == '__main__':
     main()

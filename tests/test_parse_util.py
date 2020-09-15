@@ -3,8 +3,7 @@
 import argparse
 import logging
 
-from discourseparsing.parse_util import SyntaxParserWrapper
-
+from rstfinder.parse_util import SyntaxParserWrapper
 
 if __name__ == '__main__':
 

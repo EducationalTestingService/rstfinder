@@ -20,8 +20,8 @@ import logging
 
 import numpy as np
 import scikits.bootstrap as boot
-from discourseparsing.discourse_parsing import Parser
-from discourseparsing.rst_eval import compute_rst_eval_results, predict_rst_trees_for_eval
+from rstfinder.discourse_parsing import Parser
+from rstfinder.rst_eval import compute_rst_eval_results, predict_rst_trees_for_eval
 
 
 def make_score_func(metric_name):

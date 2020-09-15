@@ -1,8 +1,8 @@
 import re
 from os.path import dirname, join, realpath
 
-from discourseparsing.paragraph_splitting import ParagraphSplitter
 from nose.tools import eq_
+from rstfinder.paragraph_splitting import ParagraphSplitter
 
 # TODO: replace with pathlib
 MY_DIR = dirname(realpath(__file__))
