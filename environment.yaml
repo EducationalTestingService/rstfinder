@@ -8,7 +8,6 @@ dependencies:
   - nltk
   - cchardet
   - crfpp==0.59
-  - coveralls
   - skll==2.0
   - jinja2
   - scikits-bootstrap
