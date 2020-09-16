@@ -14,5 +14,8 @@ CONDA_ENV_PATH="${CURRDIR}"/../parserdev
 # install the rstfinder package in development mode
 "${CONDA_ENV_PATH}"/bin/pip install -e .
 
+# link in the training JSON file that we need for the tests
+ln -s /home/nlp-text/dynamic/mheilman/discourse-parsing/rst_discourse_tb_edus_TRAINING_TRAIN.json .
+
 # run the tests and generate the coverage report
 "${CONDA_ENV_PATH}"/bin/nosetests --nologcapture tests --with-coverage --cover-package rstfinder --cover-html --with-xunit
