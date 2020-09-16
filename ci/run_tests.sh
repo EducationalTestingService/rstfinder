@@ -7,9 +7,11 @@ CONDA_ENV_PATH="${CURRDIR}"/../parserdev
 # remove the conda environment if it already exists
 [[ -d "${CONDA_ENV_PATH}" ]] && /opt/python/conda_default/bin/conda env remove -p "${CONDA_ENV_PATH}"
 
-# create the conda environment
-CONDA_ENV_PATH="${CURRDIR}"/../parserdev
-/opt/python/conda_default/bin/conda create --override-channels -c conda-forge -c ets -c https://nlp.research.ets.org/conda -p "${CONDA_ENV_PATH}" python=3.6 nose coverage crf++ --file conda_requirements.txt
+# create the conda environment using the environment.yaml file
+/opt/python/conda_default/bin/conda env create -f environment.yaml -p "${CONDA_ENV_PATH}" -v
+
+# install nose and coverage in the environment
+/opt/python/conda_default/bin/conda install -p "${CONDA_ENV_PATH}" nose coverage
 
 # install the rstfinder package in development mode
 "${CONDA_ENV_PATH}"/bin/pip install -e .
