@@ -1,6 +1,8 @@
 import json
+from os.path import exists
 
 from nltk.tree import ParentedTree
+from nose import SkipTest
 from nose.tools import eq_
 from rstfinder.discourse_parsing import Parser
 from rstfinder.extract_actions_from_trees import extract_parse_actions
@@ -39,8 +41,12 @@ def test_reconstruct_training_examples():
     # that the actions extracted from the trees can be used to
     # reconstruct those trees from a list of EDUs
 
-    # read in the training data
+    # check if the training data file exists, otherwise skip test
     file_path = 'rst_discourse_tb_edus_TRAINING_TRAIN.json'
+    if not exists(file_path):
+        raise SkipTest("training data JSON file not found")
+
+    # read in the training data file
     with open(file_path) as train_data_file:
         data = json.load(train_data_file)
 
