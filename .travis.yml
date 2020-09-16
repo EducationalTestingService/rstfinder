@@ -1,0 +1,19 @@
+language: python
+python:
+- 3.6
+notifications:
+  email: false
+  slack:
+    secure: iyzK4UAmL4sRKQH/ItjABcQv5YbT7hTJ/xP/eQt0T4XOrfGL2t900MIl16894PzPo7ALKKiYNk5Ysz6kVbmi34w5Mgb+rCVWL5UPGk++z9BWE7/xQGfgTgS+zMoy8U/VJa9N1fZHnpovdrzOu2mImhx0jyqVXsc+jxgrmQ+IhD4=
+sudo: false
+before_install:
+- wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+- if [ -x ${HOME}/miniconda3/pkgs ]; then pushd ${HOME}/miniconda3/pkgs && find -maxdepth 1 -mindepth 1 -type d | xargs rm -rf && popd; fi
+- chmod +x miniconda.sh
+- "./miniconda.sh -b -f"
+- "${HOME}/miniconda3/bin/conda update conda --yes"
+install:
+- "${HOME}/miniconda3/bin/conda env create -f environment.yaml -n parserdev -v"
+- "${HOME}/miniconda3/envs/parserdev/bin/pip install -e ."
+script:
+- "${HOME}/miniconda3/envs/parserdev/bin/nosetests --nologcapture tests"

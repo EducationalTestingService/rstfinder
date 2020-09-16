@@ -1,7 +1,0 @@
-numpy
-nltk
-cchardet
-skll==2.0
-python-zpar
-jinja2
-scikits.bootstrap
