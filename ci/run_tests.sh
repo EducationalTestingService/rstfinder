@@ -10,9 +10,6 @@ CONDA_ENV_PATH="${CURRDIR}"/../parserdev
 # create the conda environment using the environment.yaml file
 /opt/python/conda_default/bin/conda env create -f environment.yaml -p "${CONDA_ENV_PATH}" -v
 
-# install nose and coverage in the environment
-/opt/python/conda_default/bin/conda install -p "${CONDA_ENV_PATH}" nose coverage
-
 # install the rstfinder package in development mode
 "${CONDA_ENV_PATH}"/bin/pip install -e .
 

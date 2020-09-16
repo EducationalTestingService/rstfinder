@@ -11,5 +11,7 @@ dependencies:
   - skll==2.0
   - jinja2
   - scikits-bootstrap
+  - nose
+  - coverage
   - pip:
     - python-zpar
