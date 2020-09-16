@@ -9,10 +9,10 @@ CONDA_ENV_PATH="${CURRDIR}"/../parserdev
 
 # create the conda environment
 CONDA_ENV_PATH="${CURRDIR}"/../parserdev
-/opt/python/conda_default/bin/conda create --override-channels -c conda-forge -c ets -c https://nlp.research.ets.org/conda -p "${CONDA_ENV_PATH}" python=3.6 nose crf++ --file conda_requirements.txt
+/opt/python/conda_default/bin/conda create --override-channels -c conda-forge -c ets -c https://nlp.research.ets.org/conda -p "${CONDA_ENV_PATH}" python=3.6 nose coverage crf++ --file conda_requirements.txt
 
 # install the rstfinder package in development mode
 "${CONDA_ENV_PATH}"/bin/pip install -e .
 
 # run the tests and generate the coverage report
-"${CONDA_ENV_PATH}"/bin/nosetests --nologcapture tests --with-cov --cov rstfinder --cov-report=html --with-xunit
+"${CONDA_ENV_PATH}"/bin/nosetests --nologcapture tests --with-coverage --cover-package rstfinder --cover-html --with-xunit
