@@ -1,0 +1,14 @@
+channels:
+  - conda-forge
+dependencies:
+  - python=3.6
+  - pip
+  - numpy
+  - nltk
+  - cchardet
+  - crfpp==0.59
+  - skll==2.0
+  - jinja2
+  - scikits-bootstrap
+  - pip:
+    - python-zpar
