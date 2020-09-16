@@ -1,5 +1,6 @@
 channels:
   - conda-forge
+  - ets
 dependencies:
   - python=3.6
   - pip
