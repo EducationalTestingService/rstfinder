@@ -9,8 +9,7 @@ notifications:
 sudo: false
 before_install:
 - wget http://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-- if [ -x ${HOME}/miniconda3/pkgs ]; then pushd ${HOME}/miniconda3/pkgs && find -maxdepth
-  1 -mindepth 1 -type d | xargs rm -rf && popd; fi
+- if [ -x ${HOME}/miniconda3/pkgs ]; then pushd ${HOME}/miniconda3/pkgs && find -maxdepth 1 -mindepth 1 -type d | xargs rm -rf && popd; fi
 - chmod +x miniconda.sh
 - "./miniconda.sh -b -f"
 - "${HOME}/miniconda3/bin/conda update conda --yes"
@@ -25,7 +24,6 @@ install:
 - echo "except ImportError:" >> sitecustomize.py
 - echo "    pass" >> sitecustomize.py
 script:
-- "${HOME}/miniconda3/envs/parserdev/bin/nosetests --nologcapture tests --with-coverage
-  --cover-package rstfinder --cov-config .coveragerc"
+- "${HOME}/miniconda3/envs/parserdev/bin/nosetests --nologcapture tests --with-coverage --cover-package rstfinder --config .coveragerc"
 after_success:
 - "${HOME}/miniconda3/envs/parserdev/bin/coveralls"
