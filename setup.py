@@ -9,11 +9,7 @@ def readme():
 
 
 def requirements():
-    req_path = 'requirements.txt'
-    with open(req_path) as f:
-        reqs = f.read().splitlines()
-    return reqs
-
+    pass
 
 setup(name='rstfinder',
       version='0.2.1',
