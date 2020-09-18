@@ -54,7 +54,6 @@ def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
     # available so this does not crash when evaluating on pre-parsed
     # treebank documents
     if "raw_text" in doc_dict and not doc_dict["raw_text"].strip():
-        # TODO: add a unit test for this.
         logging.warning(f"The input contained no non-whitespace characters."
                         f" doc_id = {doc_dict['doc_id']}")
         return [], []
@@ -64,6 +63,7 @@ def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
         trees, starts_paragraph_list = syntax_parser.parse_document(doc_dict)
         doc_dict["syntax_trees"] = [tree.pformat(margin=TREE_PRINT_MARGIN)
                                     for tree in trees]
+        doc_dict["starts_paragraph_list"] = starts_paragraph_list
         preterminals = [extract_preterminals(tree) for tree in trees]
         doc_dict["token_tree_positions"] = [[x.treeposition() for x in
                                              preterminals_sentence]
@@ -80,7 +80,7 @@ def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
         # Extract whether each EDU starts a paragraph.
         edu_starts_paragraph = []
         for tree_idx, tok_idx, _ in doc_dict["edu_start_indices"]:
-            val = (tok_idx == 0 and starts_paragraph_list[tree_idx])
+            val = (tok_idx == 0 and doc_dict["starts_paragraph_list"][tree_idx])
             edu_starts_paragraph.append(val)
         assert len(edu_starts_paragraph) == len(doc_dict["edu_start_indices"])
         doc_dict["edu_starts_paragraph"] = edu_starts_paragraph
