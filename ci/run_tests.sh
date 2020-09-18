@@ -22,4 +22,4 @@ NLTK_DATA="${NLPTOOLS}/nltk_data"
 ln -s /home/nlp-text/dynamic/mheilman/discourse-parsing/rst_discourse_tb_edus_TRAINING_TRAIN.json .
 
 # run the tests and generate the coverage report
-"${CONDA_ENV_PATH}"/bin/nosetests --nologcapture tests --with-coverage --cover-package rstfinder --cover-html --with-xunit
+"${CONDA_ENV_PATH}"/bin/nosetests --nologcapture --verbose tests --with-coverage --cover-package rstfinder --cover-html --with-xunit

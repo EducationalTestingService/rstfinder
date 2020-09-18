@@ -20,4 +20,4 @@ install:
 - "${HOME}/miniconda3/envs/parserdev/bin/pip install -e ."
 - "${HOME}/miniconda3/envs/parserdev/bin/python -m nltk.downloader -d ${HOME}/nltk_data punkt"
 script:
-- "${HOME}/miniconda3/envs/parserdev/bin/nosetests --nologcapture tests"
+- "${HOME}/miniconda3/envs/parserdev/bin/nosetests --nologcapture --verbose tests"
