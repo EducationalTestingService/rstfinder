@@ -11,6 +11,7 @@ def readme():
 def requirements():
     pass
 
+
 setup(name='rstfinder',
       version='0.2.1',
       description=('A discourse parser and segmenter for use with the '
@@ -34,6 +35,7 @@ setup(name='rstfinder',
                                         'extract_segmentation_features = rstfinder.extract_segmentation_features:main',
                                         'rst_parse_batch = rstfinder.rst_parse_batch:main',
                                         'compute_bootstrap_from_predictions = rstfinder.utils.compute_bootstrap_from_predictions:main',
+                                        'try_head_rules = rstfinder.utils.try_head_rules:main'
                                         'visualize_rst_tree = rstfinder.utils.visualize_rst_tree:main']},
       install_requires=requirements(),
       zip_safe=False)
