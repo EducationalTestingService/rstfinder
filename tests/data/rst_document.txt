@@ -1,0 +1,9 @@
+Rhetorical structure theory (RST) was originally developed by William Mann and Sandra Thompson of the University of Southern California's Information Sciences Institute (ISI) and defined in a seminal paper in 1988. 
+
+This theory was developed as part of studies of computer based text generation. Natural language researchers later began using RST in text summarization and other applications. RST addresses text organization by means of relations that hold between parts of text. It explains coherence by postulating a hierarchical, connected structure of texts.
+
+In 2000, Daniel Marcu, also of ISI, demonstrated that practical discourse parsing and text summarization also could be achieved using RST.
+
+Rhetorical relations or coherence relations or discourse relations are paratactic (coordinate) or hypotactic (subordinate) relations that hold across two or more text spans. It is widely accepted that notion of coherence is through text relations like this. RST using rhetorical relations provide a systematic way for an analyst to analyse the text. An analysis is usually built by reading the text and constructing a tree using the relations. 
+
+RST establishes two different types of units. Nuclei are considered as the most important parts of text whereas satellites contribute to the nuclei and are secondary. Nucleus contains basic information and satellite contains additional information about nucleus. The satellite is often incomprehensible without nucleus, whereas a text where a satellites have been deleted can be understood to a certain extent.
