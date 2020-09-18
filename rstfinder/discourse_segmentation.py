@@ -11,6 +11,8 @@ Underlyingly, it uses the CRF++ toolkit.
 import logging
 import shlex
 import subprocess
+import sys
+from pathlib import Path
 from tempfile import NamedTemporaryFile
 
 from .tree_util import HeadedParentedTree, find_first_common_ancestor
@@ -194,7 +196,8 @@ class Segmenter():
 
         # get predictions from the CRF++ model.
         # TODO: replace with CRF++ Python bindings
-        cmd = f"crf_test -m {self.model_path} {tmpfile.name}"
+        crf_test_path = Path(sys.executable).parent / "crf_test"
+        cmd = f"{crf_test_path} -m {self.model_path} {tmpfile.name}"
         crf_output_bytes = subprocess.check_output(shlex.split(cmd))
         crf_output_str = crf_output_bytes.decode('utf-8').strip()
         tmpfile.close()
