@@ -1,11 +1,13 @@
 import json
-from os.path import exists
+from pathlib import Path
 
 from nltk.tree import ParentedTree
 from nose import SkipTest
 from nose.tools import eq_
 from rstfinder.discourse_parsing import Parser
 from rstfinder.extract_actions_from_trees import extract_parse_actions
+
+MY_DIR = Path(__file__).parent
 
 
 def test_extract_parse_actions():
@@ -42,8 +44,8 @@ def test_reconstruct_training_examples():
     # reconstruct those trees from a list of EDUs
 
     # check if the training data file exists, otherwise skip test
-    file_path = 'rst_discourse_tb_edus_TRAINING_TRAIN.json'
-    if not exists(file_path):
+    file_path = Path('rst_discourse_tb_edus_TRAINING_TRAIN.json')
+    if not file_path.exists():
         raise SkipTest("training data JSON file not found")
 
     # read in the training data file
@@ -68,3 +70,21 @@ def test_reconstruct_training_examples():
                                                    make_features=False))['tree']
 
         eq_(reconstructed_tree, original_tree)
+
+
+def test_parse_single_edu():
+    """Test that parsing a single EDU works as expected."""
+    # load in an input file with a single EDU
+    input_file = MY_DIR / "data" / "single_edu_parse_input.json"
+    doc_dict = json.load(open(input_file, 'r'))
+
+    # instantiate the parser
+    rst_parser = Parser(max_acts=1, max_states=1, n_best=1)
+    rst_parser.load_model(str(MY_DIR / "models"))
+
+    # make sure that we have a very simple RST tree as expected
+    tree = list(rst_parser.parse(doc_dict))[0]['tree']
+    eq_(tree.root().label(), 'ROOT')
+    eq_(len(tree.leaves()), 1)
+    subtrees = list(tree.subtrees())
+    eq_(len(subtrees), 2)

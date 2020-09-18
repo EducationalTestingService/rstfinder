@@ -34,7 +34,7 @@ class TestSegmentAndParse(unittest.TestCase):
         rst_model_path = (cls.currdir / "models" /
                           "rst_parsing_all_feats_LogisticRegression.model")
         if rst_model_path.exists():
-            cls.rst_parser = Parser(1, 1, 1)
+            cls.rst_parser = Parser(max_acts=1, max_states=1, n_best=1)
             cls.rst_parser.load_model(str(cls.currdir / "models"))
 
     def test_segment_and_parse(self):
