@@ -23,3 +23,6 @@ ln -s /home/nlp-text/dynamic/mheilman/discourse-parsing/rst_discourse_tb_edus_TR
 
 # run the tests and generate the coverage report
 "${CONDA_ENV_PATH}"/bin/nosetests --nologcapture --verbose tests --with-coverage --cover-package rstfinder --cover-html --with-xunit
+
+# save the conda environment path 
+echo "${CONDA_ENV_PATH}" > conda_path
