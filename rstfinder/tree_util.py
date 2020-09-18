@@ -337,8 +337,6 @@ def find_first_common_ancestor(node1, node2):
     ancestor_node : nltk.tree.ParentedTree
         The first common ancestor for two nodes in the same tree.
     """
-    # TODO: write a unit test for this
-
     # make sure we are in the same tree
     assert node1.root() == node2.root()
 
@@ -377,7 +375,6 @@ def collapse_binarized_nodes(tree):
     """
     assert isinstance(tree, ParentedTree)
 
-    # TODO: write a unit test for this method
     to_process = []
     for subtree in tree.subtrees():
         to_process.append(subtree)

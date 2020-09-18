@@ -629,8 +629,8 @@ class Parser(object):
         will yield (action, features) tuples instead of trees
         (e.g., to produce training examples).
 
-        This will have no effect if `gold_actions` is not provided.
-        Disabling `make features` can be useful for debugging and testing.
+        ``make_features`` will have no effect if `gold_actions` is not provided.
+        Disabling ``make_features`` can be useful for debugging and testing.
 
         Parameters
         ----------
@@ -666,7 +666,7 @@ class Parser(object):
 
         # If there is only one item on the queue to start, then make it a
         # finished tree so that parsing will complete immediately.
-        # TODO add a unit test for this.
+        # TODO: add a unit test for this.
         if len(queue) == 1:
             logging.warning(f"There was only one EDU to parse. A very simple "
                             f"tree will be returned. doc_id = {doc_id}")
