@@ -7,7 +7,6 @@ notifications:
     secure: iyzK4UAmL4sRKQH/ItjABcQv5YbT7hTJ/xP/eQt0T4XOrfGL2t900MIl16894PzPo7ALKKiYNk5Ysz6kVbmi34w5Mgb+rCVWL5UPGk++z9BWE7/xQGfgTgS+zMoy8U/VJa9N1fZHnpovdrzOu2mImhx0jyqVXsc+jxgrmQ+IhD4=
 env:
   global:
-  - ZPAR_MODEL_DIR=${HOME}/english-models
   - NLTK_DATA=${HOME}/nltk_data
 sudo: false
 before_install:
@@ -19,8 +18,6 @@ before_install:
 install:
 - "${HOME}/miniconda3/bin/conda env create -f environment.yaml -n parserdev -v"
 - "${HOME}/miniconda3/envs/parserdev/bin/pip install -e ."
-- if [ ! -d ${HOME}/english-models ]; then wget https://github.com/frcchang/zpar/releases/download/v0.7.5/english-models.zip -O ~/english-models.zip; fi
-- if [ ! -d ~/english-models ]; then unzip ~/english-models.zip -d ${HOME}; fi
 - "${HOME}/miniconda3/envs/parserdev/bin/python -m nltk.downloader -d ${HOME}/nltk_data punkt"
 script:
 - "${HOME}/miniconda3/envs/parserdev/bin/nosetests --nologcapture tests"
