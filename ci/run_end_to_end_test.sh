@@ -42,4 +42,4 @@ echo "${F1VALUE} > 0.58 && ${F1VALUE} < 0.60" | bc -l
 "${CONDA_ENV_PATH}"/bin/rst_parse -g segmentation_model.C8.0 -p rst_parsing_model.C0.5 tests/data/rst_document.txt > output.json.txt
 
 # run the visualizer next
-visualize_rst_tree output.json tree.html --embed_d3js
+"${CONDA_ENV_PATH}"/bin/visualize_rst_tree output.json.txt tree.html --embed_d3js
