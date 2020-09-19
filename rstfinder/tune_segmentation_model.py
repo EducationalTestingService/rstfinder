@@ -122,7 +122,8 @@ def main():  # noqa: D103
         crf_learn_path = Path(sys.executable).parent / "crf_learn"
         train_cmd = f"{crf_learn_path} {args.template_path} {args.train_path} {model_path} -c {C_value}"
         call(shlex.split(train_cmd))
-        test_cmd = f"crf_test -m {model_path} {args.dev_path}"
+        crf_test_path = Path(sys.executable).parent / "crf_test"
+        test_cmd = f"{crf_test_path} -m {model_path} {args.dev_path}"
         crf_test_output = check_output(shlex.split(test_cmd)).decode("utf-8")
 
         # split up the output into one list per token per sentence
