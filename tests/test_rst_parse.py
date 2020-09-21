@@ -89,6 +89,10 @@ class TestSegmentAndParse(unittest.TestCase):
         with open(self.partial_doc_dict_file, "r") as docdictfh:
             doc_dict = json.load(docdictfh)
 
+        # make sure that the fields to be added are not yet there
+        ok_("edu_start_indices" not in doc_dict)
+
+        # now call `segment_and_parse()`
         edu_tokens, rst_trees = segment_and_parse(doc_dict,
                                                   self.parser,
                                                   self.segmenter,
@@ -114,7 +118,7 @@ class TestSegmentAndParse(unittest.TestCase):
                              'paper', 'in', '1988', '.'])
 
     def test_segment_and_parse_no_text(self):
-        """Test that parse pipeline fails gracefully with no text."""
+        """Test that parse pipeline returns nothing with no text."""
         doc_dict = {"raw_text": "   ", "doc_id": "blank"}
         edu_tokens, rst_trees = segment_and_parse(doc_dict,
                                                   self.parser,
