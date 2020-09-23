@@ -1,3 +1,15 @@
+![Travis CI Badge](https://img.shields.io/travis/EducationalTestingService/rstfinder)
+
+## Table of Contents
+
+* [Introduction](#introduction)
+* [Installation](#installation)
+* [Usage](#usage)
+   * [Train models](#train-models)
+   * [Use trained models](#use-trained-models)
+* [License](#license)
+
+
 ## Introduction
 
 This repository contains the code for **RSTFinder** -- a discourse segmenter & shift-reduce parser based on rhetorical structure theory.  A detailed system description can be found in this [paper](http://arxiv.org/abs/1505.02425).
@@ -24,7 +36,9 @@ The only way to install RSTFinder is by using the `conda` package manager. If yo
 
 RSTFinder is trained using [RST Discourse Treebank](https://catalog.ldc.upenn.edu/LDC2002T07) and the [Penn Treebank](https://catalog.ldc.upenn.edu/LDC99T42). However, these treebanks are not freely available and can only be accessed via a personal/academic/institutional subscription to the Linguistic Data Consortium (LDC). This means that we cannot make the RSTFinder parser models publicly available. However, we provide detailed instructions for users so that they can train their own RSTFinder models once they do have access to the treebanks.
 
-1. **Activate the conda environment.** Activate the previously created `rstenv` conda environment (see [INSTALLATION](#installation)):
+### Train models
+
+1. **Activate the conda environment.** Activate the previously created `rstenv` conda environment (see [installation](#installation)):
 
     ```bash
     conda activate rstenv
@@ -70,15 +84,15 @@ RSTFinder is trained using [RST Discourse Treebank](https://catalog.ldc.upenn.ed
 
     The extracted features for the training and development set are now in the `rst_discourse_tb_edus_features_TRAINING_TRAIN.tsv` and `rst_discourse_tb_edus_features_TRAINING_DEV.tsv` files respectively.
 
-5. **Train the CRF-based segmenter model and tune its hyper-parameters**. Train (with the training set) and tune (with the development set) a CRF-based discourse segmentation model:
+5. **Train the segmenter CRF model and tune its hyper-parameters**. Train (with the training set) and tune (with the development set) a CRF-based discourse segmentation model:
 
     ```bash
     tune_segmentation_model rst_discourse_tb_edus_features_TRAINING_TRAIN.tsv rst_discourse_tb_edus_features_TRAINING_DEV.tsv segmentation_model
     ```
 
-    This command iterates over a pre-defined list of values for the `C` regularization parameter for the CRF, trains a model using the features extracted from the training set, and then evaluates that model on the development set. Its final output is the `C` value that yields the highest performance F1 score on the development set. After this command, you will have a number of files with the prefix `segmentation_model` in the current directory, e.g., `segmentation_model.C0.25`, `segmentation_model.C1.0` et cetera. These are the CRF model files trained with those specific values of the `C` regularization parameter. Underlyingly, the command uses the `crf_learn` and `crf_test` binaries via `subprocess`. 
+    This command iterates over a pre-defined list of values for the `C` regularization parameter for the CRF, trains a model using the features extracted from the training set, and then evaluates that model on the development set. Its final output is the `C` value that yields the highest performance F1 score on the development set. After this command, you will have a number of files with the prefix `segmentation_model` in the current directory, e.g., `segmentation_model.C0.25`, `segmentation_model.C1.0` et cetera. These are the CRF model files trained with those specific values of the `C` regularization parameter. Underlyingly, the command uses the `crf_learn` and `crf_test` binaries from [CRFPP](https://github.com/taku910/crfpp) via `subprocess`. 
 
-6. **Train the logistic-regression RST Parsing model and tune its hyper-parameters**. Train (with the training set) and tune (with the development set) a discourse parsing model that uses logistic regression:
+6. **Train the logistic regression RST Parsing model and tune its hyper-parameters**. Train (with the training set) and tune (with the development set) a discourse parsing model that uses logistic regression:
 
     ```bash
     tune_rst_parser rst_discourse_tb_edus_TRAINING_TRAIN.json rst_discourse_tb_edus_TRAINING_DEV.json rst_parsing_model
@@ -96,24 +110,27 @@ RSTFinder is trained using [RST Discourse Treebank](https://catalog.ldc.upenn.ed
 
     *NOTE*: While the evaluation script has basic functionality in place, at the moment it almost certainly does not appropriately handle important edge cases (e.g., same-unit relations, relations at the top of the tree). 
 
+### Use trained models
 
-8. **Parse documents**. At this point, we are ready to use the segmentation and RST parsing models to process raw text documents. To process a raw text document `document.txt` with the end-to-end parser (assuming `C` = 1.0 was the best hyper-parameter value for both the segmentation and RST parsing models), run:
+At this point, we are ready to use the segmentation and RST parsing models to process raw text documents. To process a raw text document `document.txt` with the end-to-end parser (assuming `C` = 1.0 was the best hyper-parameter value for both the segmentation and RST parsing models), run:
 
-    ```bash
-    rst_parse -g segmentation_model.C1.0 -p rst_parsing_model.C1.0 document.txt > output.json
-    ```
+```bash
+rst_parse -g segmentation_model.C1.0 -p rst_parsing_model.C1.0 document.txt > output.json
+```
 
-    `output.json` contains a dictionary with two keys: `edu_tokens` and `scored_rst_trees`. The value corresponding to `edu_tokens` is a list of lists: each list is a list of tokens containing the segmented Elementary Discourse Units (EDUs). The value corresponding to `rst_trees` is a list of dictionaries: each dictionary has two keys, `tree` and `score` containing the RST parse tree for the document and its score respectively. By default, only a single tree is produed but additonal trees can be produced by specifying the `-n` option for `rst_parse`. 
+`output.json` contains a dictionary with two keys: `edu_tokens` and `scored_rst_trees`. The value corresponding to `edu_tokens` is a list of lists: each list is a list of tokens containing the segmented Elementary Discourse Units (EDUs). The value corresponding to `rst_trees` is a list of dictionaries: each dictionary has two keys, `tree` and `score` containing the RST parse tree for the document and its score respectively. By default, only a single tree is produed but additonal trees can be produced by specifying the `-n` option for `rst_parse`. 
 
-9. (Optional) **Visualize RST tree**. To produce an HTML/Javascript visualization of the RST parse tree using D3.js (http://d3js.org/), run:
+RSTFinder can also produce an HTML/Javascript visualization of the RST parse tree using [D3.js](http://d3js.org/). To produce such a visualization from the JSON output file, run:
 
-    ```bash
-    visualize_rst_tree output.json tree.html --embed_d3js
-    ```
+```bash
+visualize_rst_tree output.json tree.html --embed_d3js
+```
 
-    This will produce a self-contained file called `tree.html` in the current directory that can be opened with any Javascript-enabled browser to see a visual representation of the RST parse tere.
+This will produce a self-contained file called `tree.html` in the current directory that can be opened with any Javascript-enabled browser to see a visual representation of the RST parse tere.
 
 
 ## License
 
 This code is licensed under the MIT license (see [LICENSE.txt](LICENSE.txt)).
+[hTravis CI Badgettps://img.shields.io/travis/EducationalTestingService/rstfinder]: https://img.shields.io/travis/EducationalTestingService/rstfinder
+
