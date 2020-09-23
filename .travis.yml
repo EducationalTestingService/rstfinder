@@ -1,6 +1,8 @@
 language: python
 python:
 - 3.6
+- 3.7
+- 3.8
 notifications:
   email: false
   slack:
@@ -16,7 +18,7 @@ before_install:
 - "./miniconda.sh -b -f"
 - "${HOME}/miniconda3/bin/conda update conda --yes"
 install:
-- "${HOME}/miniconda3/bin/conda env create -f environment.yaml -n parserdev -v"
+- "${HOME}/miniconda3/bin/conda env create -f .ci_support/environment_{TRAVIS_PYTHON_VERSION}.yaml -n parserdev -v"
 - "${HOME}/miniconda3/envs/parserdev/bin/pip install -e ."
 - "${HOME}/miniconda3/envs/parserdev/bin/python -m nltk.downloader -d ${HOME}/nltk_data punkt"
 script:
