@@ -1,0 +1,17 @@
+channels:
+  - conda-forge
+  - ets
+dependencies:
+  - python=3.7
+  - pip
+  - numpy
+  - nltk
+  - cchardet
+  - crfpp==0.59
+  - skll
+  - jinja2
+  - scikits-bootstrap
+  - nose
+  - coverage
+  - pip:
+    - python-zpar
