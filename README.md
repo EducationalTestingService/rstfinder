@@ -132,5 +132,4 @@ This will produce a self-contained file called `tree.html` in the current direct
 ## License
 
 This code is licensed under the MIT license (see [LICENSE.txt](LICENSE.txt)).
-[hTravis CI Badgettps://img.shields.io/travis/EducationalTestingService/rstfinder]: https://img.shields.io/travis/EducationalTestingService/rstfinder
 
