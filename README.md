@@ -108,7 +108,7 @@ RSTFinder is trained using [RST Discourse Treebank](https://catalog.ldc.upenn.ed
 7. (Optional) **Evaluate trained model**. If you want to obtain detailed evaluation metrics for an RST parsing model on the development set, run:
 
     ```bash
-    rst_eval rst_discourse_tb_edus_TRAINING_DEV.json -p rst_parsing_modelC1.0 --use_gold_syntax
+    rst_eval rst_discourse_tb_edus_TRAINING_DEV.json -p rst_parsing_model.C1.0 --use_gold_syntax
     ```
 
     Of course, you could also use the test set here (`rst_discourse_tb_edus_TEST.json`) if you wished to do so.
