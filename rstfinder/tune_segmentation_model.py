@@ -11,7 +11,9 @@ import argparse
 import itertools
 import re
 import shlex
+import sys
 from os.path import exists
+from pathlib import Path
 from subprocess import call, check_output
 
 from sklearn.metrics import f1_score, precision_score, recall_score
@@ -116,9 +118,12 @@ def main():  # noqa: D103
     C_values = [float(x) for x in args.C_values.split(',')]
     for C_value in C_values:
         model_path = f"{args.model_path_prefix}.C{C_value}"
-        train_cmd = f"crf_learn {args.template_path} {args.train_path} {model_path} -c {C_value}"
+        # get full path to `crf_learn`
+        crf_learn_path = Path(sys.executable).parent / "crf_learn"
+        train_cmd = f"{crf_learn_path} {args.template_path} {args.train_path} {model_path} -c {C_value}"
         call(shlex.split(train_cmd))
-        test_cmd = f"crf_test -m {model_path} {args.dev_path}"
+        crf_test_path = Path(sys.executable).parent / "crf_test"
+        test_cmd = f"{crf_test_path} -m {model_path} {args.dev_path}"
         crf_test_output = check_output(shlex.split(test_cmd)).decode("utf-8")
 
         # split up the output into one list per token per sentence

@@ -1,40 +1,73 @@
-#!/usr/bin/env python3
+import os
+from pathlib import Path
 
-import argparse
-import logging
-
+from nltk.tree import ParentedTree
+from nose import SkipTest
+from nose.tools import eq_
 from rstfinder.parse_util import SyntaxParserWrapper
 
-if __name__ == '__main__':
+MY_DIR = Path(__file__).parent
 
-    # set up an argument parser
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('--input', dest='inputfile', help="Input file",
-                        required=True)
-    parser.add_argument('--models', dest='zpar_model_directory',
-                        help="ZPar model directory", required=True)
-    parser.add_argument('--port', dest='port', type=int,
-                        help="hostname for already running zpar server",
-                        default=None,
-                        required=False)
-    parser.add_argument('--host', dest='hostname',
-                        help="port for already running zper server",
-                        default=None,
-                        required=False)
 
-    # parse given command line arguments
-    args = parser.parse_args()
-
-    # set up the logging
-    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+def test_syntax_wrapper():
+    """Test the syntactic parser wrapper."""
+    # make sure the relevant environment variables are set
+    if not os.getenv("ZPAR_MODEL_DIR"):
+        raise SkipTest("ZPAR_MODEL_DIR environment variable not set")
+    if not os.getenv("NLTK_DATA"):
+        raise SkipTest("NLTK_DATA environment variable not set")
 
     # initialize the syntax wrapper
-    wrapper = \
-        SyntaxParserWrapper(zpar_model_directory=args.zpar_model_directory,
-                            hostname=args.hostname, port=args.port)
-    with open(args.inputfile, 'r') as docf:
-        doc_dict = {"raw_text": docf.read(), "doc_id": args.input}
+    wrapper = SyntaxParserWrapper()
+
+    # read in the input file
+    input_file = MY_DIR / "data" / "rst_document.txt"
+    with open(input_file, 'r') as docfh:
+
+        # create the document dictionary
+        doc_dict = {"raw_text": docfh.read(), "doc_id": "test"}
+
+        # parse the document
         trees, starts_paragraph_list = wrapper.parse_document(doc_dict)
-        print("Syntax trees: {}".format(trees))
-        print("Tree starts paragraph indicators".format(starts_paragraph_list))
+
+        # check that there are a total of 14 parses and 14 paragraph indicators
+        eq_(len(trees), 14)
+        eq_(len(starts_paragraph_list), 14)
+
+        # check one of the trees to make sure it matches as expected
+        expected_tree_5_str = """(S
+                                  (PP (IN In) (NP (CD 2000)))
+                                  (, ,)
+                                  (NP
+                                    (NP (NNP Daniel) (NNP Marcu))
+                                    (, ,)
+                                    (NP (NP (RB also)) (PP (IN of) (NP (NNP ISI))))
+                                    (, ,))
+                                  (VP
+                                    (VBD demonstrated)
+                                    (SBAR
+                                      (IN that)
+                                      (S
+                                        (NP
+                                          (JJ practical)
+                                          (NN discourse)
+                                          (NN parsing)
+                                          (CC and)
+                                          (NN text)
+                                          (NN summarization))
+                                        (ADVP (RB also))
+                                        (VP
+                                          (MD could)
+                                          (VP
+                                            (VB be)
+                                            (VP (VBN achieved) (S (VP (VBG using) (NP (NNP RST))))))))))
+                                  (. .))
+                            """
+        expected_tree_5 = ParentedTree.fromstring(expected_tree_5_str)
+        eq_(trees[5], expected_tree_5)
+
+        # check that the the paragraph indicates are correct
+        expected_starts_paragraphs_list = [True, True, False, False,
+                                           False, True, True, False, False,
+                                           False, True, False, False, False]
+        eq_(starts_paragraph_list, expected_starts_paragraphs_list)

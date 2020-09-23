@@ -1,12 +1,10 @@
 import re
-from os.path import dirname, join, realpath
+from pathlib import Path
 
 from nose.tools import eq_
 from rstfinder.paragraph_splitting import ParagraphSplitter
 
-# TODO: replace with pathlib
-MY_DIR = dirname(realpath(__file__))
-PARAGRAPH_TEST_FILE = join(MY_DIR, 'test_paragraph_splitting.txt')
+MY_DIR = Path(__file__).parent
 
 
 def test_paragraph_splitting():
@@ -14,7 +12,7 @@ def test_paragraph_splitting():
     splitter = ParagraphSplitter()
 
     # open the test file and split it into paragraphs
-    with open(PARAGRAPH_TEST_FILE, 'r') as paragraphfh:
+    with open(MY_DIR / "data" / "paragraphs.txt", 'r') as paragraphfh:
         text = paragraphfh.read()
     paragraphs = splitter.find_paragraphs(text)
 
