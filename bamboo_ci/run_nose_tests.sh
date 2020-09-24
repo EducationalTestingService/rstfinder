@@ -8,12 +8,13 @@ CONDA_ENV_PATH="${CURRDIR}"/../parserdev
 export NLPTOOLS="/home/nlp-text/dynamic/NLPTools"
 export ZPAR_MODEL_DIR="${NLPTOOLS}/zpar/models/english"
 export NLTK_DATA="${NLPTOOLS}/nltk_data"
+export ENVFILE=".ci_support/environment_3.6.yaml"
 
 # remove the conda environment if it already exists
 [[ -d "${CONDA_ENV_PATH}" ]] && /opt/python/conda_default/bin/conda env remove -p "${CONDA_ENV_PATH}"
 
 # create the conda environment using the environment.yaml file
-/opt/python/conda_default/bin/conda env create -f environment.yaml -p "${CONDA_ENV_PATH}" -v
+/opt/python/conda_default/bin/conda env create -f "${ENVFILE}" -p "${CONDA_ENV_PATH}" -v
 
 # install the rstfinder package in development mode
 "${CONDA_ENV_PATH}"/bin/pip install -e .
