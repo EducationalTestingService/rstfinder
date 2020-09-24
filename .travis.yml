@@ -19,7 +19,7 @@ before_install:
 - "${HOME}/miniconda3/bin/conda update conda --yes"
 install:
 - "echo $TRAVIS_PYTHON_VERSION"
-- "${HOME}/miniconda3/bin/conda env create .ci_support/$TRAVIS_PYTHON_VERSION.yaml -n parserdev -v"
+- "${HOME}/miniconda3/bin/conda env create -f .ci_support/$TRAVIS_PYTHON_VERSION.yaml -n parserdev -v"
 - "${HOME}/miniconda3/envs/parserdev/bin/pip install -e ."
 - "${HOME}/miniconda3/envs/parserdev/bin/python -m nltk.downloader -d ${HOME}/nltk_data punkt"
 script:
