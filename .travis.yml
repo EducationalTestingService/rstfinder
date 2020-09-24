@@ -1,8 +1,8 @@
 language: python
 python:
-- 3.6
-- 3.7
-- 3.8
+- "3.6"
+- "3.7"
+- "3.8"
 notifications:
   email: false
   slack:
@@ -10,7 +10,6 @@ notifications:
 env:
   global:
   - NLTK_DATA=${HOME}/nltk_data
-  - ENVFILE=".ci_support/environment_${TRAVIS_PYTHON_VERSION}.yaml"
 sudo: false
 before_install:
 - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
@@ -19,7 +18,8 @@ before_install:
 - "./miniconda.sh -b -f"
 - "${HOME}/miniconda3/bin/conda update conda --yes"
 install:
-- "echo ${HOME}/miniconda3/bin/conda env create -f ${ENVFILE} -n parserdev -v"
+- "echo $TRAVIS_PYTHON_VERSION"
+- "echo ${HOME}/miniconda3/bin/conda env create -f .ci_support/$TRAVIS_PYTHON_VERSION.yaml -n parserdev -v"
 - "${HOME}/miniconda3/bin/conda env create -f ${ENVFILE} -n parserdev -v"
 - "${HOME}/miniconda3/envs/parserdev/bin/pip install -e ."
 - "${HOME}/miniconda3/envs/parserdev/bin/python -m nltk.downloader -d ${HOME}/nltk_data punkt"
