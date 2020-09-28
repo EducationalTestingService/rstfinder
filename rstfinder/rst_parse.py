@@ -12,6 +12,9 @@ import argparse
 import codecs
 import json
 import logging
+import re
+
+from nltk.tree import ParentedTree
 
 from .discourse_parsing import Parser
 from .discourse_segmentation import Segmenter, extract_edus_tokens
@@ -25,13 +28,28 @@ def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
     Syntax parse, segment, and RST parse the given document, as necessary.
 
     This function performs syntax parsing, discourse segmentation, and RST
-    parsing as necessary, given a partial document dictionary. See
+    parsing as necessary, given a (partial) document dictionary. See
     ``convert_rst_discourse_tb.py`` for more about document dictionaries.
 
-    Note that in addition to returning the EDU tokens and the RST trees, this
-    function also modifies the given document dictionary in place to add the
-    various fields with the outputs of the syntactic parser, segmenter, and
-    the RST parser.
+    The only required fields in the document dictionary (``doc_dict``) are
+    "doc_id" and "raw_text". In addition to returning the EDU tokens and the
+    RST trees, this function also modifies the given document dictionary in
+    place to add other fields with the outputs of the syntactic parser,
+    the segmenter, and the RST parser.
+
+    Note that the document dictionary can be partially populated in order
+    to skip some of the processing:
+
+    - If the fields "syntax_trees" is present in the dictionary, then
+      the function assumes that constituency parsing is not required
+      and that the following additional fields will also be present:
+      "starts_paragraph_list", "tokens", "token_tree_positions", and
+      "pos_tags".
+
+    - If the field "edu_start_indices" is present in the dictionary, then
+      the function assumes that discourse segmentation is not required and
+      that the following additional field will also be present:
+      "edu_starts_paragraph".
 
     Parameters
     ----------
@@ -77,7 +95,7 @@ def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
         # do discourse segmentation
         segmenter.segment_document(doc_dict)
 
-        # Extract whether each EDU starts a paragraph.
+        # extract whether each EDU starts a paragraph
         edu_starts_paragraph = []
         for tree_idx, tok_idx, _ in doc_dict["edu_start_indices"]:
             val = (tok_idx == 0 and doc_dict["starts_paragraph_list"][tree_idx])
@@ -93,6 +111,132 @@ def segment_and_parse(doc_dict, syntax_parser, segmenter, rst_parser):
     rst_parse_trees = rst_parser.parse(doc_dict)
 
     return edu_tokens, rst_parse_trees
+
+
+def from_constituency_trees(tree_strings, segmenter, rst_parser):
+    """
+    Segment and RST parse the document as represented by its constituency trees.
+
+    This function performs discourse segmentation and RST parsing, given a list
+    of constituency trees as strings. All other necessary prerequisites for
+    discourse segmentation and discourse parsing are computed from the given
+    constituency trees.
+
+    The trees _must_ be computed from strings that have the same bracket
+    normalization applied as the texts in the Penn Treebank, i.e., '(' and ')
+    should have been converted to' "-LRB-" and "-RRB-" respectively, '[' and ']'
+    to '-LSB-' and "-RSB-" respectively, and '{' and '}' to "-LCB-" and "-RCB-"
+    respectively. Any paragraph boundaries must be indicated as empty strings
+    and included in the list. For example, if your original document looks like
+    this:
+
+        S1 S2 S3
+
+        S4 S5
+
+        S6 S7 S8 S9
+
+    where "S" represents a sentence, then you have 3 paragraphs, and the list
+    of tree strings should look like this:
+
+        [P1, P2 P3, "", P4, P5, "", P6, P7, P8, P9]
+
+    where "P<N>" represents the parse tree for the sentence "S<N>".
+
+    If there are no empty strings, all sentences will be assumed to be in a
+    single paragraph which will likely yield an incorrect RST parse.
+
+    Parameters
+    ----------
+    tree_strings : list of str
+        List of strings. Each item represents a tree and should be a
+        valid bracketed tree string and PTB-normalized.
+    segmenter : discourse_segmentation.Segmenter
+        An instance of the discourse segmenter.
+    rst_parser : discourse_parsing.Parser
+        An instance of the RST parser.
+
+    Returns
+    -------
+    results : tuple
+        A 3-tuple containing:
+        (1) the document dictionary that was internally created from the
+            constituency trees
+        (2) a list containing the EDU tokens.
+        (3) a list containing the RST trees
+
+    Raises
+    ------
+    ValueError
+        If any of the tree strings are incorrectly formatted.
+    """
+    # return empty output if the list of trees is empty
+    if len(tree_strings) == 0:
+        logging.warning(f"The input contained no trees.")
+        return [], []
+
+    # first convert each tree into a `ParentedTree` instance and figure
+    # out which tree corresponds to a sentence that starts a new paragraph
+    # in the document; paragraph boundaries will be represented by empty
+    # strings in the list of trees
+    trees = []
+    starts_paragraph_list = []
+    previous_tree_string = ""
+    for tree_string in tree_strings:
+        if len(tree_string) > 0:
+            try:
+                tree = ParentedTree.fromstring(tree_string)
+            except (ValueError, TypeError):
+                raise ValueError(f"Invalid format: {tree_string}. Please check "
+                                 f"that the tree is correctly formatted.")
+                return [], []
+            else:
+                trees.append(tree)
+
+                # the current tree starts a paragraph if the previous tree
+                # was the empty string indicating a paragraph boundary
+                starts_paragraph = True if len(previous_tree_string) == 0 else False
+                starts_paragraph_list.append(starts_paragraph)
+        previous_tree_string = tree_string
+
+    # next compute all of the other required prerequisites from the parse trees
+    preterminals = [extract_preterminals(tree) for tree in trees]
+    token_tree_positions = [[x.treeposition() for x in preterminals_sentence]
+                            for preterminals_sentence in preterminals]
+    tokens = [extract_converted_terminals(tree) for tree in trees]
+    raw_text = "\n".join([" ".join(token_list) for token_list in tokens])
+    pos_tags = [[x.label() for x in preterminals_sentence]
+                for preterminals_sentence in preterminals]
+
+    # create the document dictionary with all required fields
+    doc_dict = {"doc_id": "document",
+                "raw_text": raw_text,
+                "syntax_trees": [tree.pformat(margin=TREE_PRINT_MARGIN)
+                                 for tree in trees],
+                "starts_paragraph_list": starts_paragraph_list,
+                "token_tree_positions": token_tree_positions,
+                "tokens": tokens,
+                "pos_tags": pos_tags}
+
+    # first do discourse segmentation
+    segmenter.segment_document(doc_dict)
+
+    # extract whether each EDU starts a paragraph
+    edu_starts_paragraph = []
+    for tree_idx, tok_idx, _ in doc_dict["edu_start_indices"]:
+        val = (tok_idx == 0 and doc_dict["starts_paragraph_list"][tree_idx])
+        edu_starts_paragraph.append(val)
+    assert len(edu_starts_paragraph) == len(doc_dict["edu_start_indices"])
+    doc_dict["edu_starts_paragraph"] = edu_starts_paragraph
+
+    # next extract a list of lists of (word, POS) tuples
+    edu_tokens = extract_edus_tokens(doc_dict["edu_start_indices"],
+                                     doc_dict["tokens"])
+
+    # finally, do RST parsing
+    rst_parse_trees = rst_parser.parse(doc_dict)
+
+    return doc_dict, edu_tokens, rst_parse_trees
 
 
 def main():  # noqa: D103
