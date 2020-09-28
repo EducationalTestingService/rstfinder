@@ -144,7 +144,7 @@ def from_constituency_trees(tree_strings, segmenter, rst_parser):
     where "P<N>" represents the parse tree for the sentence "S<N>".
 
     If there are no empty strings, all sentences will be assumed to be in a
-    single paragraph which will likely yield an incorrect RST parse.
+    _single_ paragraph.
 
     Parameters
     ----------
