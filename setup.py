@@ -2,6 +2,10 @@
 
 from setuptools import find_packages, setup
 
+# Get version without importing, which avoids dependency issues
+exec(compile(open('rstfinder/version.py').read(), 'rstfinder/version.py', 'exec'))
+# (we use the above instead of execfile for Python 3.x compatibility)
+
 
 def readme():
     with open('README.md') as f:
@@ -13,7 +17,7 @@ def requirements():
 
 
 setup(name='rstfinder',
-      version='0.2.1',
+      version=__version__,
       description=('A discourse parser and segmenter for use with the '
                    'Rhetorical Structure Theory Discourse Treebank '
                    '(https://catalog.ldc.upenn.edu/LDC2002T07).'),
@@ -25,6 +29,7 @@ setup(name='rstfinder',
       maintainer_email='nmadnani@ets.org',
       license='MIT',
       packages=find_packages(exclude=['tests']),
+      include_package_data=True,
       entry_points={'console_scripts': ['segment_document = rstfinder.segment_document:main',
                                         'tune_segmentation_model = rstfinder.tune_segmentation_model:main',
                                         'rst_parse = rstfinder.rst_parse:main',
