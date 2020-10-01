@@ -1,0 +1,46 @@
+package:
+  name: rstfinder
+  version: 1.0
+
+source:
+  path: ../../ 
+
+build:
+  number: 0
+  script:
+    - cd $SRC_DIR
+    - "{{ PYTHON }} -m pip install . --no-deps -vv"
+  entry_points:
+    - segment_document = rstfinder.segment_document:main
+    - tune_segmentation_model = rstfinder.tune_segmentation_model:main
+    - rst_parse = rstfinder.rst_parse:main
+    - tune_rst_parser = rstfinder.tune_rst_parser:main
+    - convert_rst_discourse_tb = rstfinder.convert_rst_discourse_tb:main
+    - make_traindev_split = rstfinder.make_traindev_split:main
+    - rst_eval = rstfinder.rst_eval:main
+    - extract_segmentation_features = rstfinder.extract_segmentation_features:main
+    - rst_parse_batch = rstfinder.rst_parse_batch:main
+    - compute_bootstrap_from_predictions = rstfinder.utils.compute_bootstrap_from_predictions:main
+    - try_head_rules = rstfinder.utils.try_head_rules:main
+    - visualize_rst_tree = rstfinder.utils.visualize_rst_tree:main
+
+requirements:
+  host:
+    - python
+    - pip
+  run:
+    - python
+    - pip
+    - numpy
+    - nltk
+    - cchardet
+    - crfpp==0.59
+    - skll
+    - jinja2
+    - scikits-bootstrap
+
+about:
+  home: http://github.com/EducationalTestingService/rstfinder
+  license: MIT
+  license_file: LICENSE.txt
+  summary: Fast Discourse Parser to find latent Rhetorical STructure (RST) in text.
