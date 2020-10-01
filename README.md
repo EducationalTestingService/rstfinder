@@ -50,11 +50,11 @@ RSTFinder is trained using [RST Discourse Treebank](https://catalog.ldc.upenn.ed
     conda activate rstenv
     ```
 
-2. **Download NLTK tagger model**. Due to a rare mismatch between the RST Discourse Treebank and the Penn Treebank documents, sometimes there are parts of the document for which we cannot locate the corresponding parse trees. To get around this issue, we first part-of-speech tag such parts using the MaxEnt POS tagger model from NLTK and then just create fake, shallow trees for them. Therefore, we need to download this tagger model.
+2. **Download NLTK tagger model**. Due to a rare mismatch between the RST Discourse Treebank and the Penn Treebank documents, sometimes there are parts of the document for which we cannot locate the corresponding parse trees. To get around this issue, we first sentence-tokenize & part-of-speech tag such parts using the MaxEnt POS tagger model from NLTK and, then, just create fake, shallow trees for them. Therefore, we need to download tokenizer and tagger models for this.
 
     ```bash
     export NLTK_DATA="$HOME/nltk_data"
-    python -m nltk.downloader maxent_treebank_pos_tagger
+    python -m nltk.downloader maxent_treebank_pos_tagger punkt
     ```
 
 2. **Pre-process and merge the treebanks**. To create a merged dataset that contains the RST Discourse Treebank along with the corresponding Penn Treebank parse trees for the same documents, run the following command (with paths adjusted as appropriate):
