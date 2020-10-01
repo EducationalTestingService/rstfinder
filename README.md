@@ -1,4 +1,4 @@
-![Travis CI Badge](https://img.shields.io/travis/EducationalTestingService/rstfinder)
+![Travis CI Badge](https://img.shields.io/travis/EducationalTestingService/rstfinder) ![Conda Package](https://img.shields.io/conda/v/ets/rstfinder.svg) ![Conda Platform](https://img.shields.io/conda/pn/ets/rstfinder.svg) ![License](https://img.shields.io/github/license/EducationalTestingService/rstfinder)
 
 ## Table of Contents
 
@@ -16,21 +16,27 @@ This repository contains the code for **RSTFinder** -- a discourse segmenter & s
 
 ## Installation
 
-RSTFinder currently works only on Linux and requires Python 3.6. Support for other platforms (Windows, macOS) and for Python versions 3.7 and higher is in the works.
+RSTFinder currently works only on Linux and requires Python 3.6, 3.7, or 3.8. 
 
 The only way to install RSTFinder is by using the `conda` package manager. If you have already installed `conda`, you can skip straight to Step 2.
 
 1. To install `conda`, follow the instructions on [this page](https://conda.io/projects/conda/en/latest/user-guide/install/index.html). 
 
-2. Create a new conda environment (say, `rstenv`) and install the RSTFinder conda package.
+2. Create a new conda environment (say, `rstenv`) and install the RSTFinder conda package in it.
 
-    ```
-    conda create -n rstenv -c conda-forge -c ets python=3.6 rstfinder
+    ```bash
+    conda create -n rstenv -c conda-forge -c ets python=3.8 rstfinder
     ```
 
 3. Activate this conda environment by running `conda activate rstfinder`. 
 
-4. From now on, you will need to activate this conda environment whenever you want to use RSTFinder. This will ensure that the packages required by RSTFinder will not affect other projects.
+4. Now install the `python-zpar` package via `pip` in this environment. This package allows us to use the ZPar constituency parser (more later).
+
+    ```bash
+    pip install python-zpar
+    ```
+
+5. From now on, you will need to activate this conda environment whenever you want to use RSTFinder. This will ensure that the packages required by RSTFinder will not affect other projects.
 
 ## Usage
 
@@ -44,11 +50,11 @@ RSTFinder is trained using [RST Discourse Treebank](https://catalog.ldc.upenn.ed
     conda activate rstenv
     ```
 
-2. **Download NLTK tagger model**. Due to a rare mismatch between the RST Discourse Treebank and the Penn Treebank documents, sometimes there are parts of the document for which we cannot locate the corresponding parse trees. To get around this issue, we first part-of-speech tag such parts using the MaxEnt POS tagger model from NLTK and then just create fake, shallow trees for them. Therefore, we need to download this tagger model.
+2. **Download NLTK tagger model**. Due to a rare mismatch between the RST Discourse Treebank and the Penn Treebank documents, sometimes there are parts of the document for which we cannot locate the corresponding parse trees. To get around this issue, we first sentence-tokenize & part-of-speech tag such parts using the MaxEnt POS tagger model from NLTK and, then, just create fake, shallow trees for them. Therefore, we need to download tokenizer and tagger models for this.
 
     ```bash
     export NLTK_DATA="$HOME/nltk_data"
-    python -m nltk.downloader maxent_treebank_pos_tagger
+    python -m nltk.downloader maxent_treebank_pos_tagger punkt
     ```
 
 2. **Pre-process and merge the treebanks**. To create a merged dataset that contains the RST Discourse Treebank along with the corresponding Penn Treebank parse trees for the same documents, run the following command (with paths adjusted as appropriate):
@@ -62,7 +68,7 @@ RSTFinder is trained using [RST Discourse Treebank](https://catalog.ldc.upenn.ed
 3. **Create a development set**. Split the documents in the RST discourse treebank training set into a new training and development set:
 
     ```bash
-    make_traindev_split.py
+    make_traindev_split
     ```
 
     At the end of this command, you will have the following JSON files in your current directory:
