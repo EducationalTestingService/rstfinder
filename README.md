@@ -68,7 +68,7 @@ RSTFinder is trained using [RST Discourse Treebank](https://catalog.ldc.upenn.ed
 3. **Create a development set**. Split the documents in the RST discourse treebank training set into a new training and development set:
 
     ```bash
-    make_traindev_split.py
+    make_traindev_split
     ```
 
     At the end of this command, you will have the following JSON files in your current directory:
