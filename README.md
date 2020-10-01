@@ -1,4 +1,4 @@
-![Travis CI Badge](https://img.shields.io/travis/EducationalTestingService/rstfinder)
+![Travis CI Badge](https://img.shields.io/travis/EducationalTestingService/rstfinder) ![Conda Package](https://img.shields.io/conda/v/ets/rstfinder.svg) ![Conda Platform](https://img.shields.io/conda/pn/ets/rstfinder.svg) ![License](https://img.shields.io/github/license/EducationalTestingService/rstfinder)
 
 ## Table of Contents
 
@@ -16,21 +16,27 @@ This repository contains the code for **RSTFinder** -- a discourse segmenter & s
 
 ## Installation
 
-RSTFinder currently works only on Linux and requires Python 3.6. Support for other platforms (Windows, macOS) and for Python versions 3.7 and higher is in the works.
+RSTFinder currently works only on Linux and requires Python 3.6, 3.7, or 3.8. 
 
 The only way to install RSTFinder is by using the `conda` package manager. If you have already installed `conda`, you can skip straight to Step 2.
 
 1. To install `conda`, follow the instructions on [this page](https://conda.io/projects/conda/en/latest/user-guide/install/index.html). 
 
-2. Create a new conda environment (say, `rstenv`) and install the RSTFinder conda package.
+2. Create a new conda environment (say, `rstenv`) and install the RSTFinder conda package in it.
 
-    ```
-    conda create -n rstenv -c conda-forge -c ets python=3.6 rstfinder
+    ```bash
+    conda create -n rstenv -c conda-forge -c ets python=3.8 rstfinder
     ```
 
 3. Activate this conda environment by running `conda activate rstfinder`. 
 
-4. From now on, you will need to activate this conda environment whenever you want to use RSTFinder. This will ensure that the packages required by RSTFinder will not affect other projects.
+4. Now install the `python-zpar` package via `pip` in this environment. This package allows us to use the ZPar constituency parser (more later).
+
+    ```bash
+    pip install python-zpar
+    ```
+
+5. From now on, you will need to activate this conda environment whenever you want to use RSTFinder. This will ensure that the packages required by RSTFinder will not affect other projects.
 
 ## Usage
 
