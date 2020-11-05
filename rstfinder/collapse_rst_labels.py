@@ -133,6 +133,11 @@ def _collapse_rst_label(label):
 
 
 def main():  # noqa: D103
+    """
+    Main function.
+
+    Args:
+    """
     parser = argparse.ArgumentParser(description="Note that this main "
                                                  "method is just for testing.",
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)

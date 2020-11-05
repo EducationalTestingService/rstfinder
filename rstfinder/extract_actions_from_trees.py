@@ -181,6 +181,11 @@ def _extract_parse_actions_helper(node, stack, cstack, actseq):
 
 
 def main():  # noqa: D103
+    """
+    Main function.
+
+    Args:
+    """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("mrg_path",
                         help="A file with constituent trees in ``mrg`` format.")

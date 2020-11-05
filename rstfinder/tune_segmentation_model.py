@@ -78,6 +78,11 @@ def evaluate_segmentation_output(output_by_sent):
 
 
 def main():  # noqa: D103
+    """
+    Main function.
+
+    Args:
+    """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("train_path",
                         help="The path to the training set `.tsv` "

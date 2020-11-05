@@ -25,6 +25,11 @@ from .discourse_segmentation import extract_segmentation_features
 
 
 def main():  # noqa: D103
+    """
+    Main function.
+
+    Args:
+    """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("input_path",
                         help="JSON file output from `convert_rst_discourse_tb.py`")

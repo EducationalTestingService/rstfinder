@@ -306,6 +306,11 @@ def predict_and_evaluate_rst_trees(syntax_parser,
 
 
 def main():  # noqa: D103
+    """
+    Main entry point.
+
+    Args:
+    """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("evaluation_set",
                         help="The dev or test set JSON file",

@@ -112,6 +112,11 @@ def reformat_rst_tree(input_tree):
 
 
 def main():  # noqa: D103
+    """
+    Main function.
+
+    Args:
+    """
     parser = argparse.ArgumentParser(description="Converts the gold standard "
                                                  "RST parses in the RST "
                                                  "treebank to look more like "
