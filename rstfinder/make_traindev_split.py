@@ -16,6 +16,11 @@ import random
 
 
 def main():  # noqa: D103
+    """
+    Main function.
+
+    Args:
+    """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--orig_training_set",
                         default="rst_discourse_tb_edus_TRAINING.json")

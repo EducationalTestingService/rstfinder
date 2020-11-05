@@ -25,13 +25,30 @@ from rstfinder.rst_eval import compute_rst_eval_results, predict_rst_trees_for_e
 
 
 def make_score_func(metric_name):
+    """
+    Evaluate a function returns the function name.
+
+    Args:
+        metric_name: (str): write your description
+    """
     def score_func(data):
+        """
+        Evaluate the evaluation function.
+
+        Args:
+            data: (array): write your description
+        """
         return compute_rst_eval_results(data[:, 0], data[:, 1],
                                         data[:, 2], data[:, 3])[metric_name]
     return score_func
 
 
 def main():  # noqa: D103
+    """
+    The main function.
+
+    Args:
+    """
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("evaluation_set",

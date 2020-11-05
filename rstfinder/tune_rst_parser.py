@@ -194,6 +194,11 @@ def train_and_evaluate_model(working_path, model_path, eval_data, C_value):
 
 
 def main():  # noqa: D103
+    """
+    The main function.
+
+    Args:
+    """
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("train_file",

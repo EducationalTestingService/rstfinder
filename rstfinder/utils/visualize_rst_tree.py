@@ -49,6 +49,11 @@ def _convert_tree_json_helper(subtree, edus):
 
 
 def main():  # noqa: D103
+    """
+    Main function.
+
+    Args:
+    """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("input_json_path",
                         help="JSON file with output from the RST discourse parser.")

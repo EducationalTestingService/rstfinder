@@ -8,11 +8,21 @@ exec(compile(open('rstfinder/version.py').read(), 'rstfinder/version.py', 'exec'
 
 
 def readme():
+    """
+    Reads the readme file
+
+    Args:
+    """
     with open('README.md') as f:
         return f.read()
 
 
 def requirements():
+    """
+    Parse requirements.
+
+    Args:
+    """
     pass
 
 

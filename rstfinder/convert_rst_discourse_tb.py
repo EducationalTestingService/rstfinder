@@ -69,6 +69,11 @@ file_mapping = {"file1.edus": "wsj_0764.out.edus",
 
 
 def main():  # noqa: D103
+    """
+    Main function.
+
+    Args:
+    """
     parser = argparse.ArgumentParser(description=__doc__,
                                      formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("rst_discourse_treebank_dir",

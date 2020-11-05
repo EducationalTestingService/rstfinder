@@ -20,6 +20,11 @@ from .tree_util import TREE_PRINT_MARGIN, extract_converted_terminals, extract_p
 
 
 def main():  # noqa: D103
+    """
+    Main function.
+
+    Args:
+    """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
     parser.add_argument("model_path",

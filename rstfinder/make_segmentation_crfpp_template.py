@@ -38,6 +38,11 @@ def make_segmentation_crfpp_template(output_path, num_features=12):
 
 
 def main():  # noqa: D103
+    """
+    Main function.
+
+    Args:
+    """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--output_path",
                         help="Path to the output CRF++ template file.",

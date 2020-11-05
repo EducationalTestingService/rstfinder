@@ -17,6 +17,12 @@ class TestRSTParse(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):  # noqa: D102
+        """
+        Sets the rst_model.
+
+        Args:
+            cls: (todo): write your description
+        """
         cls.currdir = Path(__file__).parent
         cls.parser = None
         cls.segmenter = None
