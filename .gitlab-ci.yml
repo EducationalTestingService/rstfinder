@@ -7,14 +7,15 @@ before_script:
   - if [ -x ${CI_PROJECT_DIR}/miniconda3/pkgs ]; then pushd ${HOME}/miniconda3/pkgs && find -maxdepth 1 -mindepth 1 -type d | xargs rm -rf && popd; fi
   - chmod +x miniconda.sh
   - "./miniconda.sh -b -f"
-  - "${CI_PROJECT_DIR}/miniconda3/bin/conda update conda --yes"
+  - "/root/miniconda3/bin/conda update conda --yes"
 
 # set up the basic job that will be extended
 .runtest:
   script:
-    - "${CI_PROJECT_DIR}/miniconda3/bin/conda env create -f .ci_support/${PYVERSION}.yaml -n parserdev -v"
-    - "${CI_PROJECT_DIR}/miniconda3/envs/parserdev/bin/pip install -e ."
-    - "${CI_PROJECT_DIR}/miniconda3/envs/parserdev/bin/python -m nltk.downloader -d ${HOME}/nltk_data punkt"
+    - "/root/miniconda3/bin/conda env create -f .ci_support/${PYVERSION}.yaml -n parserdev -v"
+    - "/root/miniconda3/envs/parserdev/bin/pip install -e ."
+    - "/root/miniconda3/envs/parserdev/bin/python -m nltk.downloader -d ${HOME}/nltk_data punkt"
+    - "/root/miniconda3/envs/parserdev/bin/nosetests --nologcapture --verbose tests"
 
 # all 3 python versions should run in parallel
 
