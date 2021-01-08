@@ -12,7 +12,7 @@ before_script:
 # set up the basic job that will be extended
 .runtest:
   script:
-    - "/root/miniconda3/bin/conda env create -f .ci_support/${PYVERSION}.yaml -n parserdev -v"
+    - "/root/miniconda3/bin/conda env create -f .ci_support/${PYVERSION}.yaml -n parserdev"
     - "/root/miniconda3/envs/parserdev/bin/pip install -e ."
     - "/root/miniconda3/envs/parserdev/bin/python -m nltk.downloader -d ${HOME}/nltk_data punkt"
     - "/root/miniconda3/envs/parserdev/bin/nosetests --nologcapture --verbose tests"
