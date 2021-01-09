@@ -9,10 +9,11 @@ before_script:
   - "./miniconda.sh -b -f"
   - "/root/miniconda3/bin/conda update conda --yes"
 
-# set up the basic job that will be extended
+# set up the basic job that will be extended by the main jobs
 .runtest:
   script:
     - "/root/miniconda3/bin/conda env create -f .ci_support/${PYVERSION}.yaml -n parserdev"
+    - "/root/miniconda3/envs/parserdev/bin/python3 -V"
     - "/root/miniconda3/envs/parserdev/bin/pip install -e ."
     - "/root/miniconda3/envs/parserdev/bin/python -m nltk.downloader -d ${HOME}/nltk_data punkt"
     - "/root/miniconda3/envs/parserdev/bin/nosetests --nologcapture --verbose tests"
