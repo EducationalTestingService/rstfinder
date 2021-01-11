@@ -1,0 +1,42 @@
+stages:
+  - test
+
+# run the following commands before running any commands in any jobs
+before_script:
+  - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+  - if [ -x ${CI_PROJECT_DIR}/miniconda3/pkgs ]; then pushd ${HOME}/miniconda3/pkgs && find -maxdepth 1 -mindepth 1 -type d | xargs rm -rf && popd; fi
+  - chmod +x miniconda.sh
+  - "./miniconda.sh -b -f"
+  - "/root/miniconda3/bin/conda update conda --yes"
+
+# set up the basic job that will be extended by the main jobs
+.runtest:
+  script:
+    - "/root/miniconda3/bin/conda env create -f .ci_support/${PYVERSION}.yaml -n parserdev"
+    - "/root/miniconda3/envs/parserdev/bin/python3 -V"
+    - "/root/miniconda3/envs/parserdev/bin/pip install -e ."
+    - "/root/miniconda3/envs/parserdev/bin/python -m nltk.downloader -d ${HOME}/nltk_data punkt"
+    - "/root/miniconda3/envs/parserdev/bin/nosetests --nologcapture --verbose tests"
+
+# all 3 python versions should run in parallel
+
+# python 3.6 tests
+test-3.6:
+  extends: ".runtest"
+  variables:
+    PYVERSION: "3.6"
+  stage: "test"
+
+# python 3.7 tests
+test-3.7:
+  extends: ".runtest"
+  variables:
+    PYVERSION: "3.7"
+  stage: "test"
+
+# python 3.8 tests
+test-3.8:
+  extends: ".runtest"
+  variables:
+    PYVERSION: "3.8"
+  stage: "test"

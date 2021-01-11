@@ -1,4 +1,4 @@
-![Travis CI Badge](https://img.shields.io/travis/EducationalTestingService/rstfinder) ![Conda Package](https://img.shields.io/conda/v/ets/rstfinder.svg) ![Conda Platform](https://img.shields.io/conda/pn/ets/rstfinder.svg) ![License](https://img.shields.io/github/license/EducationalTestingService/rstfinder)
+![Gitlab CI Status](https://gitlab.com/EducationalTestingService/rstfinder/badges/develop/pipeline.svg) ![Conda Package](https://img.shields.io/conda/v/ets/rstfinder.svg) ![Conda Platform](https://img.shields.io/conda/pn/ets/rstfinder.svg) ![License](https://img.shields.io/github/license/EducationalTestingService/rstfinder)
 
 ## Table of Contents
 
