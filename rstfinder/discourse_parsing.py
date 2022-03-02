@@ -760,7 +760,8 @@ class Parser(object):
                                       None,
                                       vectorizer.transform(Counter(feats)),
                                       vectorizer)
-                scores = [np.log(pred) for pred in self.model.predict(examples)[0]]
+                scores = [np.log(pred) for pred in self.model.predict(examples,
+                                                                      class_labels=False)[0]]
 
                 # Convert the string labels from the classifier back into
                 # ShiftReduceAction objects and sort them by their scores
