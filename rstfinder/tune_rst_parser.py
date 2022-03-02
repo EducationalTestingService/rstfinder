@@ -82,7 +82,7 @@ def train_rst_parsing_model(working_path, model_path, C):
                            "min_feature_count": "1"},
                 "Output": {"probability": "True",
                            "models": model_path,
-                           "log": working_subdir}
+                           "logs": working_subdir}
                 }
 
     # save the configuration file to disk
