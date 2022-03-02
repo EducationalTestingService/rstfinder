@@ -1,3 +1,4 @@
+# noqa: D100
 import json
 import os
 import unittest
@@ -180,8 +181,9 @@ class TestRSTParse(unittest.TestCase):
 
     def test_from_constituency_trees_empty_input(self):
         """Test that ``from_constituency_trees()`` returns nothing with no trees."""
-        edu_tokens, rst_trees = from_constituency_trees([],
-                                                        self.segmenter,
-                                                        self.rst_parser)
+        doc_dict, edu_tokens, rst_trees = from_constituency_trees([],
+                                                                  self.segmenter,
+                                                                  self.rst_parser)
+        eq_(doc_dict, [])
         eq_(edu_tokens, [])
         eq_(rst_trees, [])
