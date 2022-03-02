@@ -11,10 +11,10 @@ export NLTK_DATA="${NLPTOOLS}/nltk_data"
 export ENVFILE="bamboo_ci/ci_env.yaml"
 
 # remove the conda environment if it already exists
-[[ -d "${CONDA_ENV_PATH}" ]] && /opt/python/conda_default/bin/conda env remove -p "${CONDA_ENV_PATH}"
+[[ -d "${CONDA_ENV_PATH}" ]] && /opt/python/conda_default/bin/conda env remove -p "${CONDA_ENV_PATH}" -y
 
 # create the conda environment using the environment.yaml file
-/opt/python/conda_default/bin/conda env create -f "${ENVFILE}" -p "${CONDA_ENV_PATH}" -v
+/opt/python/conda_default/bin/conda env create -f "${ENVFILE}" -p "${CONDA_ENV_PATH}"
 
 # install the rstfinder package in development mode
 "${CONDA_ENV_PATH}"/bin/pip install -e .
