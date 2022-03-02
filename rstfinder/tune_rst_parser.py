@@ -137,6 +137,9 @@ def prune_model(model_path, model_name):
     # refit the feature selector to expect the correctly-sized matrices
     model.feat_selector.fit(np.ones((1, model.model.coef_.shape[1])))
 
+    # refit the scaler to expect the correctly-sized matrices
+    model.scaler.fit(np.ones((1, model.model.coef_.shape[1])))
+
     # make the vectorizer return dense matrices since that is a bit faster
     model.feat_vectorizer.set_params(sparse=False)
 
