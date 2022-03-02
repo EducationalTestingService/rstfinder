@@ -12,7 +12,6 @@ import argparse
 import codecs
 import json
 import logging
-import re
 
 from nltk.tree import ParentedTree
 
@@ -189,7 +188,6 @@ def from_constituency_trees(tree_strings, segmenter, rst_parser):
             except (ValueError, TypeError):
                 raise ValueError(f"Invalid format: {tree_string}. Please check "
                                  f"that the tree is correctly formatted.")
-                return [], []
             else:
                 trees.append(tree)
 
