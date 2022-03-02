@@ -1,0 +1,14 @@
+dependencies:
+  - python=3.8
+  - pip
+  - numpy
+  - nltk
+  - cchardet
+  - crfpp==0.59
+  - skll>=2.5
+  - jinja2
+  - scikits-bootstrap
+  - nose
+  - coverage
+  - pip:
+    - python-zpar

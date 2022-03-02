@@ -8,7 +8,7 @@ CONDA_ENV_PATH="${CURRDIR}"/../parserdev
 export NLPTOOLS="/home/nlp-text/dynamic/NLPTools"
 export ZPAR_MODEL_DIR="${NLPTOOLS}/zpar/models/english"
 export NLTK_DATA="${NLPTOOLS}/nltk_data"
-export ENVFILE=".ci_support/3.6.yaml"
+export ENVFILE="bamboo_ci/ci_env.yaml"
 
 # remove the conda environment if it already exists
 [[ -d "${CONDA_ENV_PATH}" ]] && /opt/python/conda_default/bin/conda env remove -p "${CONDA_ENV_PATH}"
