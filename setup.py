@@ -8,7 +8,8 @@ exec(compile(open('rstfinder/version.py').read(), 'rstfinder/version.py', 'exec'
 # (we use the above instead of execfile for Python 3.x compatibility)
 
 
-def readme():  # noqa: D103
+def readme():
+    """Return README.md from disk."""
     with open('README.md') as f:
         return f.read()
 
@@ -18,7 +19,7 @@ def requirements():  # noqa: D103
 
 
 setup(name='rstfinder',
-      version=__version__,  # noqa: F821
+      version=__version__,
       description=('A discourse parser and segmenter for use with the '
                    'Rhetorical Structure Theory Discourse Treebank '
                    '(https://catalog.ldc.upenn.edu/LDC2002T07).'),
@@ -32,16 +33,16 @@ setup(name='rstfinder',
       packages=find_packages(exclude=['tests']),
       include_package_data=True,
       entry_points={'console_scripts': ['segment_document = rstfinder.segment_document:main',
-                                        'tune_segmentation_model = rstfinder.tune_segmentation_model:main',  # noqa: E501
-                                        'rst_parse = rstfinder.rst_parse:main',  # noqa: E501
+                                        'tune_segmentation_model = rstfinder.tune_segmentation_model:main',
+                                        'rst_parse = rstfinder.rst_parse:main',
                                         'tune_rst_parser = rstfinder.tune_rst_parser:main',
-                                        'convert_rst_discourse_tb = rstfinder.convert_rst_discourse_tb:main',  # noqa: E501
+                                        'convert_rst_discourse_tb = rstfinder.convert_rst_discourse_tb:main',
                                         'make_traindev_split = rstfinder.make_traindev_split:main',
                                         'rst_eval = rstfinder.rst_eval:main',
-                                        'extract_segmentation_features = rstfinder.extract_segmentation_features:main',  # noqa: E501
+                                        'extract_segmentation_features = rstfinder.extract_segmentation_features:main',
                                         'rst_parse_batch = rstfinder.rst_parse_batch:main',
-                                        'compute_bootstrap_from_predictions = rstfinder.utils.compute_bootstrap_from_predictions:main',  # noqa: E501
+                                        'compute_bootstrap_from_predictions = rstfinder.utils.compute_bootstrap_from_predictions:main',
                                         'try_head_rules = rstfinder.utils.try_head_rules:main',
-                                        'visualize_rst_tree = rstfinder.utils.visualize_rst_tree:main']},  # noqa: E501
+                                        'visualize_rst_tree = rstfinder.utils.visualize_rst_tree:main']},
       install_requires=requirements(),
       zip_safe=False)
