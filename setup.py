@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# noqa: D100
 
 from setuptools import find_packages, setup
 
@@ -8,11 +9,12 @@ exec(compile(open('rstfinder/version.py').read(), 'rstfinder/version.py', 'exec'
 
 
 def readme():
+    """Return README.md from disk."""
     with open('README.md') as f:
         return f.read()
 
 
-def requirements():
+def requirements():  # noqa: D103
     pass
 
 

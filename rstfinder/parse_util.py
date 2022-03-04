@@ -191,7 +191,7 @@ class SyntaxParserWrapper():
 
             if len(parse_trees) > 0:
                 starts_paragraph_list.append(True)
-                starts_paragraph_list.extend([False for t in parse_trees[1:]])
+                starts_paragraph_list.extend([False for _ in parse_trees[1:]])
                 trees.extend(parse_trees)
             else:
                 # TODO: add some sort of error flag to the dictionary

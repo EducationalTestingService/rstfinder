@@ -12,7 +12,6 @@ import argparse
 import codecs
 import json
 import logging
-import re
 
 from nltk.tree import ParentedTree
 
@@ -172,8 +171,8 @@ def from_constituency_trees(tree_strings, segmenter, rst_parser):
     """
     # return empty output if the list of trees is empty
     if len(tree_strings) == 0:
-        logging.warning(f"The input contained no trees.")
-        return [], []
+        logging.warning("The input contained no trees.")
+        return [], [], []
 
     # first convert each tree into a `ParentedTree` instance and figure
     # out which tree corresponds to a sentence that starts a new paragraph
@@ -189,7 +188,6 @@ def from_constituency_trees(tree_strings, segmenter, rst_parser):
             except (ValueError, TypeError):
                 raise ValueError(f"Invalid format: {tree_string}. Please check "
                                  f"that the tree is correctly formatted.")
-                return [], []
             else:
                 trees.append(tree)
 

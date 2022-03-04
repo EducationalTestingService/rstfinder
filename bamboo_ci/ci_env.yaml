@@ -1,14 +1,11 @@
-channels:
-  - conda-forge
-  - ets
 dependencies:
-  - python=3.7
+  - python=3.8
   - pip
   - numpy
   - nltk
   - cchardet
   - crfpp==0.59
-  - skll>=2.5
+  - skll==2.5
   - jinja2
   - scikits-bootstrap
   - nose

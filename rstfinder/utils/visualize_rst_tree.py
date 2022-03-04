@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 """
+Visualize parsed RST tree.
+
 This script generates an html file with a tree visualization, using d3.js.
 The template (template_visualize_rst_tree.html) is based off some D3.js
 examples:
@@ -23,7 +25,7 @@ functionality for computing the necessary paths is likely not available.
 import argparse
 import json
 import os
-from os.path import abspath, dirname, join
+from os.path import abspath, dirname
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -41,7 +43,7 @@ def convert_tree_json(input_json):
 
 
 def _convert_tree_json_helper(subtree, edus):
-    """Helper function for ``convert_tree_json()``."""
+    """Render text nodes in tree to help ``convert_tree_json()``."""
     if subtree.label() == "text":
         return {"name": edus[int(subtree[0])]}
     return {"name": subtree.label(),
@@ -79,7 +81,7 @@ def main():  # noqa: D103
             d3_js = ('<script type="text/javascript">{}</script>'
                      .format(d3fh.read()))
     else:
-        d3_js = '<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.13/d3.min.js"></script>'
+        d3_js = '<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.4.13/d3.min.js"></script>'  # noqa: E501
 
     html_output = tmpl_overview.render(tree_json=tree_json, d3_js=d3_js)
 

@@ -38,7 +38,7 @@ def main():  # noqa: D103
             for subtree in tree.subtrees():
                 subtree_label = subtree.label()
                 subtree_head_word = subtree.head_word()
-                indentation = ' '.join(['' for x in range(depth(subtree))])
+                indentation = ' '.join(['' for _ in range(depth(subtree))])
                 print(f"{indentation}{subtree_label}\t{subtree_head_word}")
 
 
