@@ -131,6 +131,9 @@ def prune_model(model_path, model_name):
     nonzero_feat_mask = ~np.all(model.model.coef_ == 0, axis=0)
     model.model.coef_ = model.model.coef_[:, nonzero_feat_mask]
 
+    # update `n_features_in_` attribute of the LogisticRegression estimator
+    model.model.n_features_in_ = model.model.coef_.shape[1]
+
     # remove the extra words from the feature vectorizer
     model.feat_vectorizer.restrict(nonzero_feat_mask)
 
