@@ -16,7 +16,7 @@ This repository contains the code for **RSTFinder** -- a discourse segmenter & s
 
 ## Installation
 
-RSTFinder currently works only on Linux and requires Python 3.6, 3.7, or 3.8. 
+RSTFinder currently works only on Linux and requires Python 3.7, 3.8, 3.9, or 3.10. Python 3.6 is not supported.
 
 The only way to install RSTFinder is by using the `conda` package manager. If you have already installed `conda`, you can skip straight to Step 2.
 
