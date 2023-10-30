@@ -48,3 +48,9 @@ test-3.10:
     PYVERSION: "3.10"
   stage: "test"
 
+# python 3.11 tests
+test-3.11:
+  extends: ".runtest"
+  variables:
+    PYVERSION: "3.11"
+  stage: "test"
