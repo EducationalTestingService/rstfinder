@@ -13,5 +13,6 @@ dependencies:
   - scikits-bootstrap
   - nose
   - coverage
+  - gxx=8.5.0
   - pip:
     - python-zpar
